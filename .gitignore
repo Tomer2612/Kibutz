@@ -63,6 +63,10 @@ lib-cov/
 .env
 .env.*
 !.env.example
+google_client_secret_*.json
+credentials.json
+*.pem
+*.p12
 
 # -----------------------------
 # OS / Editor junk
