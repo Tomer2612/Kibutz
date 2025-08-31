@@ -1,0 +1,46 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password String
+  createdAt DateTime @default(now())
+
+  communities    Community[]
+  posts Post[]
+}
+
+model Community {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  ownerId     String
+  createdAt   DateTime @default(now())
+
+  owner User @relation(fields: [ownerId], references: [id])
+
+  @@map("communities")
+  posts Post[]
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  content     String
+  createdAt   DateTime @default(now())
+  authorId    String
+  communityId String
+
+  author    User      @relation(fields: [authorId], references: [id])
+  community Community @relation(fields: [communityId], references: [id])
+}
+

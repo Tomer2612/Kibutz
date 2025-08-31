@@ -1,0 +1,96 @@
+# -----------------------------
+# Node / Workspace basics
+# -----------------------------
+node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Logs & diagnostics
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+report.*.json
+
+# Caches & coverage
+.npm/
+.eslintcache
+.stylelintcache
+.node_repl_history
+.nyc_output/
+coverage/
+*.lcov
+.cache/
+.parcel-cache/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# -----------------------------
+# Framework build outputs
+# -----------------------------
+# Next.js
+.next/
+out/
+.vercel/
+
+# NestJS
+dist/
+
+# Generic build
+build/
+build/Release
+lib-cov/
+
+# Tooling / platforms
+.serverless/
+.dynamodb/
+.firebase/
+.vscode-test/
+
+# -----------------------------
+# Environment files
+# -----------------------------
+.env
+.env.*
+!.env.example
+
+# -----------------------------
+# OS / Editor junk
+# -----------------------------
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# -----------------------------
+# Optional stacks (safe to keep)
+# -----------------------------
+# Bower (legacy)
+bower_components/
+
+# Snowpack / JSPM (if ever used)
+jspm_packages/
+web_modules/
+
+# Static site / doc tools
+.docusaurus/
+.vuepress/dist
+.temp/
+.svelte-kit/
+**/.vitepress/dist
+**/.vitepress/cache
+
+# Prisma (generated) – adjust to your paths if needed
+generated/
+generated/prisma
