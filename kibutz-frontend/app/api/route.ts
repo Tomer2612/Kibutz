@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     const decoded = jwt.verify(token, 'supersecret') as { email: string };
     return NextResponse.json({ email: decoded.email, name: 'User from token' });
   } catch (err) {
+    console.error('JWT verification error:', err);
     return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
   }
 }

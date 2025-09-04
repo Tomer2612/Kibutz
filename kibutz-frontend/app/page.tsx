@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import Image from 'next/image';
 
 interface JwtPayload {
   email: string;
@@ -105,7 +106,7 @@ export default function Home() {
       {/* Community Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-6xl px-4 mx-auto pb-10">
         <div className="border p-4 rounded shadow bg-white text-right">
-          <img src="/images/yoga.jpeg" alt="יוגה" className="w-full h-48 object-cover rounded mb-2" />
+          <Image src="/images/yoga.jpeg" alt="יוגה" width={600} height={300} className="w-full h-48 object-cover rounded mb-2" />
           <h2 className="font-bold text-lg mb-1">יוגה ונשימות</h2>
           <p className="text-sm text-gray-700 mb-2">
             כאן נתרגל, נתחזק וננשום יחד. קהילה של אנשים שמשתפים איזון, שלווה וזמן לעצמם.
@@ -117,7 +118,7 @@ export default function Home() {
         </div>
 
         <div className="border p-4 rounded shadow bg-white text-right">
-          <img src="/images/controller.jpeg" alt="גיימרים עצבניים" className="w-full h-48 object-cover rounded mb-2" />
+          <Image src="/images/controller.jpeg" alt="גיימרים עצבניים" width={600} height={300} className="w-full h-48 object-cover rounded mb-2" />
           <h2 className="font-bold text-lg mb-1">גיימרים עצבניים</h2>
           <p className="text-sm text-gray-700 mb-2">
             קהילת גיימרים לקשוחים בלבד. דיזינג, טורנירים, וכל מה שקשור למקלדות שבורות.
@@ -129,7 +130,7 @@ export default function Home() {
         </div>
 
         <div className="border p-4 rounded shadow bg-white text-right">
-          <img src="/images/cooking.jpeg" alt="אפייה ובישול" className="w-full h-48 object-cover rounded mb-2" />
+          <Image src="/images/cooking.jpeg" alt="אפייה ובישול" width={600} height={300} className="w-full h-48 object-cover rounded mb-2" />
           <h2 className="font-bold text-lg mb-1">אפייה ובישול</h2>
           <p className="text-sm text-gray-700 mb-2">
             קהילה לשפים, חובבים ומקצוענים. משתפים מתכונים, טיפים ותמונות של קינוחים.

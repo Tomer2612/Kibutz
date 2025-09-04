@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
+import Image from 'next/image';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -51,11 +52,7 @@ export default function SignupPage() {
             href="http://localhost:4000/auth/google"
             className="flex items-center justify-center gap-2 p-2 border border-gray-300 rounded text-sm hover:bg-gray-50"
           >
-            <img
-              src="https://developers.google.com/identity/images/g-logo.png"
-              alt="Google"
-              className="w-5 h-5"
-            />
+            <Image src="https://developers.google.com/identity/images/g-logo.png" alt="Google" width={600} height={300} className="w-5 h-5" />
             הצטרפות מהירה עם Google
           </a>
 
