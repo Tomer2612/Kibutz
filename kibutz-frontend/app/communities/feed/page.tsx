@@ -73,7 +73,7 @@ interface Post {
   _count?: {
     likes: number;
     comments: number;
-    savedBy: number;
+    savedBy?: number;
   };
   isLiked?: boolean;
   isSaved?: boolean;
