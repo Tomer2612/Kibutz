@@ -98,3 +98,6 @@ web_modules/
 # Prisma (generated) – adjust to your paths if needed
 generated/
 generated/prisma
+
+# Uploads (user-generated content)
+uploads/

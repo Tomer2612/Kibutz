@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,14 +8,16 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  password String
-  createdAt DateTime @default(now())
-
-  communities    Community[]
-  posts Post[]
+  id          String      @id @default(cuid())
+  email       String      @unique
+  name        String
+  password    String
+  createdAt   DateTime    @default(now())
+  posts       Post[]
+  communities Community[]
+  likes       Like[]
+  comments    Comment[]
+  savedPosts  SavedPost[]
 }
 
 model Community {
@@ -26,21 +26,65 @@ model Community {
   description String
   ownerId     String
   createdAt   DateTime @default(now())
-
-  owner User @relation(fields: [ownerId], references: [id])
+  image       String?
+  topic       String?
+  memberCount Int      @default(0)
+  posts       Post[]
+  owner       User     @relation(fields: [ownerId], references: [id])
 
   @@map("communities")
-  posts Post[]
 }
 
 model Post {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
+  title       String?
   content     String
-  createdAt   DateTime @default(now())
+  image       String?
+  fileUrl     String?
+  fileName    String?
+  linkUrl     String?
+  createdAt   DateTime    @default(now())
   authorId    String
   communityId String
-
-  author    User      @relation(fields: [authorId], references: [id])
-  community Community @relation(fields: [communityId], references: [id])
+  author      User        @relation(fields: [authorId], references: [id])
+  community   Community   @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  likes       Like[]
+  comments    Comment[]
+  savedBy     SavedPost[]
 }
 
+model Like {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String
+  postId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("likes")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  userId    String
+  postId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model SavedPost {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String
+  postId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("saved_posts")
+}

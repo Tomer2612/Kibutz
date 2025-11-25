@@ -1,3 +1,4 @@
+// @ts-expect-error - Next.js handles CSS imports at runtime
 import './globals.css';
 import type { Metadata } from 'next';
 
@@ -13,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="he" dir="rtl">
-      <body className="bg-gray-50 text-right font-sans antialiased">
+      <body className="bg-gray-100 text-right font-sans antialiased min-h-screen">
         {children}
       </body>
     </html>
