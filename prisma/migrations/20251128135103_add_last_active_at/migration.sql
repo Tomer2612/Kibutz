@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "public"."User" ADD COLUMN     "lastActiveAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaUsers, FaFileAlt, FaImage, FaTags } from 'react-icons/fa';
+import { FaUsers, FaFileAlt, FaImage, FaTags, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar } from 'react-icons/fa';
 import { TopicIcon, COMMUNITY_TOPICS } from '../../lib/topicIcons';
 
 interface JwtPayload {
@@ -12,6 +12,12 @@ interface JwtPayload {
   sub: string;
   iat: number;
   exp: number;
+}
+
+interface ImageFile {
+  file: File;
+  preview: string;
+  isPrimary: boolean;
 }
 
 export default function CreateCommunityPage() {
@@ -23,6 +29,18 @@ export default function CreateCommunityPage() {
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  
+  // Social links
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [whatsappUrl, setWhatsappUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  
+  // Images
+  const [images, setImages] = useState<ImageFile[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -34,11 +52,64 @@ export default function CreateCommunityPage() {
     try {
       const decoded = jwtDecode<JwtPayload>(token);
       setUserEmail(decoded.email);
+      
+      // Fetch user profile
+      fetch('http://localhost:4000/users/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) setUserProfile({ name: data.name, profileImage: data.profileImage });
+        })
+        .catch(console.error);
     } catch (e) {
       console.error('Invalid token:', e);
       router.push('/login');
     }
   }, [router]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    const newImages: ImageFile[] = [];
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newImage: ImageFile = {
+          file,
+          preview: reader.result as string,
+          isPrimary: images.length === 0 && newImages.length === 0, // First image is primary
+        };
+        setImages(prev => [...prev, newImage]);
+      };
+      reader.readAsDataURL(file);
+      newImages.push({ file, preview: '', isPrimary: false }); // temp tracking
+    });
+    
+    // Clear the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      // If we removed the primary, make first one primary
+      if (prev[index].isPrimary && updated.length > 0) {
+        updated[0].isPrimary = true;
+      }
+      return updated;
+    });
+  };
+
+  const setPrimaryImage = (index: number) => {
+    setImages(prev => prev.map((img, i) => ({
+      ...img,
+      isPrimary: i === index,
+    })));
+  };
 
   const handleCreateCommunity = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,11 +135,23 @@ export default function CreateCommunityPage() {
       formData.append('description', description);
       formData.append('topic', topic);
       
-      // Get the file input element
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (fileInput?.files?.[0]) {
-        formData.append('image', fileInput.files[0]);
+      // Social links
+      if (youtubeUrl) formData.append('youtubeUrl', youtubeUrl);
+      if (whatsappUrl) formData.append('whatsappUrl', whatsappUrl);
+      if (facebookUrl) formData.append('facebookUrl', facebookUrl);
+      if (instagramUrl) formData.append('instagramUrl', instagramUrl);
+      
+      // Primary image
+      const primaryImage = images.find(img => img.isPrimary);
+      if (primaryImage) {
+        formData.append('image', primaryImage.file);
       }
+      
+      // Gallery images (non-primary)
+      const galleryImages = images.filter(img => !img.isPrimary);
+      galleryImages.forEach(img => {
+        formData.append('galleryImages', img.file);
+      });
 
       const res = await fetch('http://localhost:4000/communities', {
         method: 'POST',
@@ -105,8 +188,8 @@ export default function CreateCommunityPage() {
 
   if (!userEmail) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-br from-blue-300 to-green-100">
-        <p>מתחברים...</p>
+      <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-gray-100">
+        <p className="text-gray-600">מתחברים...</p>
       </main>
     );
   }
@@ -114,20 +197,59 @@ export default function CreateCommunityPage() {
   return (
     <main className="min-h-screen bg-gray-100 text-right">
       {/* Header */}
-      <header dir="rtl" className="flex items-center justify-between px-8 py-6 bg-white border-b border-gray-200">
-        <Link href="/" className="text-2xl font-bold text-black hover:opacity-75 transition">
+      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
           Kibutz
         </Link>
-        <div className="flex gap-4 items-center">
-          <span className="text-sm text-gray-600">
-            {userEmail}
-          </span>
+        <div className="relative">
           <button
-            onClick={handleLogout}
-            className="bg-gray-200 text-black px-6 py-2.5 rounded-lg font-semibold hover:bg-gray-300 transition"
+            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+            className="relative focus:outline-none"
           >
-            התנתקות
+            {userProfile?.profileImage ? (
+              <img 
+                src={`http://localhost:4000${userProfile.profileImage}`}
+                alt={userProfile.name || 'User'}
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
+                {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
           </button>
+          
+          {profileMenuOpen && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setProfileMenuOpen(false)}
+              />
+              <div className="absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                <button
+                  onClick={() => {
+                    setProfileMenuOpen(false);
+                    router.push('/settings');
+                  }}
+                  className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                >
+                  <FaCog className="w-4 h-4" />
+                  הגדרות
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    router.push('/');
+                  }}
+                  className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
+                >
+                  <FaSignOutAlt className="w-4 h-4" />
+                  התנתקות
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
@@ -214,20 +336,125 @@ export default function CreateCommunityPage() {
               </p>
             </div>
 
-            {/* Community Image */}
+            {/* Social Links */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                תמונת הקהילה (אופציונלי)
+                קישורים לרשתות חברתיות (אופציונלי)
               </label>
+              <div className="space-y-3">
+                <div className="relative">
+                  <FaYoutube className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500" />
+                  <input
+                    type="url"
+                    placeholder="קישור לערוץ YouTube"
+                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                  />
+                </div>
+                <div className="relative">
+                  <FaWhatsapp className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
+                  <input
+                    type="url"
+                    placeholder="קישור לקבוצת WhatsApp"
+                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
+                    value={whatsappUrl}
+                    onChange={(e) => setWhatsappUrl(e.target.value)}
+                  />
+                </div>
+                <div className="relative">
+                  <FaFacebook className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600" />
+                  <input
+                    type="url"
+                    placeholder="קישור לעמוד Facebook"
+                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
+                    value={facebookUrl}
+                    onChange={(e) => setFacebookUrl(e.target.value)}
+                  />
+                </div>
+                <div className="relative">
+                  <FaInstagram className="absolute right-3 top-1/2 -translate-y-1/2 text-pink-500" />
+                  <input
+                    type="url"
+                    placeholder="קישור לעמוד Instagram"
+                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
+                    value={instagramUrl}
+                    onChange={(e) => setInstagramUrl(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Community Images */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
+                תמונות הקהילה (אופציונלי)
+              </label>
+              <p className="text-xs text-gray-500 mb-3 text-right">
+                לחץ על הכוכב כדי לבחור תמונה ראשית. תמונות בגודל עד 5MB (JPG, PNG, GIF)
+              </p>
+              
+              {/* Image Grid */}
+              {images.length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+                  {images.map((img, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={img.preview}
+                        alt={`תמונה ${index + 1}`}
+                        className={`w-full h-24 object-cover rounded-lg border-2 ${
+                          img.isPrimary ? 'border-yellow-400' : 'border-gray-200'
+                        }`}
+                      />
+                      {img.isPrimary && (
+                        <div className="absolute top-1 right-1 bg-yellow-400 text-white text-xs px-1.5 py-0.5 rounded">
+                          ראשית
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPrimaryImage(index)}
+                          className={`p-1.5 rounded-full ${
+                            img.isPrimary ? 'bg-yellow-400 text-white' : 'bg-white text-gray-600 hover:text-yellow-500'
+                          }`}
+                          title="הגדר כראשית"
+                        >
+                          <FaStar className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="p-1.5 bg-white text-red-500 rounded-full hover:bg-red-50"
+                          title="הסר תמונה"
+                        >
+                          <FaTimes className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Upload Button */}
               <div className="relative">
-                <FaImage className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="image-upload"
                 />
+                <label
+                  htmlFor="image-upload"
+                  className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition"
+                >
+                  <FaImage className="text-gray-400" />
+                  <span className="text-gray-600">לחץ להעלאת תמונות</span>
+                </label>
               </div>
-              <p className="text-xs text-gray-500 mt-1">תמונה בגודל עד 5MB (JPG, PNG, GIF)</p>
             </div>
 
             {/* Message Display */}

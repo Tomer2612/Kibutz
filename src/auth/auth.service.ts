@@ -46,10 +46,45 @@ export class AuthService {
     return this.signToken(user.id, user.email);
   }
 
-  async loginWithGoogle(user: any) {
-  const payload = { email: user.email, sub: user.email };
-  return this.jwtService.sign(payload);
-}
+  async loginWithGoogle(googleUser: any) {
+    // Find user by email
+    let user = await this.prisma.user.findUnique({
+      where: { email: googleUser.email },
+    });
+
+    if (user) {
+      // User exists - update googleId and optionally profile image
+      const updateData: any = {};
+      if (!user.googleId) {
+        updateData.googleId = googleUser.email;
+      }
+      // Update profile image from Google if user doesn't have one
+      if (!user.profileImage && googleUser.picture) {
+        updateData.profileImage = googleUser.picture;
+      }
+      
+      if (Object.keys(updateData).length > 0) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+        });
+      }
+    } else {
+      // Create new user with Google
+      user = await this.prisma.user.create({
+        data: {
+          email: googleUser.email,
+          name: googleUser.name || googleUser.email.split('@')[0],
+          password: '', // No password for Google users
+          googleId: googleUser.email,
+          profileImage: googleUser.picture || null,
+        },
+      });
+    }
+
+    const payload = { email: user.email, sub: user.id };
+    return this.jwtService.sign(payload);
+  }
 
   private signToken(userId: string, email: string) {
     const payload = { sub: userId, email };

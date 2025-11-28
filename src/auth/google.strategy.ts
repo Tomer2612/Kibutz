@@ -15,11 +15,18 @@ constructor(private readonly configService: ConfigService) {
   });
 }
 
+  authenticate(req: any, options: any) {
+    options = options || {};
+    options.prompt = 'select_account';
+    super.authenticate(req, options);
+  }
+
   async validate(accessToken: string, refreshToken: string, profile: any, done: VerifyCallback): Promise<any> {
-    const { name, emails } = profile;
+    const { name, emails, photos } = profile;
     const user = {
       email: emails[0].value,
-      name: name.givenName,
+      name: name?.givenName || name?.familyName || emails[0].value.split('@')[0],
+      picture: photos?.[0]?.value || null,
       provider: 'google',
     };
     done(null, user);

@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../users/prisma.service';
 
 @Injectable()
@@ -11,10 +11,17 @@ export class CommunitiesService {
     ownerId: string,
     image?: string | null,
     topic?: string | null,
+    youtubeUrl?: string | null,
+    whatsappUrl?: string | null,
+    facebookUrl?: string | null,
+    instagramUrl?: string | null,
+    galleryImages?: string[],
   ) {
     try {
-      console.log('Creating community with:', { name, description, ownerId, image, topic });
-      return await this.prisma.community.create({
+      console.log('Creating community with:', { name, description, ownerId, image, topic, youtubeUrl, whatsappUrl, facebookUrl, instagramUrl, galleryImages });
+      
+      // Create community
+      const community = await this.prisma.community.create({
         data: { 
           name, 
           description, 
@@ -22,8 +29,24 @@ export class CommunitiesService {
           image: image || null,
           topic: topic || null,
           memberCount: 1,
+          youtubeUrl: youtubeUrl || null,
+          whatsappUrl: whatsappUrl || null,
+          facebookUrl: facebookUrl || null,
+          instagramUrl: instagramUrl || null,
+          galleryImages: galleryImages || [],
         } as any,
       });
+      
+      // Add owner as member with OWNER role
+      await this.prisma.communityMember.create({
+        data: {
+          userId: ownerId,
+          communityId: community.id,
+          role: 'OWNER',
+        },
+      });
+      
+      return community;
     } catch (err) {
       console.error('Community creation failed:', err);
       throw new InternalServerErrorException('Could not create community');
@@ -65,11 +88,16 @@ export class CommunitiesService {
 
   async update(
     id: string,
-    ownerId: string,
+    userId: string,
     name: string,
     description: string,
-    image?: string,
+    image?: string | null,
     topic?: string | null,
+    youtubeUrl?: string | null,
+    whatsappUrl?: string | null,
+    facebookUrl?: string | null,
+    instagramUrl?: string | null,
+    galleryImages?: string[],
   ) {
     try {
       const community = await this.prisma.community.findUnique({
@@ -80,16 +108,36 @@ export class CommunitiesService {
         throw new NotFoundException('Community not found');
       }
 
-      if ((community as any).ownerId !== ownerId) {
-        throw new InternalServerErrorException('Only community owner can update');
+      // Check if user has permission to edit (owner or manager)
+      const membership = await this.prisma.communityMember.findUnique({
+        where: { userId_communityId: { userId, communityId: id } },
+      });
+
+      if (!membership || (membership.role !== 'OWNER' && membership.role !== 'MANAGER')) {
+        throw new ForbiddenException('Only owners and managers can update the community');
       }
 
       const updateData: any = { name, description };
       if (image !== undefined) {
-        updateData.image = image;
+        updateData.image = image; // Can be null to remove, or a path to set
       }
       if (topic !== undefined) {
         updateData.topic = topic;
+      }
+      if (youtubeUrl !== undefined) {
+        updateData.youtubeUrl = youtubeUrl || null;
+      }
+      if (whatsappUrl !== undefined) {
+        updateData.whatsappUrl = whatsappUrl || null;
+      }
+      if (facebookUrl !== undefined) {
+        updateData.facebookUrl = facebookUrl || null;
+      }
+      if (instagramUrl !== undefined) {
+        updateData.instagramUrl = instagramUrl || null;
+      }
+      if (galleryImages !== undefined) {
+        updateData.galleryImages = galleryImages;
       }
 
       return await this.prisma.community.update({
@@ -105,9 +153,9 @@ export class CommunitiesService {
     }
   }
 
-  async delete(id: string, ownerId: string) {
+  async delete(id: string, userId: string) {
     try {
-      console.log(`Delete request - Community ID: ${id}, User ID: ${ownerId}`);
+      console.log(`Delete request - Community ID: ${id}, User ID: ${userId}`);
       
       const community = await this.prisma.community.findUnique({
         where: { id },
@@ -118,11 +166,14 @@ export class CommunitiesService {
         throw new NotFoundException('Community not found');
       }
 
-      console.log(`Community found - Owner: ${(community as any).ownerId}, Requester: ${ownerId}`);
+      // Check if user is owner
+      const membership = await this.prisma.communityMember.findUnique({
+        where: { userId_communityId: { userId, communityId: id } },
+      });
 
-      if ((community as any).ownerId !== ownerId) {
-        console.error(`Unauthorized delete attempt - Owner: ${(community as any).ownerId}, Requester: ${ownerId}`);
-        throw new InternalServerErrorException('Only community owner can delete');
+      if (!membership || membership.role !== 'OWNER') {
+        console.error(`Unauthorized delete attempt - User: ${userId} is not OWNER`);
+        throw new ForbiddenException('Only community owner can delete');
       }
 
       const deleted = await this.prisma.community.delete({
@@ -132,11 +183,486 @@ export class CommunitiesService {
       console.log(`Community deleted successfully: ${id}`);
       return deleted;
     } catch (err) {
-      if (err instanceof NotFoundException || err instanceof InternalServerErrorException) {
+      if (err instanceof NotFoundException || err instanceof ForbiddenException) {
         throw err;
       }
       console.error('Failed to delete community:', err);
       throw new InternalServerErrorException('Could not delete community');
     }
+  }
+
+  async joinCommunity(communityId: string, userId: string) {
+    try {
+      // Check if user is banned from this community
+      const activeBan = await this.prisma.communityBan.findUnique({
+        where: { userId_communityId: { userId, communityId } },
+      });
+
+      if (activeBan && activeBan.expiresAt > new Date()) {
+        const daysLeft = Math.ceil((activeBan.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        throw new ForbiddenException(`You are banned from this community. Ban expires in ${daysLeft} day(s).`);
+      }
+
+      // If ban has expired, delete it
+      if (activeBan && activeBan.expiresAt <= new Date()) {
+        await this.prisma.communityBan.delete({
+          where: { userId_communityId: { userId, communityId } },
+        });
+      }
+
+      // Check if already a member
+      const existing = await this.prisma.communityMember.findUnique({
+        where: {
+          userId_communityId: { userId, communityId },
+        },
+      });
+
+      if (existing) {
+        return { message: 'Already a member', isMember: true, role: existing.role };
+      }
+
+      // Add membership with USER role
+      const membership = await this.prisma.communityMember.create({
+        data: { userId, communityId, role: 'USER' },
+      });
+
+      // Update member count
+      await this.prisma.community.update({
+        where: { id: communityId },
+        data: { memberCount: { increment: 1 } },
+      });
+
+      return { message: 'Joined community', isMember: true, role: membership.role };
+    } catch (err) {
+      if (err instanceof ForbiddenException) {
+        throw err;
+      }
+      console.error('Failed to join community:', err);
+      throw new InternalServerErrorException('Could not join community');
+    }
+  }
+
+  async leaveCommunity(communityId: string, userId: string) {
+    try {
+      // Check if community owner
+      const community = await this.prisma.community.findUnique({
+        where: { id: communityId },
+      });
+
+      if (community && community.ownerId === userId) {
+        throw new InternalServerErrorException('Owner cannot leave their own community');
+      }
+
+      // Remove membership
+      const deleted = await this.prisma.communityMember.deleteMany({
+        where: { userId, communityId },
+      });
+
+      if (deleted.count > 0) {
+        // Update member count
+        await this.prisma.community.update({
+          where: { id: communityId },
+          data: { memberCount: { decrement: 1 } },
+        });
+      }
+
+      return { message: 'Left community', isMember: false };
+    } catch (err) {
+      if (err instanceof InternalServerErrorException) {
+        throw err;
+      }
+      console.error('Failed to leave community:', err);
+      throw new InternalServerErrorException('Could not leave community');
+    }
+  }
+
+  async checkMembership(communityId: string, userId: string) {
+    const membership = await this.prisma.communityMember.findUnique({
+      where: {
+        userId_communityId: { userId, communityId },
+      },
+    });
+
+    if (membership) {
+      return { 
+        isMember: true, 
+        role: membership.role,
+        isOwner: membership.role === 'OWNER',
+        isManager: membership.role === 'MANAGER',
+        canEdit: membership.role === 'OWNER' || membership.role === 'MANAGER',
+        canDelete: membership.role === 'OWNER',
+        canManageRoles: membership.role === 'OWNER',
+      };
+    }
+
+    return { 
+      isMember: false, 
+      role: null,
+      isOwner: false, 
+      isManager: false,
+      canEdit: false,
+      canDelete: false,
+      canManageRoles: false,
+    };
+  }
+
+  async updateMemberRole(communityId: string, targetUserId: string, newRole: 'MANAGER' | 'USER', requesterId: string) {
+    // Check if requester is owner
+    const requesterMembership = await this.prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: requesterId, communityId } },
+    });
+
+    if (!requesterMembership || requesterMembership.role !== 'OWNER') {
+      throw new ForbiddenException('Only owners can change member roles');
+    }
+
+    // Check target membership exists
+    const targetMembership = await this.prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: targetUserId, communityId } },
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundException('Member not found');
+    }
+
+    // Cannot change owner role
+    if (targetMembership.role === 'OWNER') {
+      throw new ForbiddenException('Cannot change owner role');
+    }
+
+    // Update role
+    const updated = await this.prisma.communityMember.update({
+      where: { userId_communityId: { userId: targetUserId, communityId } },
+      data: { role: newRole },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, profileImage: true },
+        },
+      },
+    });
+
+    return { message: 'Role updated', member: updated };
+  }
+
+  async removeMember(communityId: string, targetUserId: string, requesterId: string, banDays: number = 7) {
+    // Check if requester is owner or manager
+    const requesterMembership = await this.prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: requesterId, communityId } },
+    });
+
+    if (!requesterMembership || (requesterMembership.role !== 'OWNER' && requesterMembership.role !== 'MANAGER')) {
+      throw new ForbiddenException('Only owners and managers can remove members');
+    }
+
+    // Check target membership exists
+    const targetMembership = await this.prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: targetUserId, communityId } },
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundException('Member not found');
+    }
+
+    // Cannot remove owner
+    if (targetMembership.role === 'OWNER') {
+      throw new ForbiddenException('Cannot remove the owner');
+    }
+
+    // Managers cannot remove other managers
+    if (requesterMembership.role === 'MANAGER' && targetMembership.role === 'MANAGER') {
+      throw new ForbiddenException('Managers cannot remove other managers');
+    }
+
+    // Remove the member
+    await this.prisma.communityMember.delete({
+      where: { userId_communityId: { userId: targetUserId, communityId } },
+    });
+
+    // Create a ban record (default 7 days)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + banDays);
+    
+    await this.prisma.communityBan.upsert({
+      where: { userId_communityId: { userId: targetUserId, communityId } },
+      create: {
+        userId: targetUserId,
+        communityId,
+        expiresAt,
+        reason: 'Removed by community management',
+      },
+      update: {
+        bannedAt: new Date(),
+        expiresAt,
+        reason: 'Removed by community management',
+      },
+    });
+
+    // Update member count
+    await this.prisma.community.update({
+      where: { id: communityId },
+      data: { memberCount: { decrement: 1 } },
+    });
+
+    return { message: 'Member removed and banned for ' + banDays + ' days' };
+  }
+
+  async getUserMemberships(userId: string) {
+    const memberships = await this.prisma.communityMember.findMany({
+      where: { userId },
+      select: { communityId: true, role: true },
+    });
+
+    return memberships.map(m => m.communityId);
+  }
+
+  async getCommunityMembers(communityId: string) {
+    // Get the community
+    const community = await this.prisma.community.findUnique({
+      where: { id: communityId },
+    });
+
+    if (!community) {
+      throw new NotFoundException('Community not found');
+    }
+
+    // Get all members with roles
+    const memberships = await this.prisma.communityMember.findMany({
+      where: { communityId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            profileImage: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: [
+        { role: 'asc' }, // OWNER first, then MANAGER, then USER
+        { joinedAt: 'desc' },
+      ],
+    });
+
+    return memberships.map(m => ({
+      ...m.user,
+      joinedAt: m.joinedAt,
+      role: m.role,
+      isOwner: m.role === 'OWNER',
+      isManager: m.role === 'MANAGER',
+    }));
+  }
+
+  async getTopMembers(communityId: string, limit: number = 3) {
+    // Get the community to find the owner
+    const community = await this.prisma.community.findUnique({
+      where: { id: communityId },
+    });
+
+    if (!community) {
+      throw new NotFoundException('Community not found');
+    }
+
+    // Get all member IDs (owner + members)
+    const memberships = await this.prisma.communityMember.findMany({
+      where: { communityId },
+      select: { userId: true },
+    });
+    const memberIds = new Set([community.ownerId, ...memberships.map(m => m.userId)]);
+
+    // Initialize all members with 0 points
+    const pointsMap = new Map<string, number>();
+    for (const memberId of memberIds) {
+      pointsMap.set(memberId, 0);
+    }
+
+    // Get all posts in this community
+    const posts = await this.prisma.post.findMany({
+      where: { communityId },
+      select: {
+        authorId: true,
+        likes: { select: { userId: true } },
+        comments: { select: { userId: true } },
+      },
+    });
+
+    // Calculate points: post=5, comment=3, like=1
+    for (const post of posts) {
+      // 5 points for creating a post (only if member)
+      if (memberIds.has(post.authorId)) {
+        const currentPostPoints = pointsMap.get(post.authorId) || 0;
+        pointsMap.set(post.authorId, currentPostPoints + 5);
+      }
+
+      // 1 point for each like given (only if member)
+      for (const like of post.likes) {
+        if (memberIds.has(like.userId)) {
+          const currentLikePoints = pointsMap.get(like.userId) || 0;
+          pointsMap.set(like.userId, currentLikePoints + 1);
+        }
+      }
+
+      // 3 points for each comment (only if member)
+      for (const comment of post.comments) {
+        if (memberIds.has(comment.userId)) {
+          const currentCommentPoints = pointsMap.get(comment.userId) || 0;
+          pointsMap.set(comment.userId, currentCommentPoints + 3);
+        }
+      }
+    }
+
+    // Sort all members by points and take top N
+    const sortedMembers = Array.from(pointsMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit);
+
+    // Fetch user details
+    const userIds = sortedMembers.map(([userId]) => userId);
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        profileImage: true,
+      },
+    });
+
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    return sortedMembers.map(([userId, points], index) => {
+      const user = userMap.get(userId);
+      return {
+        rank: index + 1,
+        userId,
+        name: user?.name || 'Unknown',
+        email: user?.email || '',
+        profileImage: user?.profileImage || null,
+        points,
+      };
+    });
+  }
+
+  async getBannedUsers(communityId: string, requesterId: string) {
+    // Check if requester is owner or manager
+    const requesterMembership = await this.prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: requesterId, communityId } },
+    });
+
+    if (!requesterMembership || (requesterMembership.role !== 'OWNER' && requesterMembership.role !== 'MANAGER')) {
+      throw new ForbiddenException('Only owners and managers can view banned users');
+    }
+
+    // Get all active bans
+    const bans = await this.prisma.communityBan.findMany({
+      where: { 
+        communityId,
+        expiresAt: { gt: new Date() }, // Only active bans
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profileImage: true,
+          },
+        },
+      },
+      orderBy: { bannedAt: 'desc' },
+    });
+
+    return bans.map(ban => ({
+      id: ban.id,
+      userId: ban.userId,
+      user: ban.user,
+      reason: ban.reason,
+      bannedAt: ban.bannedAt,
+      expiresAt: ban.expiresAt,
+      daysLeft: Math.ceil((ban.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+    }));
+  }
+
+  async liftBan(communityId: string, oderId: string, requesterId: string) {
+    // Check if requester is owner or manager
+    const requesterMembership = await this.prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: requesterId, communityId } },
+    });
+
+    if (!requesterMembership || (requesterMembership.role !== 'OWNER' && requesterMembership.role !== 'MANAGER')) {
+      throw new ForbiddenException('Only owners and managers can lift bans');
+    }
+
+    // Find the ban
+    const ban = await this.prisma.communityBan.findFirst({
+      where: { id: oderId, communityId },
+    });
+
+    if (!ban) {
+      throw new NotFoundException('Ban not found');
+    }
+
+    // Delete the ban
+    await this.prisma.communityBan.delete({
+      where: { id: oderId },
+    });
+
+    return { message: 'Ban lifted successfully' };
+  }
+
+  async getCommunityManagers(communityId: string) {
+    // Get the community
+    const community = await this.prisma.community.findUnique({
+      where: { id: communityId },
+    });
+
+    if (!community) {
+      throw new NotFoundException('Community not found');
+    }
+
+    // Get owners and managers
+    const memberships = await this.prisma.communityMember.findMany({
+      where: { 
+        communityId,
+        role: { in: ['OWNER', 'MANAGER'] },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return memberships.map(m => ({
+      id: m.user.id,
+      name: m.user.name,
+      email: m.user.email,
+      role: m.role,
+    }));
+  }
+
+  async getOnlineMembersCount(communityId: string) {
+    // Consider users "online" if they were active in the last 5 minutes AND showOnline is true
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+    // Count members of this community who have been active recently and want to show online
+    const onlineCount = await this.prisma.communityMember.count({
+      where: {
+        communityId,
+        user: {
+          showOnline: true,
+          lastActiveAt: {
+            gte: fiveMinutesAgo,
+          },
+        },
+      },
+    });
+
+    return { onlineCount };
   }
 }

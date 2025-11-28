@@ -8,31 +8,77 @@ datasource db {
 }
 
 model User {
-  id          String      @id @default(cuid())
-  email       String      @unique
-  name        String
-  password    String
-  createdAt   DateTime    @default(now())
-  posts       Post[]
-  communities Community[]
-  likes       Like[]
-  comments    Comment[]
-  savedPosts  SavedPost[]
+  id           String            @id @default(cuid())
+  email        String            @unique
+  name         String
+  password     String
+  profileImage String?
+  googleId     String?           @unique
+  createdAt    DateTime          @default(now())
+  lastActiveAt DateTime?         @default(now())
+  showOnline   Boolean           @default(true)
+  posts        Post[]
+  communities  Community[]
+  likes        Like[]
+  comments     Comment[]
+  savedPosts   SavedPost[]
+  memberships  CommunityMember[]
+  bans         CommunityBan[]
 }
 
 model Community {
-  id          String   @id @default(cuid())
-  name        String
-  description String
-  ownerId     String
-  createdAt   DateTime @default(now())
-  image       String?
-  topic       String?
-  memberCount Int      @default(0)
-  posts       Post[]
-  owner       User     @relation(fields: [ownerId], references: [id])
+  id            String            @id @default(cuid())
+  name          String
+  description   String
+  ownerId       String
+  createdAt     DateTime          @default(now())
+  image         String?
+  topic         String?
+  memberCount   Int               @default(0)
+  youtubeUrl    String?
+  whatsappUrl   String?
+  facebookUrl   String?
+  instagramUrl  String?
+  galleryImages String[]
+  posts         Post[]
+  owner         User              @relation(fields: [ownerId], references: [id])
+  members       CommunityMember[]
+  bans          CommunityBan[]
 
   @@map("communities")
+}
+
+model CommunityMember {
+  id          String         @id @default(cuid())
+  userId      String
+  communityId String
+  role        MemberRole     @default(USER)
+  joinedAt    DateTime       @default(now())
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community   Community      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, communityId])
+  @@map("community_members")
+}
+
+model CommunityBan {
+  id          String    @id @default(cuid())
+  userId      String
+  communityId String
+  bannedAt    DateTime  @default(now())
+  expiresAt   DateTime
+  reason      String?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, communityId])
+  @@map("community_bans")
+}
+
+enum MemberRole {
+  OWNER
+  MANAGER
+  USER
 }
 
 model Post {

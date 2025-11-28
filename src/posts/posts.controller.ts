@@ -2,6 +2,7 @@ import { Controller, Post, Body, Param, UseGuards, Req, Get, Delete, Patch, Quer
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
+import type { Multer } from 'multer';
 import { createReadStream, existsSync } from 'fs';
 import { Response } from 'express';
 import { PostsService } from './posts.service';
@@ -45,7 +46,7 @@ export class PostsController {
     @Param('communityId') communityId: string,
     @Req() req,
     @Body() body: { content: string; title?: string; linkUrl?: string },
-    @UploadedFile() file?: Express.Multer.File
+    @UploadedFile() file?: Multer.File
   ) {
     const userId = req.user.userId;
     
@@ -105,7 +106,7 @@ export class PostsController {
     @Param('postId') postId: string,
     @Req() req,
     @Body() body: { content: string; title?: string; linkUrl?: string; removeImage?: string; removeFile?: string; removeLink?: string },
-    @UploadedFile() file?: Express.Multer.File
+    @UploadedFile() file?: Multer.File
   ) {
     const userId = req.user.userId;
     

@@ -31,6 +31,9 @@ import {
   FaDownload,
   FaCheck,
   FaExternalLinkAlt,
+  FaCog,
+  FaSignOutAlt,
+  FaSearch,
 } from 'react-icons/fa';
 import { TopicIcon } from '../../lib/topicIcons';
 
@@ -53,6 +56,7 @@ interface Comment {
     id: string;
     email: string;
     name: string;
+    profileImage?: string | null;
   };
 }
 
@@ -69,6 +73,7 @@ interface Post {
     id: string;
     email: string;
     name: string;
+    profileImage?: string | null;
   };
   _count?: {
     likes: number;
@@ -86,6 +91,15 @@ interface JwtPayload {
   exp: number;
 }
 
+interface TopMember {
+  rank: number;
+  userId: string;
+  name: string;
+  email: string;
+  profileImage: string | null;
+  points: number;
+}
+
 // NAV_LINKS will be generated dynamically based on communityId
 
 export default function CommunityFeedPage() {
@@ -95,6 +109,7 @@ export default function CommunityFeedPage() {
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(initialCommunityId);
   const [community, setCommunity] = useState<Community | null>(null);
@@ -123,6 +138,8 @@ export default function CommunityFeedPage() {
   
   // Filter state
   const [showSavedOnly, setShowSavedOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchInput, setShowSearchInput] = useState(false);
   
   // Comments state
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
@@ -131,6 +148,15 @@ export default function CommunityFeedPage() {
   const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentContent, setEditCommentContent] = useState('');
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isMember, setIsMember] = useState<boolean | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [isManager, setIsManager] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
+  const [userMemberships, setUserMemberships] = useState<string[]>([]);
+  const [topMembers, setTopMembers] = useState<TopMember[]>([]);
+  const [onlineCount, setOnlineCount] = useState<number>(0);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -139,6 +165,25 @@ export default function CommunityFeedPage() {
         const decoded = jwtDecode<JwtPayload>(token);
         setUserEmail(decoded.email);
         setUserId(decoded.sub);
+        
+        // Fetch user profile and memberships
+        fetch('http://localhost:4000/users/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then(res => res.ok ? res.json() : null)
+          .then(data => {
+            if (data) setUserProfile({ name: data.name, profileImage: data.profileImage });
+          });
+        
+        // Fetch user's community memberships
+        fetch('http://localhost:4000/communities/user/memberships', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then(res => res.ok ? res.json() : [])
+          .then(data => {
+            setUserMemberships(data);
+          })
+          .catch(console.error);
       } catch (e) {
         console.error('Invalid token:', e);
       }
@@ -171,8 +216,52 @@ export default function CommunityFeedPage() {
         return;
       }
 
+      const token = localStorage.getItem('token');
+      
       try {
         setLoading(true);
+        
+        // First check membership
+        if (token) {
+          const membershipRes = await fetch(
+            `http://localhost:4000/communities/${selectedCommunityId}/membership`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (membershipRes.ok) {
+            const membershipData = await membershipRes.json();
+            setIsMember(membershipData.isMember);
+            setIsOwner(membershipData.isOwner || false);
+            setIsManager(membershipData.isManager || false);
+            setCanEdit(membershipData.canEdit || false);
+            setCanDelete(membershipData.canDelete || false);
+            
+            // If not a member, don't fetch posts
+            if (!membershipData.isMember) {
+              const communityRes = await fetch(`http://localhost:4000/communities/${selectedCommunityId}`);
+              if (communityRes.ok) {
+                setCommunity(await communityRes.json());
+              }
+              setPosts([]);
+              setLoading(false);
+              return;
+            }
+          }
+        } else {
+          // Not logged in - can't be a member
+          setIsMember(false);
+          setIsOwner(false);
+          setIsManager(false);
+          setCanEdit(false);
+          setCanDelete(false);
+          const communityRes = await fetch(`http://localhost:4000/communities/${selectedCommunityId}`);
+          if (communityRes.ok) {
+            setCommunity(await communityRes.json());
+          }
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+        
         const [communityRes, postsRes] = await Promise.all([
           fetch(`http://localhost:4000/communities/${selectedCommunityId}`),
           fetch(`http://localhost:4000/posts/community/${selectedCommunityId}${userId ? `?userId=${userId}` : ''}`),
@@ -188,6 +277,35 @@ export default function CommunityFeedPage() {
         } else {
           setPosts([]);
         }
+
+        // Fetch top members
+        if (token) {
+          try {
+            const topMembersRes = await fetch(
+              `http://localhost:4000/communities/${selectedCommunityId}/top-members`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (topMembersRes.ok) {
+              const topMembersData = await topMembersRes.json();
+              setTopMembers(topMembersData);
+            }
+          } catch (err) {
+            console.error('Error fetching top members:', err);
+          }
+        }
+
+        // Fetch online members count
+        try {
+          const onlineRes = await fetch(
+            `http://localhost:4000/communities/${selectedCommunityId}/online-count`
+          );
+          if (onlineRes.ok) {
+            const onlineData = await onlineRes.json();
+            setOnlineCount(onlineData.onlineCount);
+          }
+        } catch (err) {
+          console.error('Error fetching online count:', err);
+        }
       } catch (err) {
         console.error('Error loading community feed:', err);
         setCommunity(null);
@@ -198,6 +316,28 @@ export default function CommunityFeedPage() {
     };
 
     fetchCommunityDetails();
+  }, [selectedCommunityId, userId]);
+
+  // Refresh online count every 30 seconds
+  useEffect(() => {
+    if (!selectedCommunityId) return;
+    
+    const refreshOnlineCount = async () => {
+      try {
+        const onlineRes = await fetch(
+          `http://localhost:4000/communities/${selectedCommunityId}/online-count`
+        );
+        if (onlineRes.ok) {
+          const onlineData = await onlineRes.json();
+          setOnlineCount(onlineData.onlineCount);
+        }
+      } catch (err) {
+        // Silently ignore
+      }
+    };
+
+    const interval = setInterval(refreshOnlineCount, 30000); // 30 seconds
+    return () => clearInterval(interval);
   }, [selectedCommunityId]);
 
   const handleCreatePost = async (e: React.FormEvent) => {
@@ -616,8 +756,6 @@ export default function CommunityFeedPage() {
     }
   };
 
-  const isOwner = userId && community && community.ownerId === userId;
-
   if (!selectedCommunityId && !loading) {
     return (
       <main className="min-h-screen bg-gray-100 flex items-center justify-center text-gray-600">
@@ -636,7 +774,7 @@ export default function CommunityFeedPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white text-right">
+    <main className="min-h-screen bg-gray-100 text-right">
       {/* Header with community picker */}
       <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
         {/* Right side of screen (RTL first): Kibutz Logo + Community picker */}
@@ -646,40 +784,45 @@ export default function CommunityFeedPage() {
           </Link>
           <div className="relative flex items-center gap-2">
             <TopicIcon topic={community?.topic} size="md" />
-            <select
-              value={selectedCommunityId || ''}
-              onChange={(e) => setSelectedCommunityId(e.target.value)}
-              className="border-none text-sm bg-transparent focus:outline-none font-medium text-black appearance-none cursor-pointer pl-5"
-            >
-              {communities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <svg className="w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            <div className="relative">
+              <select
+                value={selectedCommunityId || ''}
+                onChange={(e) => setSelectedCommunityId(e.target.value)}
+                className="border-none text-sm bg-transparent focus:outline-none font-medium text-black appearance-none cursor-pointer pr-1 pl-6"
+              >
+                {communities
+                  .filter((c) => userMemberships.includes(c.id) || c.id === selectedCommunityId)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
+              <svg className="w-4 h-4 text-gray-400 pointer-events-none absolute left-0 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
         </div>
 
         {/* Center: Nav links */}
-        <nav className="flex items-center gap-8">
+        <nav className="flex items-center gap-4">
           {[
             { label: 'עמוד בית', href: `/communities/feed?communityId=${selectedCommunityId}`, active: true },
             { label: 'קורס', href: '#' },
-            { label: 'חברי קהילה', href: '#' },
+            { label: 'חברי קהילה', href: `/communities/${selectedCommunityId}/members` },
             { label: 'יומן', href: '#' },
             { label: 'לוח תוצאות', href: '#' },
-            { label: 'אודות', href: `/communities/feed/about?communityId=${selectedCommunityId}` },
+            { label: 'אודות', href: `/communities/${selectedCommunityId}/about` },
+            ...((isOwner || isManager) ? [{ label: 'ניהול', href: `/communities/${selectedCommunityId}/manage` }] : []),
           ].map((link) => (
             <Link
               key={link.label}
               href={link.href}
-              className={`text-sm transition ${
+              className={`text-sm transition px-3 py-1.5 rounded-full ${
                 link.active
-                  ? 'text-black font-medium border-b-2 border-black pb-1'
-                  : 'text-gray-500 hover:text-black'
+                  ? 'bg-gray-200 text-black font-medium'
+                  : 'text-gray-500 hover:text-black hover:bg-gray-50'
               }`}
             >
               {link.label}
@@ -687,14 +830,118 @@ export default function CommunityFeedPage() {
           ))}
         </nav>
 
-        {/* Left side of screen (RTL last): Search */}
-        <div className="flex items-center gap-2 text-gray-400 cursor-pointer hover:text-gray-600">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <span className="text-sm">חיפוש</span>
+        {/* Left side of screen (RTL last): Search + User Avatar */}
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="חיפוש"
+              className="pl-4 pr-10 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:border-gray-400 w-32"
+            />
+          </div>
+          
+          {/* User Avatar with Dropdown */}
+          {userEmail && (
+            <div className="relative">
+              <button
+                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                className="relative focus:outline-none"
+              >
+                {userProfile?.profileImage ? (
+                  <img 
+                    src={`http://localhost:4000${userProfile.profileImage}`}
+                    alt={userProfile.name || 'User'}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
+                    {userProfile?.name?.charAt(0) || userEmail.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+              </button>
+              
+              {/* Dropdown Menu */}
+              {profileMenuOpen && (
+                <>
+                  {/* Backdrop to close menu */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setProfileMenuOpen(false)}
+                  />
+                  <div className="absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                    <button
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        router.push('/settings');
+                      }}
+                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                    >
+                      <FaCog className="w-4 h-4" />
+                      הגדרות
+                    </button>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('token');
+                        router.push('/');
+                      }}
+                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
+                    >
+                      <FaSignOutAlt className="w-4 h-4" />
+                      התנתקות
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
-      </header>      {/* Main 3-column layout */}
+      </header>
+
+      {/* Not a member message */}
+      {isMember === false && community && (
+        <section className="max-w-2xl mx-auto py-16 px-4 text-center">
+          <div className="bg-white rounded-2xl border border-gray-200 p-12 shadow-sm">
+            {community.image ? (
+              <img
+                src={`http://localhost:4000${community.image}`}
+                alt={community.name}
+                className="w-32 h-32 rounded-full object-cover mx-auto mb-6 border-4 border-gray-100"
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-green-100 mx-auto mb-6 flex items-center justify-center border-4 border-gray-100">
+                <FaUsers className="w-12 h-12 text-gray-400" />
+              </div>
+            )}
+            <h1 className="text-3xl font-bold text-black mb-3">{community.name}</h1>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">{community.description}</p>
+            <div className="flex items-center justify-center gap-4 text-sm text-gray-500 mb-8">
+              <span>{community.memberCount ?? 0} חברים</span>
+              {community.topic && (
+                <>
+                  <span>•</span>
+                  <span>{community.topic}</span>
+                </>
+              )}
+            </div>
+            
+            <p className="text-gray-600 mb-6">על מנת להצטרף לקהילה, יש לעשות זאת מהעמוד הראשי</p>
+            
+            <Link 
+              href="/"
+              className="bg-black text-white px-8 py-3 rounded-xl font-semibold hover:opacity-90 transition inline-block"
+            >
+              חזרה לעמוד הראשי
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Main 3-column layout - only show if member */}
+      {isMember !== false && (
       <section className="max-w-7xl mx-auto py-6 px-4">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)_220px]">
           {/* LEFT: White sidebar tabs */}
@@ -771,15 +1018,6 @@ export default function CommunityFeedPage() {
               </div>
             </div>
 
-            {/* ניהול הקהילה for owners */}
-            {isOwner && (
-              <button
-                onClick={() => router.push(`/communities/${selectedCommunityId}`)}
-                className="w-full bg-black text-white font-semibold rounded-xl px-4 py-3"
-              >
-                ניהול הקהילה
-              </button>
-            )}
           </div>
 
           {/* CENTER: Posts feed */}
@@ -788,7 +1026,17 @@ export default function CommunityFeedPage() {
             {userEmail && !showSavedOnly && (
               <div className="bg-white border border-gray-200 rounded-2xl p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0" />
+                  {userProfile?.profileImage ? (
+                    <img 
+                      src={`http://localhost:4000${userProfile.profileImage}`}
+                      alt={userProfile.name || 'User'}
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center font-bold text-pink-600 flex-shrink-0">
+                      {userProfile?.name?.charAt(0) || userEmail.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <input
                     type="text"
                     value={newPostTitle}
@@ -913,8 +1161,21 @@ export default function CommunityFeedPage() {
                 <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-500">
                   טוען פוסטים...
                 </div>
-              ) : (showSavedOnly ? posts.filter(p => p.isSaved) : posts).length > 0 ? (
-                (showSavedOnly ? posts.filter(p => p.isSaved) : posts).map((post) => (
+              ) : (() => {
+                const filteredPosts = posts
+                  .filter(p => !showSavedOnly || p.isSaved)
+                  .filter(p => {
+                    if (!searchQuery.trim()) return true;
+                    const query = searchQuery.toLowerCase();
+                    return (
+                      p.content?.toLowerCase().includes(query) ||
+                      p.title?.toLowerCase().includes(query) ||
+                      p.author?.name?.toLowerCase().includes(query)
+                    );
+                  });
+                
+                return filteredPosts.length > 0 ? (
+                  filteredPosts.map((post) => (
                   <div key={post.id} className="bg-white border border-gray-200 rounded-2xl p-5">
                     {/* Post Header */}
                     <div className="flex items-start gap-3 mb-4">
@@ -924,9 +1185,17 @@ export default function CommunityFeedPage() {
                           {new Date(post.createdAt).toLocaleDateString('he-IL')} • פורסם במתכונים
                         </p>
                       </div>
-                      <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center font-bold text-pink-600">
-                        {post.author?.name?.charAt(0) || '?'}
-                      </div>
+                      {post.author?.profileImage ? (
+                        <img 
+                          src={`http://localhost:4000${post.author.profileImage}`} 
+                          alt={post.author.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center font-bold text-pink-600">
+                          {post.author?.name?.charAt(0) || '?'}
+                        </div>
+                      )}
                       
                       {/* Save button */}
                       {userEmail && (
@@ -1284,9 +1553,17 @@ export default function CommunityFeedPage() {
                             {postComments[post.id]?.length > 0 ? (
                               postComments[post.id].map((comment) => (
                                 <div key={comment.id} className="flex gap-2 items-start" dir="rtl">
-                                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 flex-shrink-0">
-                                    {comment.user?.name?.charAt(0) || '?'}
-                                  </div>
+                                  {comment.user?.profileImage ? (
+                                    <img 
+                                      src={`http://localhost:4000${comment.user.profileImage}`} 
+                                      alt={comment.user.name}
+                                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-xs font-bold text-pink-600 flex-shrink-0">
+                                      {comment.user?.name?.charAt(0) || '?'}
+                                    </div>
+                                  )}
                                   <div className="flex-1 bg-gray-50 rounded-lg p-3">
                                     <div className="flex items-center justify-between mb-1">
                                       <span className="font-medium text-sm text-black">
@@ -1387,7 +1664,17 @@ export default function CommunityFeedPage() {
                               placeholder="כתבו תגובה..."
                               className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black"
                             />
-                            <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+                            {userProfile?.profileImage ? (
+                              <img 
+                                src={`http://localhost:4000${userProfile.profileImage}`}
+                                alt={userProfile.name || 'User'}
+                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-xs font-bold text-pink-600 flex-shrink-0">
+                                {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1396,7 +1683,14 @@ export default function CommunityFeedPage() {
                 ))
               ) : (
                 <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-500">
-                  {showSavedOnly ? (
+                  {searchQuery.trim() ? (
+                    <div className="space-y-2">
+                      <svg className="w-8 h-8 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <p>לא נמצאו תוצאות עבור "{searchQuery}"</p>
+                    </div>
+                  ) : showSavedOnly ? (
                     <div className="space-y-2">
                       <FaRegBookmark className="w-8 h-8 mx-auto text-gray-300" />
                       <p>אין לכם פוסטים שמורים עדיין</p>
@@ -1406,12 +1700,26 @@ export default function CommunityFeedPage() {
                     'עדיין אין פוסטים בקהילה זו.'
                   )}
                 </div>
-              )}
+              );
+            })()}
             </div>
           </div>
 
           {/* RIGHT: Gray background info cards */}
           <div className="space-y-4 order-3 lg:order-3">
+            {/* Online Members */}
+            <div className="bg-[#F7F8FA] rounded-2xl p-5">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-500 rounded-full absolute top-0 left-0 animate-ping opacity-75"></div>
+                </div>
+                <span className="text-sm text-gray-600">
+                  <span className="font-semibold text-black">{onlineCount}</span> חברים מחוברים עכשיו
+                </span>
+              </div>
+            </div>
+
             {/* כללי הקהילה */}
             <div className="bg-[#F7F8FA] rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
@@ -1450,28 +1758,7 @@ export default function CommunityFeedPage() {
                 </svg>
                 <h3 className="font-semibold text-black">אירועים קרובים</h3>
               </div>
-              <div className="space-y-4 text-sm">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium text-black">שיחת זום שבועית</p>
-                    <p className="text-gray-500">29 ביולי • יום ראשון • 20:00</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-gray-400 text-xs">
-                    <FaUsers className="w-3 h-3" />
-                    <span>45 אישרו הגעה</span>
-                  </div>
-                </div>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium text-black">סדנת שיווק דיגיטלי לאופים</p>
-                    <p className="text-gray-500">5 באוגוסט • יום שלישי • 16:30</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-gray-400 text-xs">
-                    <FaUsers className="w-3 h-3" />
-                    <span>23 אישרו הגעה</span>
-                  </div>
-                </div>
-              </div>
+              <p className="text-gray-500 text-sm text-center py-2">אין אירועים קרובים</p>
             </div>
 
             {/* חברי קהילה מובילים */}
@@ -1480,33 +1767,44 @@ export default function CommunityFeedPage() {
                 <FaUsers className="w-4 h-4 flex-shrink-0 text-gray-500" />
                 <h3 className="font-semibold text-black">חברי קהילה מובילים</h3>
               </div>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center text-xs font-bold">1</div>
-                    <span className="font-medium">שרה כהן</span>
-                  </div>
-                  <span className="text-gray-500">1250</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-orange-200 flex items-center justify-center text-xs font-bold">2</div>
-                    <span className="font-medium">מיכל אברהם</span>
-                  </div>
-                  <span className="text-gray-500">980</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-yellow-200 flex items-center justify-center text-xs font-bold">3</div>
-                    <span className="font-medium">מרים גבריאל</span>
-                  </div>
-                  <span className="text-gray-500">850</span>
-                </div>
+              <div className="space-y-4 text-sm">
+                {topMembers.length > 0 ? (
+                  topMembers.map((member) => {
+                    const rankColors = ['bg-pink-400', 'bg-green-500', 'bg-yellow-400'];
+                    return (
+                      <div key={member.userId} className="flex items-center gap-3">
+                        {/* Rank badge */}
+                        <div className={`w-6 h-6 ${rankColors[member.rank - 1] || 'bg-gray-400'} rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                          {member.rank}
+                        </div>
+                        {/* Profile picture */}
+                        {member.profileImage ? (
+                          <img
+                            src={`http://localhost:4000${member.profileImage}`}
+                            alt={member.name}
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600 flex-shrink-0">
+                            {member.name?.charAt(0) || '?'}
+                          </div>
+                        )}
+                        {/* Name */}
+                        <span className="font-medium text-black flex-1">{member.name}</span>
+                        {/* Score */}
+                        <span className="text-gray-400 font-medium">{member.points}</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-gray-500 text-center py-4">אין נתונים עדיין</p>
+                )}
               </div>
             </div>
           </div>
         </div>
       </section>
+      )}
     </main>
   );
 }

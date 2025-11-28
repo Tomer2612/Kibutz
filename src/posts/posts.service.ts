@@ -20,7 +20,7 @@ export class PostsService {
         data: { title, content, image, fileUrl, fileName, linkUrl, authorId, communityId },
         include: {
           author: {
-            select: { id: true, email: true, name: true },
+            select: { id: true, email: true, name: true, profileImage: true },
           },
           _count: {
             select: { likes: true, comments: true, savedBy: true },
@@ -39,7 +39,7 @@ export class PostsService {
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, email: true, name: true },
+          select: { id: true, email: true, name: true, profileImage: true },
         },
         _count: {
           select: { likes: true, comments: true, savedBy: true },
@@ -121,7 +121,7 @@ export class PostsService {
       data: updateData,
       include: {
         author: {
-          select: { id: true, email: true, name: true },
+          select: { id: true, email: true, name: true, profileImage: true },
         },
         _count: {
           select: { likes: true, comments: true, savedBy: true },
@@ -194,7 +194,7 @@ export class PostsService {
       orderBy: { createdAt: 'asc' },
       include: {
         user: {
-          select: { id: true, email: true, name: true },
+          select: { id: true, email: true, name: true, profileImage: true },
         },
       },
     });
@@ -206,7 +206,7 @@ export class PostsService {
       data: { postId, userId, content },
       include: {
         user: {
-          select: { id: true, email: true, name: true },
+          select: { id: true, email: true, name: true, profileImage: true },
         },
       },
     });
@@ -252,7 +252,7 @@ export class PostsService {
       data: { content },
       include: {
         user: {
-          select: { id: true, email: true, name: true },
+          select: { id: true, email: true, name: true, profileImage: true },
         },
       },
     });
