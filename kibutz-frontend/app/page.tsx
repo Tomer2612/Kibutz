@@ -27,14 +27,14 @@ const COMMUNITY_TOPICS = [
 ];
 
 const COMMUNITY_SIZES = [
-  { value: 'small', label: 'קטנה (1-100)' },
-  { value: 'medium', label: 'בינונית (101-300)' },
-  { value: 'large', label: 'גדולה (300+)' },
+  { value: 'small', label: 'קטנה (0-100)' },
+  { value: 'medium', label: 'בינונית (100+)' },
+  { value: 'large', label: 'גדולה (1,000+)' },
 ];
 
 const getSizeCategory = (memberCount?: number | null) => {
-  if (memberCount && memberCount >= 300) return 'large';
-  if (memberCount && memberCount >= 101) return 'medium';
+  if (memberCount && memberCount >= 1000) return 'large';
+  if (memberCount && memberCount >= 100) return 'medium';
   return 'small';
 };
 
@@ -338,7 +338,7 @@ export default function Home() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 justify-center mb-12 w-full max-w-5xl mx-auto px-4">
+      <div className="flex flex-wrap gap-3 justify-center mb-6 w-full max-w-5xl mx-auto px-4">
         <div className="relative flex-grow max-w-xs">
           <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
           <input
@@ -392,6 +392,25 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Active filters indicator */}
+      {(searchTerm || selectedTopic || selectedSize) && (
+        <div className="flex justify-center gap-2 mb-6">
+          <span className="text-sm text-gray-500">
+            מציג {filteredCommunities.length} מתוך {communities.length} קהילות
+          </span>
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedTopic('');
+              setSelectedSize('');
+            }}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            נקה סינון
+          </button>
+        </div>
+      )}
+
       {/* Community Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl px-4 mx-auto pb-16">
         {loading ? (
@@ -403,33 +422,53 @@ export default function Home() {
             const isMember = userMemberships.includes(community.id) || community.ownerId === userId;
             const isOwner = community.ownerId === userId;
             
+            // Format member count: under 100 show exact, 100+ show +100, 1000+ show +1,000, etc
+            const formatMemberCount = (count: number) => {
+              if (count >= 10000) {
+                return `${(count / 1000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}K+`;
+              }
+              if (count >= 1000) {
+                return `${(count / 1000).toFixed(1).replace('.0', '')}K+`;
+              }
+              if (count >= 100) {
+                // Round down to nearest 100 and show with +
+                const rounded = Math.floor(count / 100) * 100;
+                return `${rounded.toLocaleString()}+`;
+              }
+              return count.toString();
+            };
+            
             return (
               <div
                 key={community.id}
-                className="border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-300 bg-white text-right transition-all duration-200"
+                className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
               >
                 <Link href={isMember ? `/communities/feed?communityId=${community.id}` : '#'}>
                   {community.image ? (
                     <img
                       src={`http://localhost:4000${community.image}`}
                       alt={community.name}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-44 object-cover"
                     />
                   ) : (
-                    <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
+                    <div className="w-full h-44 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
                       <span className="text-gray-400 font-medium">תמונת קהילה</span>
                     </div>
                   )}
                 </Link>
-                <div className="p-5">
-                  <h2 className="font-bold text-lg text-black mb-2">{community.name}</h2>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                <div className="p-5 text-right" dir="rtl">
+                  <h2 className="font-bold text-xl text-black mb-2">{community.name}</h2>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-3 leading-relaxed">
                     {community.description}
                   </p>
-                  <div className="flex justify-between items-center text-sm text-gray-500 mb-3">
-                    <span>חברים בקהילה</span>
-                    <span className="font-semibold text-black">
-                      {community.memberCount ?? 0}
+                  
+                  {/* Member count + Price buttons row - aligned to start (right in RTL) */}
+                  <div className="flex items-center justify-start gap-3 mb-4">
+                    <span className="bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm font-medium">
+                      {formatMemberCount(community.memberCount ?? 0)} משתמשים
+                    </span>
+                    <span className="bg-emerald-100 text-emerald-600 px-4 py-1.5 rounded-full text-sm font-medium border border-emerald-200">
+                      קהילה חינמית
                     </span>
                   </div>
                   
@@ -438,7 +477,7 @@ export default function Home() {
                     isOwner ? (
                       <Link
                         href={`/communities/${community.id}/manage`}
-                        className="w-full py-2 rounded-lg font-semibold text-center block bg-black text-white hover:opacity-90 transition"
+                        className="w-full py-2.5 rounded-full font-semibold text-center block bg-black text-white hover:opacity-90 transition"
                       >
                         נהל קהילה
                       </Link>
@@ -446,7 +485,7 @@ export default function Home() {
                       <div className="flex gap-2">
                         <Link
                           href={`/communities/feed?communityId=${community.id}`}
-                          className="flex-1 py-2 rounded-lg font-semibold text-center bg-black text-white hover:opacity-90 transition flex items-center justify-center gap-2"
+                          className="flex-1 py-2.5 rounded-full font-semibold text-center bg-black text-white hover:opacity-90 transition flex items-center justify-center gap-2"
                         >
                           <FaSignInAlt className="w-4 h-4" />
                           כניסה
@@ -454,7 +493,7 @@ export default function Home() {
                         <button
                           onClick={(e) => handleJoinLeave(e, community.id, true)}
                           disabled={joiningCommunity === community.id}
-                          className="px-4 py-2 rounded-lg font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition disabled:opacity-50 flex items-center gap-1"
+                          className="px-4 py-2.5 rounded-full font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition disabled:opacity-50 flex items-center gap-1"
                         >
                           <FaDoorOpen className="w-4 h-4" />
                           עזיבה
@@ -464,7 +503,7 @@ export default function Home() {
                       <button
                         onClick={(e) => handleJoinLeave(e, community.id, false)}
                         disabled={joiningCommunity === community.id}
-                        className="w-full py-2 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 rounded-full font-semibold bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         <FaUserPlus className="w-4 h-4" />
                         {joiningCommunity === community.id ? 'מצטרף...' : 'הצטרף לקהילה'}
@@ -474,7 +513,7 @@ export default function Home() {
                   {!userEmail && (
                     <Link
                       href="/login"
-                      className="w-full py-2 rounded-lg font-semibold text-center block bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
+                      className="w-full py-2.5 rounded-full font-semibold text-center block bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
                     >
                       התחבר להצטרפות
                     </Link>

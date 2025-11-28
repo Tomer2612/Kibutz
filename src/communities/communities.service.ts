@@ -55,11 +55,22 @@ export class CommunitiesService {
 
   async findAll() {
     try {
-      return await this.prisma.community.findMany({
+      const communities = await this.prisma.community.findMany({
         orderBy: {
           createdAt: 'desc',
         },
+        include: {
+          _count: {
+            select: { members: true }
+          }
+        }
       });
+      
+      // Return with actual member count from members table
+      return communities.map(community => ({
+        ...community,
+        memberCount: community._count.members,
+      }));
     } catch (err) {
       console.error('Failed to fetch communities:', err);
       throw new InternalServerErrorException('Could not fetch communities');

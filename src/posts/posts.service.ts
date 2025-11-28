@@ -36,7 +36,11 @@ export class PostsService {
   async findByCommunity(communityId: string, userId?: string) {
     const posts = await this.prisma.post.findMany({
       where: { communityId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { isPinned: 'desc' },  // Pinned posts first
+        { pinnedAt: 'desc' },  // Most recently pinned first among pinned
+        { createdAt: 'desc' }, // Then by creation date
+      ],
       include: {
         author: {
           select: { id: true, email: true, name: true, profileImage: true },
@@ -292,5 +296,47 @@ export class PostsService {
       }
       throw err;
     }
+  }
+
+  // Pin/Unpin a post (owner/manager only)
+  async togglePin(postId: string, userId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      include: { community: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    // Check if user is owner or manager of the community
+    const membership = await this.prisma.communityMember.findUnique({
+      where: {
+        userId_communityId: { userId, communityId: post.communityId },
+      },
+    });
+
+    if (!membership || (membership.role !== 'OWNER' && membership.role !== 'MANAGER')) {
+      throw new ForbiddenException('Only owners and managers can pin posts');
+    }
+
+    // Toggle pin status
+    const newPinStatus = !post.isPinned;
+    
+    return this.prisma.post.update({
+      where: { id: postId },
+      data: {
+        isPinned: newPinStatus,
+        pinnedAt: newPinStatus ? new Date() : null,
+      },
+      include: {
+        author: {
+          select: { id: true, email: true, name: true, profileImage: true },
+        },
+        _count: {
+          select: { likes: true, comments: true, savedBy: true },
+        },
+      },
+    });
   }
 }

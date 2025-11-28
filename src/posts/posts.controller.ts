@@ -2,7 +2,6 @@ import { Controller, Post, Body, Param, UseGuards, Req, Get, Delete, Patch, Quer
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import type { Multer } from 'multer';
 import { createReadStream, existsSync } from 'fs';
 import { Response } from 'express';
 import { PostsService } from './posts.service';
@@ -46,7 +45,7 @@ export class PostsController {
     @Param('communityId') communityId: string,
     @Req() req,
     @Body() body: { content: string; title?: string; linkUrl?: string },
-    @UploadedFile() file?: Multer.File
+    @UploadedFile() file?: Express.Multer.File
   ) {
     const userId = req.user.userId;
     
@@ -106,7 +105,7 @@ export class PostsController {
     @Param('postId') postId: string,
     @Req() req,
     @Body() body: { content: string; title?: string; linkUrl?: string; removeImage?: string; removeFile?: string; removeLink?: string },
-    @UploadedFile() file?: Multer.File
+    @UploadedFile() file?: Express.Multer.File
   ) {
     const userId = req.user.userId;
     
@@ -163,6 +162,14 @@ export class PostsController {
   toggleSave(@Param('postId') postId: string, @Req() req) {
     const userId = req.user.userId;
     return this.postsService.toggleSave(postId, userId);
+  }
+
+  // Pin/Unpin a post (owner/manager only)
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':postId/pin')
+  togglePin(@Param('postId') postId: string, @Req() req) {
+    const userId = req.user.userId;
+    return this.postsService.togglePin(postId, userId);
   }
 
   // Get comments for a post

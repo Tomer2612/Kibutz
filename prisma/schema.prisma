@@ -8,22 +8,27 @@ datasource db {
 }
 
 model User {
-  id           String            @id @default(cuid())
-  email        String            @unique
-  name         String
-  password     String
-  profileImage String?
-  googleId     String?           @unique
-  createdAt    DateTime          @default(now())
-  lastActiveAt DateTime?         @default(now())
-  showOnline   Boolean           @default(true)
-  posts        Post[]
-  communities  Community[]
-  likes        Like[]
-  comments     Comment[]
-  savedPosts   SavedPost[]
-  memberships  CommunityMember[]
-  bans         CommunityBan[]
+  id                       String            @id @default(cuid())
+  email                    String            @unique
+  name                     String
+  password                 String
+  profileImage             String?
+  googleId                 String?           @unique
+  createdAt                DateTime          @default(now())
+  lastActiveAt             DateTime?         @default(now())
+  showOnline               Boolean           @default(true)
+  isEmailVerified          Boolean           @default(false)
+  emailVerificationToken   String?           @unique
+  emailVerificationExpires DateTime?
+  passwordResetToken       String?           @unique
+  passwordResetExpires     DateTime?
+  posts                    Post[]
+  communities              Community[]
+  likes                    Like[]
+  comments                 Comment[]
+  savedPosts               SavedPost[]
+  memberships              CommunityMember[]
+  bans                     CommunityBan[]
 }
 
 model Community {
@@ -89,6 +94,8 @@ model Post {
   fileUrl     String?
   fileName    String?
   linkUrl     String?
+  isPinned    Boolean     @default(false)
+  pinnedAt    DateTime?
   createdAt   DateTime    @default(now())
   authorId    String
   communityId String

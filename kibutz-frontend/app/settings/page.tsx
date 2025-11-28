@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaUser, FaEnvelope, FaCamera, FaCog, FaSignOutAlt, FaCheck, FaLink, FaUnlink, FaLock, FaEye, FaEyeSlash, FaPowerOff, FaArrowRight } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaCamera, FaCog, FaSignOutAlt, FaCheck, FaLink, FaUnlink, FaLock, FaEye, FaEyeSlash, FaPowerOff, FaArrowRight, FaTrash } from 'react-icons/fa';
 
 interface JwtPayload {
   email: string;
@@ -35,6 +35,9 @@ export default function SettingsPage() {
   const [settingOffline, setSettingOffline] = useState(false);
   const [showOnline, setShowOnline] = useState(true);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   
   // Form state
   const [name, setName] = useState('');
@@ -286,6 +289,49 @@ export default function SettingsPage() {
       setPasswordMessageType('error');
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    if (deleteConfirmText !== 'מחק את החשבון שלי') {
+      setMessage('יש להקליד את הטקסט המדויק לאישור');
+      setMessageType('error');
+      return;
+    }
+
+    try {
+      setDeletingAccount(true);
+      const res = await fetch('http://localhost:4000/users/me', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to delete account');
+      }
+
+      // Clear token
+      localStorage.removeItem('token');
+      
+      // Show success message and redirect after delay
+      setMessage('מחיקת המשתמש עברה בהצלחה');
+      setMessageType('success');
+      setDeletingAccount(false);
+      setShowDeleteConfirm(false);
+      
+      setTimeout(() => {
+        router.push('/');
+      }, 3000);
+    } catch (err: any) {
+      console.error('Delete account error:', err);
+      setMessage('שגיאה במחיקת החשבון');
+      setMessageType('error');
+      setDeletingAccount(false);
     }
   };
 
@@ -668,6 +714,66 @@ export default function SettingsPage() {
                     : 'לחיצה תסתיר אותך מרשימת המחוברים עד שתשנה חזרה'
                   }
                 </p>
+              </div>
+
+              {/* Delete Account Card */}
+              <div className="bg-white rounded-lg shadow-md p-8 space-y-6 border border-red-100">
+                <h2 className="text-xl font-semibold text-red-600 border-b border-red-100 pb-3">מחיקת חשבון</h2>
+                
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-700 text-sm">
+                    <strong>אזהרה:</strong> מחיקת החשבון היא פעולה בלתי הפיכה. כל הנתונים שלך יימחקו לצמיתות, כולל:
+                  </p>
+                  <ul className="text-red-600 text-sm mt-2 list-disc list-inside space-y-1">
+                    <li>כל הפוסטים שפרסמת</li>
+                    <li>כל התגובות שכתבת</li>
+                    <li>החברויות בקהילות</li>
+                    <li>הקהילות שאתה הבעלים שלהן</li>
+                  </ul>
+                </div>
+
+                {!showDeleteConfirm ? (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition"
+                  >
+                    <FaTrash className="w-4 h-4" />
+                    אני רוצה למחוק את החשבון שלי
+                  </button>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-700 text-center">
+                      לאישור, הקלד: <strong className="text-red-600">מחק את החשבון שלי</strong>
+                    </p>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="הקלד כאן לאישור..."
+                      className="w-full p-3 border border-red-300 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-red-500"
+                      dir="rtl"
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setShowDeleteConfirm(false);
+                          setDeleteConfirmText('');
+                        }}
+                        className="flex-1 px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                      >
+                        ביטול
+                      </button>
+                      <button
+                        onClick={handleDeleteAccount}
+                        disabled={deletingAccount || deleteConfirmText !== 'מחק את החשבון שלי'}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <FaTrash className="w-4 h-4" />
+                        {deletingAccount ? 'מוחק...' : 'מחק לצמיתות'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

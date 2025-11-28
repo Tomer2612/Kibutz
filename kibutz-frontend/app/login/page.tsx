@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaEnvelope, FaLock } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
 import Image from 'next/image';
 
 export default function LoginPage() {
@@ -10,9 +10,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'error' | 'info'>('error');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage('');
+    setIsSubmitting(true);
 
     try {
       const res = await fetch('http://localhost:4000/auth/login', {
@@ -21,22 +26,31 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text);
-      }
-
       const data = await res.json();
 
       if (res.ok && data.access_token) {
         localStorage.setItem('token', data.access_token);
         router.push('/');
       } else {
-        setMessage(data.message || 'ההתחברות נכשלה');
+        // Parse specific error messages
+        const errorMsg = data.message || '';
+        if (errorMsg.includes('User not found') || errorMsg.includes('not found')) {
+          setMessage('לא נמצא חשבון עם כתובת אימייל זו');
+          setMessageType('error');
+        } else if (errorMsg.includes('Incorrect password') || errorMsg.includes('password')) {
+          setMessage('הסיסמה שגויה');
+          setMessageType('error');
+        } else {
+          setMessage('ההתחברות נכשלה. אנא בדוק את הפרטים ונסה שוב');
+          setMessageType('error');
+        }
       }
     } catch (err) {
       console.error('Login error:', err);
-      setMessage('שגיאה בהתחברות');
+      setMessage('שגיאה בהתחברות. אנא נסה שוב מאוחר יותר');
+      setMessageType('error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -77,25 +91,46 @@ export default function LoginPage() {
 
         {/* Password Field */}
         <div className="relative">
-          <FaLock className="absolute right-3 top-3 text-gray-400" />
+          <FaLock className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="סיסמה"
-            className="w-full p-2 pr-10 border border-gray-300 rounded"
+            className="w-full p-2 pr-10 pl-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute left-3 top-3 text-gray-400 hover:text-gray-600"
+          >
+            {showPassword ? <FaEyeSlash /> : <FaEye />}
+          </button>
+        </div>
+
+        <div className="text-left">
+          <a href="/forgot-password" className="text-sm text-gray-600 hover:underline">
+            שכחת סיסמה?
+          </a>
         </div>
 
         <button
           type="submit"
-          className="bg-black text-white py-2 rounded hover:bg-gray-800"
+          disabled={isSubmitting}
+          className="bg-black text-white py-2 rounded hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
         >
-          התחברות
+          {isSubmitting ? 'מתחבר...' : 'התחברות'}
         </button>
 
-        {message && <p className="text-center text-sm text-red-500">{message}</p>}
+        {message && (
+          <div className={`flex items-center gap-2 text-sm p-2 rounded ${
+            messageType === 'error' ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'
+          }`}>
+            <FaExclamationTriangle className="w-4 h-4 flex-shrink-0" />
+            <p>{message}</p>
+          </div>
+        )}
 
         <p className="text-center text-sm mt-2">
           עדיין לא רשומים?{' '}

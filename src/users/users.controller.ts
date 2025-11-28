@@ -92,4 +92,10 @@ export class UsersController {
     await this.usersService.changePassword(req.user.userId, body.currentPassword, body.newPassword);
     return { message: 'Password changed successfully' };
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('me')
+  async deleteAccount(@Req() req) {
+    return this.usersService.deleteAccount(req.user.userId);
+  }
 }

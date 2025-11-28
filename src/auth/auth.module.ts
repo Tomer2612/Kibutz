@@ -7,6 +7,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './google.strategy';
 import { ConfigModule } from '@nestjs/config';
 import { ConfigService } from '@nestjs/config';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ConfigService } from '@nestjs/config';
       secret: 'supersecret',
       signOptions: { expiresIn: '1d' },
     }),
+    EmailModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, JwtStrategy, GoogleStrategy, ConfigService],

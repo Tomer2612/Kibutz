@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req, Res, UseGuards, Param, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -19,6 +19,12 @@ export class AuthController {
     return this.authService.login(body.email, body.password);
   }
 
+  @Get('check-email')
+  async checkEmail(@Query('email') email: string) {
+    const exists = await this.authService.checkEmailExists(email);
+    return { exists };
+  }
+
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
@@ -30,5 +36,27 @@ export class AuthController {
   async googleAuthRedirect(@Req() req, @Res() res) {
     const token = await this.authService.loginWithGoogle(req.user);
     res.redirect(`http://localhost:3000/google-success?token=${token}`);
+  }
+
+  // Email verification endpoints
+  @Get('verify-email/:token')
+  verifyEmail(@Param('token') token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
+  @Post('resend-verification')
+  resendVerification(@Body() body: { email: string }) {
+    return this.authService.resendVerificationEmail(body.email);
+  }
+
+  // Password reset endpoints
+  @Post('forgot-password')
+  forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() body: { token: string; password: string }) {
+    return this.authService.resetPassword(body.token, body.password);
   }
 }

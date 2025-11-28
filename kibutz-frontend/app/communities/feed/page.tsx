@@ -34,6 +34,7 @@ import {
   FaCog,
   FaSignOutAlt,
   FaSearch,
+  FaThumbtack,
 } from 'react-icons/fa';
 import { TopicIcon } from '../../lib/topicIcons';
 
@@ -68,6 +69,8 @@ interface Post {
   fileUrl?: string | null;
   fileName?: string | null;
   linkUrl?: string | null;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
   createdAt: string;
   author: {
     id: string;
@@ -592,6 +595,47 @@ export default function CommunityFeedPage() {
     }
   };
 
+  // Pin/Unpin handler (owner/manager only)
+  const handleTogglePin = async (postId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const res = await fetch(`http://localhost:4000/posts/${postId}/pin`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.message || 'שגיאה בהצמדת הפוסט');
+        return;
+      }
+
+      const updatedPost = await res.json();
+
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? { ...post, isPinned: updatedPost.isPinned, pinnedAt: updatedPost.pinnedAt }
+            : post
+        ).sort((a, b) => {
+          // Re-sort: pinned first, then by pinnedAt, then by createdAt
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          if (a.isPinned && b.isPinned) {
+            return new Date(b.pinnedAt || 0).getTime() - new Date(a.pinnedAt || 0).getTime();
+          }
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        })
+      );
+    } catch (err) {
+      console.error('Toggle pin error:', err);
+    }
+  };
+
   // Delete post handler
   const handleDeletePost = async (postId: string) => {
     if (!window.confirm('האם אתם בטוחים שברצונכם למחוק את הפוסט?')) return;
@@ -918,13 +962,14 @@ export default function CommunityFeedPage() {
             )}
             <h1 className="text-3xl font-bold text-black mb-3">{community.name}</h1>
             <p className="text-gray-600 mb-6 max-w-md mx-auto">{community.description}</p>
-            <div className="flex items-center justify-center gap-4 text-sm text-gray-500 mb-8">
-              <span>{community.memberCount ?? 0} חברים</span>
+            <div className="flex items-center justify-center gap-3 text-sm mb-8">
+              <span className="bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full font-medium">
+                {community.memberCount ?? 0} חברים
+              </span>
               {community.topic && (
-                <>
-                  <span>•</span>
-                  <span>{community.topic}</span>
-                </>
+                <span className="bg-cyan-100 text-cyan-700 px-4 py-1.5 rounded-full font-medium">
+                  {community.topic}
+                </span>
               )}
             </div>
             
@@ -1176,7 +1221,14 @@ export default function CommunityFeedPage() {
                 
                 return filteredPosts.length > 0 ? (
                   filteredPosts.map((post) => (
-                  <div key={post.id} className="bg-white border border-gray-200 rounded-2xl p-5">
+                  <div key={post.id} className={`bg-white border rounded-2xl p-5 ${post.isPinned ? 'border-yellow-400 border-2' : 'border-gray-200'}`}>
+                    {/* Pinned indicator */}
+                    {post.isPinned && (
+                      <div className="flex items-center gap-2 text-yellow-600 text-sm font-medium mb-3 bg-yellow-50 px-3 py-1.5 rounded-lg w-fit">
+                        <FaThumbtack className="w-3 h-3" />
+                        <span>פוסט מוצמד</span>
+                      </div>
+                    )}
                     {/* Post Header */}
                     <div className="flex items-start gap-3 mb-4">
                       <div className="flex-1 text-right">
@@ -1209,8 +1261,8 @@ export default function CommunityFeedPage() {
                           {post.isSaved ? <FaBookmark className="w-4 h-4" /> : <FaRegBookmark className="w-4 h-4" />}
                         </button>
                       )}
-                      {/* Post menu for author */}
-                      {userId === post.author?.id && (
+                      {/* Post menu for author OR owner/manager */}
+                      {(userId === post.author?.id || isOwner || isManager) && (
                         <div className="relative">
                           <button
                             onClick={() => setMenuOpenPostId(menuOpenPostId === post.id ? null : post.id)}
@@ -1220,35 +1272,56 @@ export default function CommunityFeedPage() {
                           </button>
                           {menuOpenPostId === post.id && (
                             <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
-                              <button
-                                onClick={() => {
-                                  setEditingPostId(post.id);
-                                  setEditTitle(post.title || '');
-                                  setEditContent(post.content);
-                                  setEditLink(post.linkUrl || '');
-                                  setShowEditLinkInput(false);
-                                  setRemoveImage(false);
-                                  setRemoveFile(false);
-                                  setRemoveLink(false);
-                                  setEditFile(null);
-                                  setEditFilePreview(null);
-                                  setMenuOpenPostId(null);
-                                }}
-                                className="w-full px-4 py-2 text-right text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                              >
-                                <FaEdit className="w-3 h-3" />
-                                עריכה
-                              </button>
-                              <button
-                                onClick={() => {
-                                  handleDeletePost(post.id);
-                                  setMenuOpenPostId(null);
-                                }}
-                                className="w-full px-4 py-2 text-right text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                              >
-                                <FaTrash className="w-3 h-3" />
-                                מחיקה
-                              </button>
+                              {/* Pin/Unpin - only for owner/manager */}
+                              {(isOwner || isManager) && (
+                                <button
+                                  onClick={() => {
+                                    handleTogglePin(post.id);
+                                    setMenuOpenPostId(null);
+                                  }}
+                                  className={`w-full px-4 py-2 text-right text-sm hover:bg-gray-50 flex items-center gap-2 ${
+                                    post.isPinned ? 'text-yellow-600' : 'text-gray-700'
+                                  }`}
+                                >
+                                  <FaThumbtack className="w-3 h-3" />
+                                  {post.isPinned ? 'בטל הצמדה' : 'הצמד פוסט'}
+                                </button>
+                              )}
+                              {/* Edit - only for author */}
+                              {userId === post.author?.id && (
+                                <button
+                                  onClick={() => {
+                                    setEditingPostId(post.id);
+                                    setEditTitle(post.title || '');
+                                    setEditContent(post.content);
+                                    setEditLink(post.linkUrl || '');
+                                    setShowEditLinkInput(false);
+                                    setRemoveImage(false);
+                                    setRemoveFile(false);
+                                    setRemoveLink(false);
+                                    setEditFile(null);
+                                    setEditFilePreview(null);
+                                    setMenuOpenPostId(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-right text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                >
+                                  <FaEdit className="w-3 h-3" />
+                                  עריכה
+                                </button>
+                              )}
+                              {/* Delete - for author or owner/manager */}
+                              {(userId === post.author?.id || isOwner || isManager) && (
+                                <button
+                                  onClick={() => {
+                                    handleDeletePost(post.id);
+                                    setMenuOpenPostId(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-right text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                >
+                                  <FaTrash className="w-3 h-3" />
+                                  מחיקה
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1707,6 +1780,43 @@ export default function CommunityFeedPage() {
 
           {/* RIGHT: Gray background info cards */}
           <div className="space-y-4 order-3 lg:order-3">
+            {/* Community Info Card */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <TopicIcon topic={community?.topic} size="md" />
+                <div>
+                  <h3 className="font-bold text-black text-lg">{community?.name}</h3>
+                  {community?.topic && (
+                    <span className="inline-block bg-cyan-100 text-cyan-700 px-3 py-0.5 rounded-full text-xs font-medium mt-1">
+                      {community.topic}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-3">
+                <FaCalendarAlt className="w-3.5 h-3.5" />
+                <span>נוצרה ב-{community?.createdAt ? new Date(community.createdAt).toLocaleDateString('he-IL') : ''}</span>
+                <span className="mx-1">•</span>
+                <FaUsers className="w-3.5 h-3.5" />
+                <span>{community?.memberCount ?? 0} חברים</span>
+              </div>
+              {/* Member count + Free badges */}
+              <div className="flex items-center gap-2 mt-3">
+                <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
+                  {(() => {
+                    const count = community?.memberCount ?? 0;
+                    if (count >= 10000) return `${Math.floor(count / 1000)}K+ משתמשים`;
+                    if (count >= 1000) return `${(count / 1000).toFixed(1).replace('.0', '')}K+ משתמשים`;
+                    if (count >= 100) return `${Math.floor(count / 100) * 100}+ משתמשים`;
+                    return `${count} משתמשים`;
+                  })()}
+                </span>
+                <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-medium border border-emerald-200">
+                  חינם
+                </span>
+              </div>
+            </div>
+
             {/* Online Members */}
             <div className="bg-[#F7F8FA] rounded-2xl p-5">
               <div className="flex items-center gap-3">

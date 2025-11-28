@@ -171,4 +171,18 @@ export class UsersService {
       data: { password: hashedPassword },
     });
   }
+
+  async deleteAccount(userId: string) {
+    const user = await this.findByIdOrEmail(userId);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Delete user - cascade will handle related records
+    await this.prisma.user.delete({
+      where: { id: user.id },
+    });
+
+    return { message: 'Account deleted successfully' };
+  }
 }

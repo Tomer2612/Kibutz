@@ -1,43 +1,227 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaCheckCircle, FaCheck, FaTimes, FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
 import Image from 'next/image';
+
+// Minimum requirements (must have all)
+const passwordRequirements = [
+  { id: 'length', label: 'לפחות 6 תווים', test: (p: string) => p.length >= 6 },
+  { id: 'letter', label: 'לפחות אות אחת', test: (p: string) => /[a-zA-Z]/.test(p) },
+  { id: 'number', label: 'לפחות מספר אחד', test: (p: string) => /[0-9]/.test(p) },
+];
+
+// Suggestions for stronger password (optional but recommended)
+const passwordSuggestions = [
+  { id: 'length10', label: '10 תווים או יותר', test: (p: string) => p.length >= 10 },
+  { id: 'uppercase', label: 'אות גדולה באנגלית (A-Z)', test: (p: string) => /[A-Z]/.test(p) },
+  { id: 'lowercase', label: 'אות קטנה באנגלית (a-z)', test: (p: string) => /[a-z]/.test(p) },
+  { id: 'special', label: 'תו מיוחד (!@#$%^&*)', test: (p: string) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+];
+
+// Email validation
+const isValidEmail = (email: string) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
 
 export default function SignupPage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Check password strength (based on suggestions met)
+  const requirementsMet = passwordRequirements.filter(req => req.test(password)).length;
+  const suggestionsMet = passwordSuggestions.filter(sug => sug.test(password)).length;
+  const isPasswordValid = requirementsMet === passwordRequirements.length;
+  const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
+  
+  // Strength is based on requirements + suggestions (total 7 items)
+  const totalStrength = requirementsMet + suggestionsMet;
 
-    const res = await fetch('http://localhost:4000/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text);
+  // Email validation on blur - also triggers check
+  const validateEmail = async () => {
+    setEmailTouched(true);
+    setEmailChecking(true);
+    
+    if (!email) {
+      setEmailError('');
+      setEmailChecking(false);
+      return;
     }
-
-    const data = await res.json();
-
-    if (res.ok) {
-      localStorage.setItem('token', data.access_token);
-      router.push('/');
-    } else {
-      setMessage(data.message || 'ההרשמה נכשלה');
+    if (!isValidEmail(email)) {
+      setEmailError('כתובת אימייל לא תקינה');
+      setEmailChecking(false);
+      return;
+    }
+    
+    // Check if email exists
+    try {
+      const res = await fetch(`http://localhost:4000/auth/check-email?email=${encodeURIComponent(email)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.exists) {
+          setEmailError('כתובת האימייל כבר רשומה במערכת');
+        } else {
+          setEmailError('');
+        }
+      }
+    } catch (error) {
+      // Silently fail
+    } finally {
+      setEmailChecking(false);
     }
   };
 
+  const getStrengthColor = () => {
+    if (totalStrength <= 2) return 'bg-red-500';
+    if (totalStrength <= 4) return 'bg-orange-500';
+    if (totalStrength <= 5) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
+
+  const getStrengthText = () => {
+    if (password.length === 0) return '';
+    if (totalStrength <= 2) return 'חלשה';
+    if (totalStrength <= 4) return 'בינונית';
+    if (totalStrength <= 5) return 'טובה';
+    return 'חזקה מאוד';
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage('');
+
+    // Validate all fields
+    if (!name.trim()) {
+      setMessage('יש להזין שם מלא');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setMessage('כתובת אימייל לא תקינה');
+      return;
+    }
+
+    if (!isPasswordValid) {
+      setMessage('הסיסמה לא עומדת בדרישות');
+      return;
+    }
+
+    if (!passwordsMatch) {
+      setMessage('הסיסמאות אינן תואמות');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const res = await fetch('http://localhost:4000/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.message?.includes('Unique constraint') || data.message?.includes('already exists')) {
+          setMessage('כתובת האימייל כבר רשומה במערכת');
+          setEmailError('כתובת האימייל כבר רשומה במערכת. אולי תרצה להתחבר או לאפס סיסמה?');
+        } else {
+          setMessage(data.message || 'ההרשמה נכשלה');
+        }
+        return;
+      }
+
+      localStorage.setItem('token', data.access_token);
+      setShowVerificationMessage(true);
+    } catch (error) {
+      console.error('Signup error:', error);
+      setMessage('שגיאה בהרשמה');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      const res = await fetch('http://localhost:4000/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      
+      if (res.ok) {
+        setMessage('מייל אימות נשלח שוב!');
+      } else {
+        setMessage('שגיאה בשליחת המייל');
+      }
+    } catch (error) {
+      setMessage('שגיאה בשליחת המייל');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  if (showVerificationMessage) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-blue-300 to-green-100">
+        <div className="flex flex-col items-center w-full max-w-sm">
+          <div className="text-2xl font-extrabold font-[cursive] mb-6">Kibutz</div>
+          
+          <div className="bg-white rounded-xl p-8 shadow-md w-full flex flex-col items-center gap-4 text-center">
+            <FaCheckCircle className="w-16 h-16 text-green-500" />
+            <h1 className="text-xl font-bold">ההרשמה הושלמה!</h1>
+            <p className="text-gray-600">
+              שלחנו לך מייל אימות לכתובת:
+            </p>
+            <p className="font-semibold text-black">{email}</p>
+            <p className="text-sm text-gray-500">
+              אנא בדוק את תיבת הדואר שלך ולחץ על הקישור לאימות.
+            </p>
+            
+            <div className="border-t border-gray-200 w-full pt-4 mt-2">
+              <button
+                onClick={handleResendVerification}
+                disabled={resending}
+                className="text-sm text-gray-600 hover:underline disabled:text-gray-400"
+              >
+                {resending ? 'שולח...' : 'לא קיבלת? שלח שוב'}
+              </button>
+            </div>
+            
+            {message && (
+              <p className="text-sm text-green-600">{message}</p>
+            )}
+            
+            <button
+              onClick={() => router.push('/')}
+              className="mt-2 bg-black text-white py-2 px-6 rounded hover:bg-gray-800"
+            >
+              המשך לאתר
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-blue-300 to-green-100">
+    <main className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-blue-300 to-green-100">
       <div className="flex flex-col items-center w-full max-w-sm">
         <div className="text-2xl font-extrabold font-[cursive] mb-6">Kibutz</div>
 
@@ -64,7 +248,7 @@ export default function SignupPage() {
             <input
               type="text"
               placeholder="שם מלא"
-              className="w-full p-2 pr-10 border border-gray-300 rounded"
+              className="w-full p-2 pr-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -72,37 +256,191 @@ export default function SignupPage() {
           </div>
 
           {/* Email Field */}
-          <div className="relative">
-            <FaEnvelope className="absolute right-3 top-3 text-gray-400" />
-            <input
-              type="email"
-              placeholder="כתובת אימייל"
-              className="w-full p-2 pr-10 border border-gray-300 rounded"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+          <div>
+            <div className="relative">
+              <FaEnvelope className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
+              <input
+                type="email"
+                placeholder="כתובת אימייל"
+                className={`w-full p-2 pr-10 pl-10 border rounded focus:outline-none focus:ring-2 ${
+                  emailError 
+                    ? 'border-red-400 focus:ring-red-400' 
+                    : emailTouched && email && isValidEmail(email) && !emailError && !emailChecking
+                    ? 'border-green-400 focus:ring-green-400'
+                    : 'border-gray-300 focus:ring-black'
+                }`}
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailTouched(false);
+                  setEmailError('');
+                }}
+                onBlur={validateEmail}
+                required
+              />
+              <div className="absolute left-3 top-3 pointer-events-none">
+                {emailChecking ? (
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                ) : emailTouched && email ? (
+                  emailError ? (
+                    <FaTimes className="text-red-500" />
+                  ) : isValidEmail(email) ? (
+                    <FaCheck className="text-green-500" />
+                  ) : null
+                ) : null}
+              </div>
+            </div>
+            {emailError && (
+              <div className="mt-2 flex items-start gap-2 text-sm text-red-600 bg-red-50 p-2 rounded">
+                <FaExclamationTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p>{emailError}</p>
+                  {emailError.includes('כבר רשומה') && (
+                    <div className="mt-1 flex gap-3">
+                      <a href="/login" className="text-blue-600 hover:underline">התחברות</a>
+                      <a href="/forgot-password" className="text-blue-600 hover:underline">איפוס סיסמה</a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Password Field */}
-          <div className="relative">
-            <FaLock className="absolute right-3 top-3 text-gray-400" />
-            <input
-              type="password"
-              placeholder="סיסמה"
-              className="w-full p-2 pr-10 border border-gray-300 rounded"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+          <div>
+            <div className="relative">
+              <FaLock className="absolute right-3 top-3 text-gray-400" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="סיסמה"
+                className={`w-full p-2 pr-10 pl-10 border rounded focus:outline-none focus:ring-2 ${
+                  password && isPasswordValid 
+                    ? 'border-green-400 focus:ring-green-400' 
+                    : password && !isPasswordValid
+                    ? 'border-orange-400 focus:ring-orange-400'
+                    : 'border-gray-300 focus:ring-black'
+                }`}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute left-3 top-3 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+
+            {/* Password Strength Indicator */}
+            {password && (
+              <div className="mt-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-300 ${getStrengthColor()}`}
+                      style={{ width: `${(totalStrength / 7) * 100}%` }}
+                    />
+                  </div>
+                  <span className={`text-xs font-medium ${
+                    totalStrength >= 6 ? 'text-green-600' : 
+                    totalStrength >= 4 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {getStrengthText()}
+                  </span>
+                </div>
+
+                {/* Requirements List (must have) */}
+                {(passwordFocused || !isPasswordValid) && (
+                  <div className="bg-gray-50 rounded p-3 space-y-1 mb-2">
+                    <p className="text-xs font-semibold text-gray-700 mb-1">דרישות חובה:</p>
+                    {passwordRequirements.map(req => (
+                      <div key={req.id} className="flex items-center gap-2 text-sm">
+                        {req.test(password) ? (
+                          <FaCheck className="w-3 h-3 text-green-500" />
+                        ) : (
+                          <FaTimes className="w-3 h-3 text-red-400" />
+                        )}
+                        <span className={req.test(password) ? 'text-green-600' : 'text-gray-500'}>
+                          {req.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Suggestions List (optional) */}
+                {passwordFocused && isPasswordValid && (
+                  <div className="bg-blue-50 rounded p-3 space-y-1">
+                    <p className="text-xs font-semibold text-blue-700 mb-1">המלצות לסיסמה חזקה יותר:</p>
+                    {passwordSuggestions.map(sug => (
+                      <div key={sug.id} className="flex items-center gap-2 text-sm">
+                        {sug.test(password) ? (
+                          <FaCheck className="w-3 h-3 text-green-500" />
+                        ) : (
+                          <span className="w-3 h-3 rounded-full border border-blue-300" />
+                        )}
+                        <span className={sug.test(password) ? 'text-green-600' : 'text-blue-600'}>
+                          {sug.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Confirm Password Field */}
+          <div>
+            <div className="relative">
+              <FaLock className="absolute right-3 top-3 text-gray-400" />
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                placeholder="אימות סיסמה"
+                className={`w-full p-2 pr-10 pl-10 border rounded focus:outline-none focus:ring-2 ${
+                  confirmPassword && passwordsMatch 
+                    ? 'border-green-400 focus:ring-green-400' 
+                    : confirmPassword && !passwordsMatch
+                    ? 'border-red-400 focus:ring-red-400'
+                    : 'border-gray-300 focus:ring-black'
+                }`}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute left-3 top-3 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+            {confirmPassword && !passwordsMatch && (
+              <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                <FaTimes className="w-3 h-3" />
+                הסיסמאות אינן תואמות
+              </p>
+            )}
+            {confirmPassword && passwordsMatch && (
+              <p className="mt-1 text-sm text-green-500 flex items-center gap-1">
+                <FaCheck className="w-3 h-3" />
+                הסיסמאות תואמות
+              </p>
+            )}
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
-            className="bg-black text-white py-2 rounded hover:bg-gray-800"
+            disabled={isSubmitting || !isPasswordValid || !passwordsMatch || !name.trim() || !isValidEmail(email) || !!emailError}
+            className="bg-black text-white py-2 rounded hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
-            הרשמה
+            {isSubmitting ? 'נרשם...' : 'הרשמה'}
           </button>
 
           {message && <p className="text-center text-sm text-red-500">{message}</p>}
