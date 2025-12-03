@@ -26,6 +26,31 @@ const COMMUNITY_TOPICS = [
   'יזמות ועסקים עצמאיים',
 ];
 
+// Topic color mapping - synced with topicIcons.tsx colors
+const TOPIC_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  'אנימציה': { bg: 'bg-pink-100', text: 'text-pink-600', border: 'border-pink-200' },
+  'אוכל, בישול ותזונה': { bg: 'bg-orange-100', text: 'text-orange-600', border: 'border-orange-200' },
+  'עזרה ותמיכה': { bg: 'bg-teal-100', text: 'text-teal-600', border: 'border-teal-200' },
+  'עיצוב גרפי': { bg: 'bg-purple-100', text: 'text-purple-600', border: 'border-purple-200' },
+  'עיצוב מותגים': { bg: 'bg-indigo-100', text: 'text-indigo-600', border: 'border-indigo-200' },
+  'עריכת וידאו': { bg: 'bg-red-100', text: 'text-red-600', border: 'border-red-200' },
+  'בריאות הנפש ופיתוח אישי': { bg: 'bg-emerald-100', text: 'text-emerald-600', border: 'border-emerald-200' },
+  'גיימינג': { bg: 'bg-violet-100', text: 'text-violet-600', border: 'border-violet-200' },
+  'טיולים ולייףסטייל': { bg: 'bg-sky-100', text: 'text-sky-600', border: 'border-sky-200' },
+  'לימודים ואקדמיה': { bg: 'bg-amber-100', text: 'text-amber-600', border: 'border-amber-200' },
+  'מדיה, קולנוע וסדרות': { bg: 'bg-rose-100', text: 'text-rose-600', border: 'border-rose-200' },
+  'מדיה חברתית ותוכן ויזואלי': { bg: 'bg-fuchsia-100', text: 'text-fuchsia-600', border: 'border-fuchsia-200' },
+  'ניהול פיננסי והשקעות': { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-200' },
+  'ספרים וכתיבה': { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' },
+  'ספורט ואורח חיים פעיל': { bg: 'bg-lime-100', text: 'text-lime-600', border: 'border-lime-200' },
+  'תחביבים': { bg: 'bg-cyan-100', text: 'text-cyan-600', border: 'border-cyan-200' },
+  'יזמות ועסקים עצמאיים': { bg: 'bg-blue-100', text: 'text-blue-600', border: 'border-blue-200' },
+};
+
+const getTopicColor = (topic: string) => {
+  return TOPIC_COLORS[topic] || { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' };
+};
+
 const COMMUNITY_SIZES = [
   { value: 'small', label: 'קטנה (0-100)' },
   { value: 'medium', label: 'בינונית (100+)' },
@@ -47,6 +72,7 @@ interface Community {
   createdAt: string;
   topic?: string | null;
   memberCount?: number | null;
+  price?: number | null;
   _count?: {
     posts: number;
   };
@@ -70,6 +96,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
+  const [selectedPrice, setSelectedPrice] = useState('');
   const [loading, setLoading] = useState(true);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [banPopup, setBanPopup] = useState<{ 
@@ -145,12 +172,21 @@ export default function Home() {
       const matchesSize = selectedSize
         ? getSizeCategory(community.memberCount ?? null) === selectedSize
         : true;
+      
+      const matchesPrice = (() => {
+        if (!selectedPrice) return true;
+        const price = community.price ?? 0;
+        if (selectedPrice === 'free') return price === 0;
+        if (selectedPrice === 'low') return price >= 1 && price <= 50;
+        if (selectedPrice === 'high') return price > 50;
+        return true;
+      })();
 
-      return matchesSearch && matchesTopic && matchesSize;
+      return matchesSearch && matchesTopic && matchesSize && matchesPrice;
     });
 
     setFilteredCommunities(filtered);
-  }, [searchTerm, communities, selectedTopic, selectedSize]);
+  }, [searchTerm, communities, selectedTopic, selectedSize, selectedPrice]);
 
   const handleJoinLeave = async (e: React.MouseEvent, communityId: string, isMember: boolean) => {
     e.preventDefault();
@@ -234,7 +270,15 @@ export default function Home() {
         <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
           Kibutz
         </Link>
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-6 items-center">
+          {/* Nav Links */}
+          <Link href="/pricing" className="text-gray-600 hover:text-black transition text-sm font-medium">
+            מחירון
+          </Link>
+          <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
+            תמיכה ושאלות
+          </Link>
+          
           {!userEmail ? (
             <>
               <a
@@ -354,10 +398,15 @@ export default function Home() {
 
         <div className="relative">
           <FaChevronDown className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
-          <select defaultValue="" className="p-3 pr-10 pl-10 border border-gray-300 rounded-lg min-w-32 text-right focus:outline-none focus:ring-2 focus:ring-black appearance-none bg-white">
-            <option value="" disabled>מחיר</option>
-            <option>חינם</option>
-            <option>בתשלום</option>
+          <select
+            value={selectedPrice}
+            onChange={(e) => setSelectedPrice(e.target.value)}
+            className="p-3 pr-10 pl-10 border border-gray-300 rounded-lg min-w-32 text-right focus:outline-none focus:ring-2 focus:ring-black appearance-none bg-white"
+          >
+            <option value="">כל המחירים</option>
+            <option value="free">חינם</option>
+            <option value="low">₪1-50</option>
+            <option value="high">₪51-100</option>
           </select>
         </div>
         <div className="relative">
@@ -393,7 +442,7 @@ export default function Home() {
       </div>
 
       {/* Active filters indicator */}
-      {(searchTerm || selectedTopic || selectedSize) && (
+      {(searchTerm || selectedTopic || selectedSize || selectedPrice) && (
         <div className="flex justify-center gap-2 mb-6">
           <span className="text-sm text-gray-500">
             מציג {filteredCommunities.length} מתוך {communities.length} קהילות
@@ -403,6 +452,7 @@ export default function Home() {
               setSearchTerm('');
               setSelectedTopic('');
               setSelectedSize('');
+              setSelectedPrice('');
             }}
             className="text-sm text-blue-600 hover:underline"
           >
@@ -458,18 +508,44 @@ export default function Home() {
                 </Link>
                 <div className="p-5 text-right" dir="rtl">
                   <h2 className="font-bold text-xl text-black mb-2">{community.name}</h2>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-3 leading-relaxed">
+                  <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
                     {community.description}
                   </p>
                   
-                  {/* Member count + Price buttons row - aligned to start (right in RTL) */}
-                  <div className="flex items-center justify-start gap-3 mb-4">
-                    <span className="bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm font-medium">
-                      {formatMemberCount(community.memberCount ?? 0)} משתמשים
+                  {/* Separator line */}
+                  <div className="border-t border-gray-200 my-4"></div>
+                  
+                  {/* Topic + Member count + Price badges - all on same line */}
+                  <div className="flex flex-wrap items-center justify-start gap-2 mb-4">
+                    {/* Topic badge */}
+                    {community.topic && (() => {
+                      const colors = getTopicColor(community.topic);
+                      return (
+                        <span className={`${colors.bg} ${colors.text} px-3 py-1.5 rounded-full text-sm font-medium border ${colors.border}`}>
+                          {community.topic}
+                        </span>
+                      );
+                    })()}
+                    
+                    {/* Member count - Gray badge */}
+                    <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-sm font-medium border border-gray-200">
+                      {(community.memberCount ?? 0) === 1 
+                        ? 'משתמש אחד' 
+                        : (community.memberCount ?? 0) < 100
+                          ? `${community.memberCount} משתמשים`
+                          : `${formatMemberCount(community.memberCount ?? 0)}+ משתמשים`}
                     </span>
-                    <span className="bg-emerald-100 text-emerald-600 px-4 py-1.5 rounded-full text-sm font-medium border border-emerald-200">
-                      קהילה חינמית
-                    </span>
+                    
+                    {/* Free/Paid badge - Green for free, Blue for paid */}
+                    {(community.price ?? 0) === 0 ? (
+                      <span className="bg-emerald-100 text-emerald-600 px-3 py-1.5 rounded-full text-sm font-medium border border-emerald-200">
+                        חינם
+                      </span>
+                    ) : (
+                      <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-200">
+                        ₪{community.price} לחודש
+                      </span>
+                    )}
                   </div>
                   
                   {/* Join/Leave Button */}

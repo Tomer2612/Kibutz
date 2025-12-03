@@ -35,6 +35,8 @@ import {
   FaSignOutAlt,
   FaSearch,
   FaThumbtack,
+  FaTrophy,
+  FaMedal,
 } from 'react-icons/fa';
 import { TopicIcon } from '../../lib/topicIcons';
 
@@ -47,6 +49,7 @@ interface Community {
   createdAt: string;
   topic?: string | null;
   memberCount?: number | null;
+  rules?: string[];
 }
 
 interface Comment {
@@ -65,10 +68,10 @@ interface Post {
   id: string;
   title?: string | null;
   content: string;
-  image?: string | null;
-  fileUrl?: string | null;
-  fileName?: string | null;
-  linkUrl?: string | null;
+  images?: string[];
+  files?: { url: string; name: string }[];
+  links?: string[];
+  category?: string | null;
   isPinned?: boolean;
   pinnedAt?: string | null;
   createdAt: string;
@@ -86,6 +89,14 @@ interface Post {
   isLiked?: boolean;
   isSaved?: boolean;
 }
+
+// Post categories with colors
+const POST_CATEGORIES = [
+  { value: 'הודעות', label: 'הודעות', color: 'bg-green-100 text-green-700 border-green-200' },
+  { value: 'שאלות', label: 'שאלות', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { value: 'טיפים', label: 'טיפים', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { value: 'פרסום', label: 'פרסום', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+];
 
 interface JwtPayload {
   email: string;
@@ -119,24 +130,34 @@ export default function CommunityFeedPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostTitle, setNewPostTitle] = useState('');
-  const [newPostFile, setNewPostFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<{ type: 'image' | 'file'; name?: string; url?: string } | null>(null);
-  const [newPostLink, setNewPostLink] = useState('');
+  const [newPostCategory, setNewPostCategory] = useState<string>('');
+  const [newPostImages, setNewPostImages] = useState<File[]>([]);
+  const [newPostFiles, setNewPostFiles] = useState<File[]>([]);
+  const [newPostLinks, setNewPostLinks] = useState<string[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [filePreviews, setFilePreviews] = useState<{ name: string }[]>([]);
+  const [newLinkInput, setNewLinkInput] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [loading, setLoading] = useState(true);
   const [postSubmitting, setPostSubmitting] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
   
   // Edit/Delete state
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [editTitle, setEditTitle] = useState('');
-  const [editLink, setEditLink] = useState('');
+  const [editImages, setEditImages] = useState<string[]>([]); // Existing images
+  const [editFiles, setEditFiles] = useState<{ url: string; name: string }[]>([]); // Existing files
+  const [editLinks, setEditLinks] = useState<string[]>([]); // Existing links
+  const [newEditImages, setNewEditImages] = useState<File[]>([]); // New images to add
+  const [newEditFiles, setNewEditFiles] = useState<File[]>([]); // New files to add
+  const [newEditImagePreviews, setNewEditImagePreviews] = useState<string[]>([]);
+  const [newEditFilePreviews, setNewEditFilePreviews] = useState<{ name: string }[]>([]);
+  const [editLinkInput, setEditLinkInput] = useState('');
   const [showEditLinkInput, setShowEditLinkInput] = useState(false);
-  const [editFile, setEditFile] = useState<File | null>(null);
-  const [editFilePreview, setEditFilePreview] = useState<{ type: 'image' | 'file'; name?: string; url?: string } | null>(null);
-  const [removeImage, setRemoveImage] = useState(false);
-  const [removeFile, setRemoveFile] = useState(false);
-  const [removeLink, setRemoveLink] = useState(false);
+  const [imagesToRemove, setImagesToRemove] = useState<string[]>([]);
+  const [filesToRemove, setFilesToRemove] = useState<string[]>([]);
+  const [linksToRemove, setLinksToRemove] = useState<string[]>([]);
   const [menuOpenPostId, setMenuOpenPostId] = useState<string | null>(null);
   
   // Filter state
@@ -160,6 +181,49 @@ export default function CommunityFeedPage() {
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
   const [topMembers, setTopMembers] = useState<TopMember[]>([]);
   const [onlineCount, setOnlineCount] = useState<number>(0);
+  
+  // Lightbox state
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [showLightbox, setShowLightbox] = useState(false);
+
+  const openLightbox = (images: string[], startIndex: number = 0) => {
+    setLightboxImages(images);
+    setLightboxIndex(startIndex);
+    setShowLightbox(true);
+  };
+
+  const closeLightbox = () => {
+    setShowLightbox(false);
+    setLightboxImages([]);
+    setLightboxIndex(0);
+  };
+
+  const nextImage = () => {
+    setLightboxIndex((prev) => (prev + 1) % lightboxImages.length);
+  };
+
+  const prevImage = () => {
+    setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+  };
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!showLightbox) return;
+      
+      if (e.key === 'Escape') {
+        closeLightbox();
+      } else if (e.key === 'ArrowRight') {
+        prevImage(); // RTL - right goes to previous
+      } else if (e.key === 'ArrowLeft') {
+        nextImage(); // RTL - left goes to next
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showLightbox, lightboxImages.length]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -363,11 +427,18 @@ export default function CommunityFeedPage() {
       if (newPostTitle.trim()) {
         formData.append('title', newPostTitle.trim());
       }
-      if (newPostFile) {
-        formData.append('file', newPostFile);
+      if (newPostCategory) {
+        formData.append('category', newPostCategory);
       }
-      if (newPostLink.trim()) {
-        formData.append('linkUrl', newPostLink.trim());
+      
+      // Append multiple images and files
+      [...newPostImages, ...newPostFiles].forEach(file => {
+        formData.append('files', file);
+      });
+      
+      // Append links as JSON
+      if (newPostLinks.length > 0) {
+        formData.append('links', JSON.stringify(newPostLinks));
       }
       
       const res = await fetch(`http://localhost:4000/posts/community/${selectedCommunityId}`, {
@@ -383,9 +454,13 @@ export default function CommunityFeedPage() {
       setPosts((prev) => [newPost, ...prev]);
       setNewPostContent('');
       setNewPostTitle('');
-      setNewPostFile(null);
-      setFilePreview(null);
-      setNewPostLink('');
+      setNewPostCategory('');
+      setNewPostImages([]);
+      setNewPostFiles([]);
+      setNewPostLinks([]);
+      setImagePreviews([]);
+      setFilePreviews([]);
+      setNewLinkInput('');
       setShowLinkInput(false);
     } catch (err) {
       console.error('Create post error:', err);
@@ -396,25 +471,60 @@ export default function CommunityFeedPage() {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setNewPostFile(file);
-      
+    const files = Array.from(e.target.files || []);
+    
+    for (const file of files) {
       if (file.type.startsWith('image/')) {
+        // Check image limit
+        if (newPostImages.length >= 5) {
+          alert('ניתן להעלות עד 5 תמונות');
+          continue;
+        }
+        setNewPostImages(prev => [...prev, file]);
+        
         const reader = new FileReader();
         reader.onloadend = () => {
-          setFilePreview({ type: 'image', url: reader.result as string });
+          setImagePreviews(prev => [...prev, reader.result as string]);
         };
         reader.readAsDataURL(file);
       } else {
-        setFilePreview({ type: 'file', name: file.name });
+        // Check file limit
+        if (newPostFiles.length >= 5) {
+          alert('ניתן להעלות עד 5 קבצים');
+          continue;
+        }
+        setNewPostFiles(prev => [...prev, file]);
+        setFilePreviews(prev => [...prev, { name: file.name }]);
       }
+    }
+    
+    // Reset input
+    e.target.value = '';
+  };
+
+  const removeSelectedImage = (index: number) => {
+    setNewPostImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeSelectedFile = (index: number) => {
+    setNewPostFiles(prev => prev.filter((_, i) => i !== index));
+    setFilePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addLink = () => {
+    if (newLinkInput.trim()) {
+      if (newPostLinks.length >= 10) {
+        alert('ניתן להוסיף עד 10 קישורים');
+        return;
+      }
+      setNewPostLinks(prev => [...prev, newLinkInput.trim()]);
+      setNewLinkInput('');
     }
   };
 
-  const removeSelectedFile = () => {
-    setNewPostFile(null);
-    setFilePreview(null);
+  const removeNewLink = (index: number) => {
+    setNewPostLinks(prev => prev.filter((_, i) => i !== index));
   };
 
   // Like/Unlike handler
@@ -456,7 +566,7 @@ export default function CommunityFeedPage() {
     }
   };
 
-  // Edit post handler
+  // Edit post handler - full edit with all attachments
   const handleEditPost = async (postId: string) => {
     const token = localStorage.getItem('token');
     if (!token || !editContent.trim()) return;
@@ -465,11 +575,28 @@ export default function CommunityFeedPage() {
       const formData = new FormData();
       formData.append('content', editContent);
       if (editTitle.trim()) formData.append('title', editTitle.trim());
-      if (editLink.trim()) formData.append('linkUrl', editLink.trim());
-      if (removeImage) formData.append('removeImage', 'true');
-      if (removeFile) formData.append('removeFile', 'true');
-      if (removeLink) formData.append('removeLink', 'true');
-      if (editFile) formData.append('file', editFile);
+      
+      // Append new images and files
+      [...newEditImages, ...newEditFiles].forEach(file => {
+        formData.append('files', file);
+      });
+      
+      // Append new links (combined with kept existing links)
+      const keptLinks = editLinks.filter(link => !linksToRemove.includes(link));
+      if (keptLinks.length > 0) {
+        formData.append('links', JSON.stringify(keptLinks));
+      }
+      
+      // Append items to remove
+      if (imagesToRemove.length > 0) {
+        formData.append('imagesToRemove', JSON.stringify(imagesToRemove));
+      }
+      if (filesToRemove.length > 0) {
+        formData.append('filesToRemove', JSON.stringify(filesToRemove));
+      }
+      if (linksToRemove.length > 0) {
+        formData.append('linksToRemove', JSON.stringify(linksToRemove));
+      }
       
       const res = await fetch(`http://localhost:4000/posts/${postId}`, {
         method: 'PATCH',
@@ -499,40 +626,110 @@ export default function CommunityFeedPage() {
     setEditingPostId(null);
     setEditContent('');
     setEditTitle('');
-    setEditLink('');
+    setEditImages([]);
+    setEditFiles([]);
+    setEditLinks([]);
+    setNewEditImages([]);
+    setNewEditFiles([]);
+    setNewEditImagePreviews([]);
+    setNewEditFilePreviews([]);
+    setEditLinkInput('');
     setShowEditLinkInput(false);
-    setEditFile(null);
-    setEditFilePreview(null);
-    setRemoveImage(false);
-    setRemoveFile(false);
-    setRemoveLink(false);
+    setImagesToRemove([]);
+    setFilesToRemove([]);
+    setLinksToRemove([]);
   };
 
   const handleEditFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setEditFile(file);
-      
+    const files = Array.from(e.target.files || []);
+    
+    for (const file of files) {
       if (file.type.startsWith('image/')) {
-        // If adding new image, mark old one for removal
-        setRemoveImage(true);
+        const currentTotal = editImages.length - imagesToRemove.length + newEditImages.length;
+        if (currentTotal >= 5) {
+          alert('ניתן להעלות עד 5 תמונות');
+          continue;
+        }
+        setNewEditImages(prev => [...prev, file]);
+        
         const reader = new FileReader();
         reader.onloadend = () => {
-          setEditFilePreview({ type: 'image', url: reader.result as string });
+          setNewEditImagePreviews(prev => [...prev, reader.result as string]);
         };
         reader.readAsDataURL(file);
       } else {
-        // If adding new file, mark old one for removal
-        setRemoveFile(true);
-        setEditFilePreview({ type: 'file', name: file.name });
+        const currentTotal = editFiles.length - filesToRemove.length + newEditFiles.length;
+        if (currentTotal >= 5) {
+          alert('ניתן להעלות עד 5 קבצים');
+          continue;
+        }
+        setNewEditFiles(prev => [...prev, file]);
+        setNewEditFilePreviews(prev => [...prev, { name: file.name }]);
       }
+    }
+    
+    e.target.value = '';
+  };
+
+  const removeNewEditImage = (index: number) => {
+    setNewEditImages(prev => prev.filter((_, i) => i !== index));
+    setNewEditImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewEditFile = (index: number) => {
+    setNewEditFiles(prev => prev.filter((_, i) => i !== index));
+    setNewEditFilePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const undoRemoveImage = (image: string) => {
+    // Check if undoing would exceed limit
+    const currentKept = editImages.length - imagesToRemove.length + 1; // +1 for the one being restored
+    const totalAfterUndo = currentKept + newEditImages.length;
+    if (totalAfterUndo > 5) {
+      alert('לא ניתן לבטל - חריגה ממגבלת 5 תמונות. הסר תמונה חדשה קודם.');
+      return;
+    }
+    setImagesToRemove(prev => prev.filter(i => i !== image));
+  };
+
+  const undoRemoveFile = (fileUrl: string) => {
+    // Check if undoing would exceed limit
+    const currentKept = editFiles.length - filesToRemove.length + 1; // +1 for the one being restored
+    const totalAfterUndo = currentKept + newEditFiles.length;
+    if (totalAfterUndo > 5) {
+      alert('לא ניתן לבטל - חריגה ממגבלת 5 קבצים. הסר קובץ חדש קודם.');
+      return;
+    }
+    setFilesToRemove(prev => prev.filter(f => f !== fileUrl));
+  };
+
+  const addEditLink = () => {
+    if (editLinkInput.trim()) {
+      const currentTotal = editLinks.length - linksToRemove.length;
+      if (currentTotal >= 10) {
+        alert('ניתן להוסיף עד 10 קישורים');
+        return;
+      }
+      setEditLinks(prev => [...prev, editLinkInput.trim()]);
+      setEditLinkInput('');
     }
   };
 
-  const removeEditFile = () => {
-    setEditFile(null);
-    setEditFilePreview(null);
-    // Don't reset remove flags - user might still want to remove old ones
+  const removeEditLink = (link: string) => {
+    if (editLinks.includes(link)) {
+      // Mark existing link for removal
+      setLinksToRemove(prev => [...prev, link]);
+    }
+  };
+
+  const undoRemoveEditLink = (link: string) => {
+    // Check if undoing would exceed limit
+    const currentKept = editLinks.length - linksToRemove.length + 1; // +1 for the one being restored
+    if (currentKept > 10) {
+      alert('לא ניתן לבטל - חריגה ממגבלת 10 קישורים.');
+      return;
+    }
+    setLinksToRemove(prev => prev.filter(l => l !== link));
   };
 
   // Download file handler - needed for cross-origin downloads
@@ -855,10 +1052,10 @@ export default function CommunityFeedPage() {
             { label: 'עמוד בית', href: `/communities/feed?communityId=${selectedCommunityId}`, active: true },
             { label: 'קורס', href: '#' },
             { label: 'חברי קהילה', href: `/communities/${selectedCommunityId}/members` },
-            { label: 'יומן', href: '#' },
-            { label: 'לוח תוצאות', href: '#' },
+            { label: 'יומן אירועים', href: '#' },
+            { label: 'לוח תוצאות', href: `/communities/${selectedCommunityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${selectedCommunityId}/about` },
-            ...((isOwner || isManager) ? [{ label: 'ניהול', href: `/communities/${selectedCommunityId}/manage` }] : []),
+            ...((isOwner || isManager) ? [{ label: 'ניהול קהילה', href: `/communities/${selectedCommunityId}/manage` }] : []),
           ].map((link) => (
             <Link
               key={link.label}
@@ -874,8 +1071,34 @@ export default function CommunityFeedPage() {
           ))}
         </nav>
 
-        {/* Left side of screen (RTL last): Search + User Avatar */}
-        <div className="flex items-center gap-4">
+        {/* Left side of screen (RTL last): Search + Category Filter + User Avatar */}
+        <div className="flex items-center gap-3">
+          {/* Category filter pills */}
+          <div className="hidden md:flex items-center gap-1.5">
+            <button
+              onClick={() => setCategoryFilter('')}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                categoryFilter === '' 
+                  ? 'bg-black text-white' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              הכל
+            </button>
+            {POST_CATEGORIES.map(cat => (
+              <button
+                key={cat.value}
+                onClick={() => setCategoryFilter(cat.value)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition border ${
+                  categoryFilter === cat.value 
+                    ? cat.color + ' ring-1 ring-offset-1 ring-gray-400'
+                    : cat.color + ' opacity-70 hover:opacity-100'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
           <div className="relative">
             <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -1089,6 +1312,17 @@ export default function CommunityFeedPage() {
                     placeholder="כותרת (אופציונלי)"
                     className="flex-1 text-right text-black font-medium placeholder-gray-400 focus:outline-none"
                   />
+                  {/* Category selector */}
+                  <select
+                    value={newPostCategory}
+                    onChange={(e) => setNewPostCategory(e.target.value)}
+                    className="px-3 py-1 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-black"
+                  >
+                    <option value="">קטגוריה</option>
+                    {POST_CATEGORIES.map(cat => (
+                      <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
@@ -1102,55 +1336,98 @@ export default function CommunityFeedPage() {
                   </div>
                 </div>
                 
-                {/* File/Image Preview */}
-                {filePreview && (
-                  <div className="relative mt-3 inline-block">
-                    {filePreview.type === 'image' ? (
-                      <div className="relative">
+                {/* Image Previews */}
+                {imagePreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative">
                         <img
-                          src={filePreview.url}
-                          alt="Preview"
-                          className="max-h-48 rounded-lg border-2 border-purple-200"
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="h-24 w-24 object-cover rounded-lg border-2 border-purple-200"
                         />
-                        <div className="absolute bottom-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded">
-                          תמונה
-                        </div>
+                        <button
+                          onClick={() => removeSelectedImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        >
+                          <FaTimes className="w-3 h-3" />
+                        </button>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-3 bg-orange-50 rounded-lg px-4 py-3 border border-orange-200">
-                        {filePreview.name?.endsWith('.pdf') ? (
-                          <FaFilePdf className="w-6 h-6 text-orange-500" />
-                        ) : (
-                          <FaFile className="w-6 h-6 text-orange-500" />
-                        )}
-                        <span className="text-sm text-orange-700">{filePreview.name}</span>
-                      </div>
+                    ))}
+                    {newPostImages.length < 5 && (
+                      <span className="text-xs text-gray-400 self-center">({newPostImages.length}/5)</span>
                     )}
-                    <button
-                      onClick={removeSelectedFile}
-                      className="absolute top-2 right-2 bg-black bg-opacity-60 text-white rounded-full p-1 hover:bg-opacity-80"
-                    >
-                      <FaTimes className="w-3 h-3" />
-                    </button>
                   </div>
                 )}
                 
-                {/* Link Input */}
+                {/* File Previews */}
+                {filePreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {filePreviews.map((file, index) => (
+                      <div key={index} className="relative flex items-center gap-2 bg-orange-50 rounded-lg px-3 py-2 border border-orange-200">
+                        {file.name.endsWith('.pdf') ? (
+                          <FaFilePdf className="w-5 h-5 text-orange-500" />
+                        ) : (
+                          <FaFile className="w-5 h-5 text-orange-500" />
+                        )}
+                        <span className="text-sm text-orange-700 max-w-[150px] truncate">{file.name}</span>
+                        <button
+                          onClick={() => removeSelectedFile(index)}
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          <FaTimes className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {newPostFiles.length < 3 && (
+                      <span className="text-xs text-gray-400 self-center">({newPostFiles.length}/5)</span>
+                    )}
+                  </div>
+                )}
+                
+                {/* Link Input and List */}
                 {showLinkInput && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <input
-                      type="url"
-                      value={newPostLink}
-                      onChange={(e) => setNewPostLink(e.target.value)}
-                      placeholder="https://example.com"
-                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    />
-                    <button
-                      onClick={() => { setShowLinkInput(false); setNewPostLink(''); }}
-                      className="p-2 text-gray-400 hover:text-gray-600"
-                    >
-                      <FaTimes className="w-4 h-4" />
-                    </button>
+                  <div className="mt-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="url"
+                        value={newLinkInput}
+                        onChange={(e) => setNewLinkInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLink(); } }}
+                        placeholder="https://example.com"
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      />
+                      <button
+                        onClick={addLink}
+                        disabled={!newLinkInput.trim()}
+                        className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50"
+                      >
+                        הוסף
+                      </button>
+                      <button
+                        onClick={() => { setShowLinkInput(false); setNewLinkInput(''); }}
+                        className="p-2 text-gray-400 hover:text-gray-600"
+                      >
+                        <FaTimes className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {newPostLinks.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {newPostLinks.map((link, index) => (
+                          <div key={index} className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-1 border border-blue-200">
+                            <FaLink className="w-3 h-3 text-blue-500" />
+                            <span className="text-sm text-blue-700 max-w-[200px] truncate">{link}</span>
+                            <button
+                              onClick={() => removeNewLink(index)}
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <FaTimes className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                        <span className="text-xs text-gray-400 self-center">({newPostLinks.length}/10)</span>
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -1159,23 +1436,27 @@ export default function CommunityFeedPage() {
                   <div className="flex items-center gap-4">
                     <label className="cursor-pointer flex items-center gap-2 text-purple-500 hover:text-purple-700 transition">
                       <FaImage className="w-5 h-5" />
-                      <span className="text-sm">תמונה</span>
+                      <span className="text-sm">תמונה {newPostImages.length > 0 && `(${newPostImages.length}/5)`}</span>
                       <input
                         type="file"
                         accept="image/*"
+                        multiple
                         onChange={handleFileSelect}
                         className="hidden"
+                        disabled={newPostImages.length >= 5}
                       />
                     </label>
                     
                     <label className="cursor-pointer flex items-center gap-2 text-orange-500 hover:text-orange-700 transition">
                       <FaFile className="w-5 h-5" />
-                      <span className="text-sm">קובץ</span>
+                      <span className="text-sm">קובץ {newPostFiles.length > 0 && `(${newPostFiles.length}/5)`}</span>
                       <input
                         type="file"
                         accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                        multiple
                         onChange={handleFileSelect}
                         className="hidden"
+                        disabled={newPostFiles.length >= 5}
                       />
                     </label>
                     
@@ -1184,7 +1465,7 @@ export default function CommunityFeedPage() {
                       className={`flex items-center gap-2 transition ${showLinkInput ? 'text-blue-600' : 'text-blue-500 hover:text-blue-700'}`}
                     >
                       <FaLink className="w-5 h-5" />
-                      <span className="text-sm">קישור</span>
+                      <span className="text-sm">קישור {newPostLinks.length > 0 && `(${newPostLinks.length}/10)`}</span>
                     </button>
                   </div>
                   
@@ -1209,6 +1490,7 @@ export default function CommunityFeedPage() {
               ) : (() => {
                 const filteredPosts = posts
                   .filter(p => !showSavedOnly || p.isSaved)
+                  .filter(p => !categoryFilter || p.category === categoryFilter)
                   .filter(p => {
                     if (!searchQuery.trim()) return true;
                     const query = searchQuery.toLowerCase();
@@ -1231,24 +1513,41 @@ export default function CommunityFeedPage() {
                     )}
                     {/* Post Header */}
                     <div className="flex items-start gap-3 mb-4">
+                      {/* Profile picture - rightmost (RTL) */}
+                      <Link href={`/profile/${post.author?.id}`} className="cursor-pointer hover:opacity-80 transition">
+                        {post.author?.profileImage ? (
+                          <img 
+                            src={`http://localhost:4000${post.author.profileImage}`} 
+                            alt={post.author.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center font-bold text-pink-600">
+                            {post.author?.name?.charAt(0) || '?'}
+                          </div>
+                        )}
+                      </Link>
+                      
+                      {/* Author info - next to profile pic */}
                       <div className="flex-1 text-right">
-                        <p className="font-semibold text-black">{post.author?.name || 'משתמש אנונימי'}</p>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/profile/${post.author?.id}`} className="font-semibold text-black hover:underline">
+                            {post.author?.name || 'משתמש אנונימי'}
+                          </Link>
+                          {post.category && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                              POST_CATEGORIES.find(c => c.value === post.category)?.color || 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {POST_CATEGORIES.find(c => c.value === post.category)?.label || post.category}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-400">
                           {new Date(post.createdAt).toLocaleDateString('he-IL')} • פורסם במתכונים
                         </p>
                       </div>
-                      {post.author?.profileImage ? (
-                        <img 
-                          src={`http://localhost:4000${post.author.profileImage}`} 
-                          alt={post.author.name}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center font-bold text-pink-600">
-                          {post.author?.name?.charAt(0) || '?'}
-                        </div>
-                      )}
                       
+                      {/* Actions - leftmost (RTL) */}
                       {/* Save button */}
                       {userEmail && (
                         <button
@@ -1294,13 +1593,18 @@ export default function CommunityFeedPage() {
                                     setEditingPostId(post.id);
                                     setEditTitle(post.title || '');
                                     setEditContent(post.content);
-                                    setEditLink(post.linkUrl || '');
+                                    setEditImages(post.images || []);
+                                    setEditFiles(post.files || []);
+                                    setEditLinks(post.links || []);
+                                    setNewEditImages([]);
+                                    setNewEditFiles([]);
+                                    setNewEditImagePreviews([]);
+                                    setNewEditFilePreviews([]);
+                                    setEditLinkInput('');
                                     setShowEditLinkInput(false);
-                                    setRemoveImage(false);
-                                    setRemoveFile(false);
-                                    setRemoveLink(false);
-                                    setEditFile(null);
-                                    setEditFilePreview(null);
+                                    setImagesToRemove([]);
+                                    setFilesToRemove([]);
+                                    setLinksToRemove([]);
                                     setMenuOpenPostId(null);
                                   }}
                                   className="w-full px-4 py-2 text-right text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
@@ -1345,107 +1649,167 @@ export default function CommunityFeedPage() {
                           rows={4}
                         />
                         
-                        {/* Attachments in Edit Mode */}
-                        <div className="mt-3 space-y-2">
-                          {/* Image in edit mode */}
-                          {post.image && !removeImage && (
-                            <div className="flex items-center gap-3 bg-purple-50 rounded-lg px-4 py-2 border border-purple-200">
-                              <FaImage className="w-5 h-5 text-purple-500" />
-                              <span className="flex-1 text-sm text-purple-700">תמונה מצורפת</span>
-                              <button
-                                onClick={() => setRemoveImage(true)}
-                                className="text-red-500 hover:text-red-700 p-1"
-                                title="הסר תמונה"
-                              >
-                                <FaTimes className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
-                          {removeImage && (
-                            <div className="flex items-center gap-3 bg-gray-100 rounded-lg px-4 py-2 border border-gray-300 opacity-60">
-                              <FaImage className="w-5 h-5 text-gray-400" />
-                              <span className="flex-1 text-sm text-gray-500 line-through">תמונה תוסר</span>
-                              <button
-                                onClick={() => setRemoveImage(false)}
-                                className="text-blue-500 hover:text-blue-700 text-xs"
-                              >
-                                בטל
-                              </button>
-                            </div>
-                          )}
-                          
-                          {/* File in edit mode */}
-                          {post.fileUrl && !removeFile && (
-                            <div className="flex items-center gap-3 bg-orange-50 rounded-lg px-4 py-2 border border-orange-200">
-                              <FaFile className="w-5 h-5 text-orange-500" />
-                              <span className="flex-1 text-sm text-orange-700">{post.fileName || 'קובץ מצורף'}</span>
-                              <button
-                                onClick={() => setRemoveFile(true)}
-                                className="text-red-500 hover:text-red-700 p-1"
-                                title="הסר קובץ"
-                              >
-                                <FaTimes className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
-                          {removeFile && (
-                            <div className="flex items-center gap-3 bg-gray-100 rounded-lg px-4 py-2 border border-gray-300 opacity-60">
-                              <FaFile className="w-5 h-5 text-gray-400" />
-                              <span className="flex-1 text-sm text-gray-500 line-through">{post.fileName || 'קובץ'} יוסר</span>
-                              <button
-                                onClick={() => setRemoveFile(false)}
-                                className="text-blue-500 hover:text-blue-700 text-xs"
-                              >
-                                בטל
-                              </button>
+                        {/* Attachments in Edit Mode - Full editing */}
+                        <div className="mt-3 space-y-3">
+                          {/* Existing Images */}
+                          {editImages.length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">תמונות קיימות:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {editImages.map((image, index) => (
+                                  <div key={index} className={`relative ${imagesToRemove.includes(image) ? 'opacity-50' : ''}`}>
+                                    <img
+                                      src={`http://localhost:4000${image}`}
+                                      alt={`תמונה ${index + 1}`}
+                                      className="w-20 h-20 object-cover rounded-lg border-2 border-purple-200"
+                                    />
+                                    {imagesToRemove.includes(image) ? (
+                                      <button
+                                        onClick={() => undoRemoveImage(image)}
+                                        className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-1 text-xs"
+                                        title="בטל הסרה"
+                                      >
+                                        ↩
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => setImagesToRemove(prev => [...prev, image])}
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                      >
+                                        <FaTimes className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
                           
-                          {/* Link in edit mode */}
-                          {post.linkUrl && !removeLink && !showEditLinkInput && (
-                            <div className="flex items-center gap-3 bg-blue-50 rounded-lg px-4 py-2 border border-blue-200">
-                              <FaLink className="w-5 h-5 text-blue-500" />
-                              <span className="flex-1 text-sm text-blue-700 truncate">{post.linkUrl}</span>
-                              <button
-                                onClick={() => { setShowEditLinkInput(true); setEditLink(post.linkUrl || ''); }}
-                                className="text-blue-500 hover:text-blue-700 p-1"
-                                title="ערוך קישור"
-                              >
-                                <FaEdit className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => setRemoveLink(true)}
-                                className="text-red-500 hover:text-red-700 p-1"
-                                title="הסר קישור"
-                              >
-                                <FaTimes className="w-4 h-4" />
-                              </button>
+                          {/* New Images to add */}
+                          {newEditImagePreviews.length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">תמונות חדשות:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {newEditImagePreviews.map((preview, index) => (
+                                  <div key={index} className="relative">
+                                    <img
+                                      src={preview}
+                                      alt={`תמונה חדשה ${index + 1}`}
+                                      className="w-20 h-20 object-cover rounded-lg border-2 border-green-300"
+                                    />
+                                    <button
+                                      onClick={() => removeNewEditImage(index)}
+                                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                    >
+                                      <FaTimes className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
-                          {removeLink && (
-                            <div className="flex items-center gap-3 bg-gray-100 rounded-lg px-4 py-2 border border-gray-300 opacity-60">
-                              <FaLink className="w-5 h-5 text-gray-400" />
-                              <span className="flex-1 text-sm text-gray-500 line-through">קישור יוסר</span>
-                              <button
-                                onClick={() => { setRemoveLink(false); setShowEditLinkInput(false); }}
-                                className="text-blue-500 hover:text-blue-700 text-xs"
-                              >
-                                בטל
-                              </button>
+                          
+                          {/* Existing Files */}
+                          {editFiles.length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">קבצים קיימים:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {editFiles.map((file, index) => (
+                                  <div key={index} className={`flex items-center gap-2 bg-orange-50 rounded-lg px-3 py-1 border border-orange-200 ${filesToRemove.includes(file.url) ? 'opacity-50 line-through' : ''}`}>
+                                    <FaFile className="w-4 h-4 text-orange-500" />
+                                    <span className="text-xs text-orange-700 max-w-[100px] truncate">{file.name}</span>
+                                    {filesToRemove.includes(file.url) ? (
+                                      <button
+                                        onClick={() => undoRemoveFile(file.url)}
+                                        className="text-blue-500 hover:text-blue-700 text-xs"
+                                      >
+                                        ↩
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => setFilesToRemove(prev => [...prev, file.url])}
+                                        className="text-red-500 hover:text-red-600"
+                                      >
+                                        <FaTimes className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
-                          {showEditLinkInput && !removeLink && (
-                            <div className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-2 border border-blue-200">
-                              <FaLink className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                          
+                          {/* New Files to add */}
+                          {newEditFilePreviews.length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">קבצים חדשים:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {newEditFilePreviews.map((file, index) => (
+                                  <div key={index} className="flex items-center gap-2 bg-green-50 rounded-lg px-3 py-1 border border-green-300">
+                                    <FaFile className="w-4 h-4 text-green-500" />
+                                    <span className="text-xs text-green-700 max-w-[100px] truncate">{file.name}</span>
+                                    <button
+                                      onClick={() => removeNewEditFile(index)}
+                                      className="text-red-500 hover:text-red-600"
+                                    >
+                                      <FaTimes className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Existing Links */}
+                          {editLinks.length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">קישורים:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {editLinks.map((link, index) => (
+                                  <div key={index} className={`flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-1 border border-blue-200 ${linksToRemove.includes(link) ? 'opacity-50 line-through' : ''}`}>
+                                    <FaLink className="w-3 h-3 text-blue-500" />
+                                    <span className="text-xs text-blue-700 max-w-[150px] truncate">{link}</span>
+                                    {linksToRemove.includes(link) ? (
+                                      <button
+                                        onClick={() => undoRemoveEditLink(link)}
+                                        className="text-blue-500 hover:text-blue-700 text-xs"
+                                      >
+                                        ↩
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => removeEditLink(link)}
+                                        className="text-red-500 hover:text-red-600"
+                                      >
+                                        <FaTimes className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Add Link Input */}
+                          {showEditLinkInput && (
+                            <div className="flex items-center gap-2">
                               <input
                                 type="url"
-                                value={editLink}
-                                onChange={(e) => setEditLink(e.target.value)}
-                                placeholder="הזן קישור..."
-                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                value={editLinkInput}
+                                onChange={(e) => setEditLinkInput(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEditLink(); } }}
+                                placeholder="https://example.com"
+                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black"
                               />
                               <button
-                                onClick={() => { setShowEditLinkInput(false); setEditLink(''); }}
+                                onClick={addEditLink}
+                                disabled={!editLinkInput.trim()}
+                                className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50"
+                              >
+                                הוסף
+                              </button>
+                              <button
+                                onClick={() => { setShowEditLinkInput(false); setEditLinkInput(''); }}
                                 className="p-2 text-gray-400 hover:text-gray-600"
                               >
                                 <FaTimes className="w-4 h-4" />
@@ -1453,65 +1817,40 @@ export default function CommunityFeedPage() {
                             </div>
                           )}
                           
-                          {/* New file preview in edit mode */}
-                          {editFilePreview && (
-                            <div className="relative">
-                              {editFilePreview.type === 'image' ? (
-                                <div className="flex items-center gap-3 bg-purple-50 rounded-lg px-4 py-2 border-2 border-purple-300">
-                                  <FaImage className="w-5 h-5 text-purple-500" />
-                                  <span className="flex-1 text-sm text-purple-700">תמונה חדשה נבחרה</span>
-                                  <button
-                                    onClick={removeEditFile}
-                                    className="text-red-500 hover:text-red-700 p-1"
-                                  >
-                                    <FaTimes className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-3 bg-orange-50 rounded-lg px-4 py-2 border-2 border-orange-300">
-                                  <FaFile className="w-5 h-5 text-orange-500" />
-                                  <span className="flex-1 text-sm text-orange-700">{editFilePreview.name}</span>
-                                  <button
-                                    onClick={removeEditFile}
-                                    className="text-red-500 hover:text-red-700 p-1"
-                                  >
-                                    <FaTimes className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          {/* Add new attachment buttons */}
-                          <div className="flex items-center gap-3 pt-2 border-t border-gray-100 mt-2">
+                          {/* Add attachment buttons */}
+                          <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
                             <span className="text-xs text-gray-400">הוסף:</span>
                             <label className="cursor-pointer flex items-center gap-1 text-purple-500 hover:text-purple-700 text-sm transition">
                               <FaImage className="w-4 h-4" />
-                              <span>תמונה</span>
+                              <span>תמונה ({editImages.length - imagesToRemove.length + newEditImages.length}/5)</span>
                               <input
                                 type="file"
                                 accept="image/*"
+                                multiple
                                 onChange={handleEditFileSelect}
                                 className="hidden"
+                                disabled={editImages.length - imagesToRemove.length + newEditImages.length >= 5}
                               />
                             </label>
                             <label className="cursor-pointer flex items-center gap-1 text-orange-500 hover:text-orange-700 text-sm transition">
                               <FaFile className="w-4 h-4" />
-                              <span>קובץ</span>
+                              <span>קובץ ({editFiles.length - filesToRemove.length + newEditFiles.length}/5)</span>
                               <input
                                 type="file"
                                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                                multiple
                                 onChange={handleEditFileSelect}
                                 className="hidden"
+                                disabled={editFiles.length - filesToRemove.length + newEditFiles.length >= 5}
                               />
                             </label>
-                            {!showEditLinkInput && !post.linkUrl && !removeLink && (
+                            {!showEditLinkInput && (
                               <button
                                 onClick={() => setShowEditLinkInput(true)}
                                 className="flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm transition"
                               >
                                 <FaLink className="w-4 h-4" />
-                                <span>קישור</span>
+                                <span>קישור ({editLinks.length - linksToRemove.length}/10)</span>
                               </button>
                             )}
                           </div>
@@ -1539,58 +1878,76 @@ export default function CommunityFeedPage() {
                         )}
                         <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{post.content}</p>
                         
-                        {/* Image Display */}
-                        {post.image && (
-                          <div className="mt-3 relative inline-block">
-                            <img
-                              src={`http://localhost:4000${post.image}`}
-                              alt="Post image"
-                              className="max-w-full rounded-lg border-2 border-purple-200"
-                            />
-                            <button
-                              onClick={() => handleDownload(
-                                `http://localhost:4000${post.image}`,
-                                post.image?.split('/').pop() || 'image'
-                              )}
-                              className="absolute bottom-3 left-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm transition"
-                            >
-                              <FaDownload className="w-3 h-3" />
-                              הורד
-                            </button>
+                        {/* Images Display - Grid for multiple images */}
+                        {post.images && post.images.length > 0 && (
+                          <div className={`mt-3 grid gap-2 ${
+                            post.images.length === 1 ? 'grid-cols-1' : 
+                            post.images.length === 2 ? 'grid-cols-2' : 
+                            'grid-cols-3'
+                          }`}>
+                            {post.images.map((image, index) => (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={`http://localhost:4000${image}`}
+                                  alt={`תמונה ${index + 1}`}
+                                  className="w-full h-48 object-cover rounded-lg border-2 border-purple-200 cursor-pointer hover:opacity-90 transition"
+                                  onClick={() => openLightbox(post.images!, index)}
+                                />
+                                <button
+                                  onClick={() => handleDownload(
+                                    `http://localhost:4000${image}`,
+                                    image.split('/').pop() || 'image'
+                                  )}
+                                  className="absolute bottom-2 left-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg px-2 py-1 flex items-center gap-1 text-xs opacity-0 group-hover:opacity-100 transition"
+                                >
+                                  <FaDownload className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         )}
                         
-                        {/* File Display */}
-                        {post.fileUrl && (
-                          <button
-                            onClick={() => handleDownload(
-                              `http://localhost:4000${post.fileUrl}`,
-                              post.fileName || 'file'
-                            )}
-                            className="mt-3 w-full flex items-center gap-3 bg-orange-50 rounded-lg px-4 py-3 border border-orange-200 hover:bg-orange-100 transition text-right"
-                          >
-                            {post.fileName?.endsWith('.pdf') ? (
-                              <FaFilePdf className="w-6 h-6 text-orange-600" />
-                            ) : (
-                              <FaFile className="w-6 h-6 text-orange-500" />
-                            )}
-                            <span className="flex-1 text-sm text-orange-700">{post.fileName || 'קובץ מצורף'}</span>
-                            <FaDownload className="w-4 h-4 text-orange-400" />
-                          </button>
+                        {/* Files Display */}
+                        {post.files && post.files.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {post.files.map((file, index) => (
+                              <button
+                                key={index}
+                                onClick={() => handleDownload(
+                                  `http://localhost:4000${file.url}`,
+                                  file.name || 'file'
+                                )}
+                                className="w-full flex items-center gap-3 bg-orange-50 rounded-lg px-4 py-3 border border-orange-200 hover:bg-orange-100 transition text-right"
+                              >
+                                {file.name?.endsWith('.pdf') ? (
+                                  <FaFilePdf className="w-6 h-6 text-orange-600" />
+                                ) : (
+                                  <FaFile className="w-6 h-6 text-orange-500" />
+                                )}
+                                <span className="flex-1 text-sm text-orange-700">{file.name || 'קובץ מצורף'}</span>
+                                <FaDownload className="w-4 h-4 text-orange-400" />
+                              </button>
+                            ))}
+                          </div>
                         )}
                         
-                        {/* Link Display */}
-                        {post.linkUrl && (
-                          <a
-                            href={post.linkUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-3 flex items-center gap-3 bg-blue-50 rounded-lg px-4 py-3 border border-blue-100 hover:bg-blue-100 transition"
-                          >
-                            <FaLink className="w-5 h-5 text-blue-500" />
-                            <span className="flex-1 text-sm text-blue-700 truncate">{post.linkUrl}</span>
-                            <FaExternalLinkAlt className="w-4 h-4 text-blue-400" />
-                          </a>
+                        {/* Links Display */}
+                        {post.links && post.links.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {post.links.map((link, index) => (
+                              <a
+                                key={index}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 bg-blue-50 rounded-lg px-4 py-3 border border-blue-100 hover:bg-blue-100 transition"
+                              >
+                                <FaLink className="w-5 h-5 text-blue-500" />
+                                <span className="flex-1 text-sm text-blue-700 truncate">{link}</span>
+                                <FaExternalLinkAlt className="w-4 h-4 text-blue-400" />
+                              </a>
+                            ))}
+                          </div>
                         )}
                       </div>
                     )}
@@ -1626,22 +1983,24 @@ export default function CommunityFeedPage() {
                             {postComments[post.id]?.length > 0 ? (
                               postComments[post.id].map((comment) => (
                                 <div key={comment.id} className="flex gap-2 items-start" dir="rtl">
-                                  {comment.user?.profileImage ? (
-                                    <img 
-                                      src={`http://localhost:4000${comment.user.profileImage}`} 
-                                      alt={comment.user.name}
-                                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                    />
-                                  ) : (
-                                    <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-xs font-bold text-pink-600 flex-shrink-0">
-                                      {comment.user?.name?.charAt(0) || '?'}
-                                    </div>
-                                  )}
+                                  <Link href={`/profile/${comment.user?.id}`} className="flex-shrink-0">
+                                    {comment.user?.profileImage ? (
+                                      <img 
+                                        src={`http://localhost:4000${comment.user.profileImage}`} 
+                                        alt={comment.user.name}
+                                        className="w-8 h-8 rounded-full object-cover hover:opacity-80 transition"
+                                      />
+                                    ) : (
+                                      <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-xs font-bold text-pink-600 hover:opacity-80 transition">
+                                        {comment.user?.name?.charAt(0) || '?'}
+                                      </div>
+                                    )}
+                                  </Link>
                                   <div className="flex-1 bg-gray-50 rounded-lg p-3">
                                     <div className="flex items-center justify-between mb-1">
-                                      <span className="font-medium text-sm text-black">
+                                      <Link href={`/profile/${comment.user?.id}`} className="font-medium text-sm text-black hover:underline">
                                         {comment.user?.name || 'משתמש'}
-                                      </span>
+                                      </Link>
                                       <span className="text-xs text-gray-400">
                                         {new Date(comment.createdAt).toLocaleDateString('he-IL')}
                                       </span>
@@ -1778,45 +2137,8 @@ export default function CommunityFeedPage() {
             </div>
           </div>
 
-          {/* RIGHT: Gray background info cards */}
+          {/* RIGHT: Sidebar with online members, rules, events, top members */}
           <div className="space-y-4 order-3 lg:order-3">
-            {/* Community Info Card */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <TopicIcon topic={community?.topic} size="md" />
-                <div>
-                  <h3 className="font-bold text-black text-lg">{community?.name}</h3>
-                  {community?.topic && (
-                    <span className="inline-block bg-cyan-100 text-cyan-700 px-3 py-0.5 rounded-full text-xs font-medium mt-1">
-                      {community.topic}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-3">
-                <FaCalendarAlt className="w-3.5 h-3.5" />
-                <span>נוצרה ב-{community?.createdAt ? new Date(community.createdAt).toLocaleDateString('he-IL') : ''}</span>
-                <span className="mx-1">•</span>
-                <FaUsers className="w-3.5 h-3.5" />
-                <span>{community?.memberCount ?? 0} חברים</span>
-              </div>
-              {/* Member count + Free badges */}
-              <div className="flex items-center gap-2 mt-3">
-                <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
-                  {(() => {
-                    const count = community?.memberCount ?? 0;
-                    if (count >= 10000) return `${Math.floor(count / 1000)}K+ משתמשים`;
-                    if (count >= 1000) return `${(count / 1000).toFixed(1).replace('.0', '')}K+ משתמשים`;
-                    if (count >= 100) return `${Math.floor(count / 100) * 100}+ משתמשים`;
-                    return `${count} משתמשים`;
-                  })()}
-                </span>
-                <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-medium border border-emerald-200">
-                  חינם
-                </span>
-              </div>
-            </div>
-
             {/* Online Members */}
             <div className="bg-[#F7F8FA] rounded-2xl p-5">
               <div className="flex items-center gap-3">
@@ -1838,26 +2160,28 @@ export default function CommunityFeedPage() {
                 </svg>
                 <h3 className="font-semibold text-black">כללי הקהילה</h3>
               </div>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start gap-2">
-                  <svg className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>לדבר בנימוס, בלי שיימינג או פרסום אגרסיבי.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>לפרסם מתכונים עם כמויות, שלבים ותמונה.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>לענות לשאלות חדשים ולתייג נושאים רלוונטיים.</span>
-                </li>
-              </ul>
+              {community?.rules && community.rules.length > 0 ? (
+                <ul className="space-y-2 text-sm text-gray-600">
+                  {community.rules.map((rule, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <svg className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{rule}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500 text-sm text-center py-2">
+                  {(isOwner || isManager) ? (
+                    <Link href={`/communities/${selectedCommunityId}/manage`} className="text-blue-600 hover:underline">
+                      הוסיפו כללים לקהילה
+                    </Link>
+                  ) : (
+                    'לא הוגדרו כללים לקהילה זו'
+                  )}
+                </p>
+              )}
             </div>
 
             {/* אירועים קרובים */}
@@ -1880,27 +2204,42 @@ export default function CommunityFeedPage() {
               <div className="space-y-4 text-sm">
                 {topMembers.length > 0 ? (
                   topMembers.map((member) => {
-                    const rankColors = ['bg-pink-400', 'bg-green-500', 'bg-yellow-400'];
+                    const getRankIcon = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return <FaTrophy className="w-5 h-5" style={{ color: '#FFD700' }} />;
+                        case 2:
+                          return <FaMedal className="w-5 h-5" style={{ color: '#A8A8A8' }} />;
+                        case 3:
+                          return <FaMedal className="w-5 h-5" style={{ color: '#CD7F32' }} />;
+                        default:
+                          return <span className="text-gray-500 text-xs font-bold">{rank}</span>;
+                      }
+                    };
                     return (
                       <div key={member.userId} className="flex items-center gap-3">
-                        {/* Rank badge */}
-                        <div className={`w-6 h-6 ${rankColors[member.rank - 1] || 'bg-gray-400'} rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                          {member.rank}
+                        {/* Rank medal */}
+                        <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                          {getRankIcon(member.rank)}
                         </div>
                         {/* Profile picture */}
-                        {member.profileImage ? (
-                          <img
-                            src={`http://localhost:4000${member.profileImage}`}
-                            alt={member.name}
-                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600 flex-shrink-0">
-                            {member.name?.charAt(0) || '?'}
-                          </div>
-                        )}
+                        <Link href={`/profile/${member.userId}`} className="flex-shrink-0">
+                          {member.profileImage ? (
+                            <img
+                              src={`http://localhost:4000${member.profileImage}`}
+                              alt={member.name}
+                              className="w-10 h-10 rounded-full object-cover hover:opacity-80 transition"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600 hover:opacity-80 transition">
+                              {member.name?.charAt(0) || '?'}
+                            </div>
+                          )}
+                        </Link>
                         {/* Name */}
-                        <span className="font-medium text-black flex-1">{member.name}</span>
+                        <Link href={`/profile/${member.userId}`} className="font-medium text-black flex-1 hover:underline">
+                          {member.name}
+                        </Link>
                         {/* Score */}
                         <span className="text-gray-400 font-medium">{member.points}</span>
                       </div>
@@ -1914,6 +2253,97 @@ export default function CommunityFeedPage() {
           </div>
         </div>
       </section>
+      )}
+
+      {/* Lightbox Modal */}
+      {showLightbox && lightboxImages.length > 0 && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
+          onClick={closeLightbox}
+        >
+          {/* Close button */}
+          <button
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-50 p-2"
+          >
+            <FaTimes className="w-8 h-8" />
+          </button>
+
+          {/* Image counter */}
+          {lightboxImages.length > 1 && (
+            <div className="absolute top-4 left-4 text-white text-lg font-medium bg-black bg-opacity-50 px-3 py-1 rounded-lg">
+              {lightboxIndex + 1} / {lightboxImages.length}
+            </div>
+          )}
+
+          {/* Previous button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); prevImage(); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-3 transition"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Next button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); nextImage(); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-3 transition"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Main image */}
+          <img
+            src={`http://localhost:4000${lightboxImages[lightboxIndex]}`}
+            alt={`תמונה ${lightboxIndex + 1}`}
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Thumbnail strip for multiple images */}
+          {lightboxImages.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black bg-opacity-50 p-2 rounded-lg">
+              {lightboxImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
+                  className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition ${
+                    idx === lightboxIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={`http://localhost:4000${img}`}
+                    alt={`תמונה ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Download button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownload(
+                `http://localhost:4000${lightboxImages[lightboxIndex]}`,
+                lightboxImages[lightboxIndex].split('/').pop() || 'image'
+              );
+            }}
+            className="absolute bottom-4 right-4 text-white bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg flex items-center gap-2 transition"
+          >
+            <FaDownload className="w-4 h-4" />
+            הורד תמונה
+          </button>
+        </div>
       )}
     </main>
   );

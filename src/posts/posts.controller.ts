@@ -1,5 +1,5 @@
-import { Controller, Post, Body, Param, UseGuards, Req, Get, Delete, Patch, Query, UseInterceptors, UploadedFile, Res, StreamableFile } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { Controller, Post, Body, Param, UseGuards, Req, Get, Delete, Patch, Query, UseInterceptors, UploadedFiles, Res, StreamableFile } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { createReadStream, existsSync } from 'fs';
@@ -40,28 +40,43 @@ export class PostsController {
   // Create post in community
   @UseGuards(AuthGuard('jwt'))
   @Post('community/:communityId')
-  @UseInterceptors(FileInterceptor('file', { storage }))
+  @UseInterceptors(FilesInterceptor('files', 10, { storage })) // Max 5 images + 5 files = 10
   createPost(
     @Param('communityId') communityId: string,
     @Req() req,
-    @Body() body: { content: string; title?: string; linkUrl?: string },
-    @UploadedFile() file?: Express.Multer.File
+    @Body() body: { content: string; title?: string; links?: string; category?: string },
+    @UploadedFiles() files?: Express.Multer.File[]
   ) {
     const userId = req.user.userId;
     
-    let imagePath: string | undefined;
-    let fileUrl: string | undefined;
-    let fileName: string | undefined;
+    const images: string[] = [];
+    const uploadedFiles: { url: string; name: string }[] = [];
     
-    if (file) {
-      const filePath = `/uploads/posts/${file.filename}`;
-      const fileType = getFileType(file.mimetype);
-      
-      if (fileType === 'image') {
-        imagePath = filePath;
-      } else {
-        fileUrl = filePath;
-        fileName = file.originalname;
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const filePath = `/uploads/posts/${file.filename}`;
+        const fileType = getFileType(file.mimetype);
+        
+        if (fileType === 'image' && images.length < 5) {
+          images.push(filePath);
+        } else if (fileType === 'file' && uploadedFiles.length < 5) {
+          uploadedFiles.push({ url: filePath, name: file.originalname });
+        }
+      }
+    }
+    
+    // Parse links from JSON string
+    let links: string[] = [];
+    if (body.links) {
+      try {
+        links = JSON.parse(body.links);
+        if (Array.isArray(links)) {
+          links = links.slice(0, 10); // Limit to 10 links
+        } else {
+          links = [];
+        }
+      } catch {
+        links = [];
       }
     }
     
@@ -70,10 +85,10 @@ export class PostsController {
       userId, 
       communityId, 
       body.title, 
-      imagePath,
-      fileUrl,
-      fileName,
-      body.linkUrl
+      images.length > 0 ? images : undefined,
+      uploadedFiles.length > 0 ? uploadedFiles : undefined,
+      links.length > 0 ? links : undefined,
+      body.category
     );
   }
 
@@ -100,29 +115,51 @@ export class PostsController {
   // Update a post
   @UseGuards(AuthGuard('jwt'))
   @Patch(':postId')
-  @UseInterceptors(FileInterceptor('file', { storage }))
+  @UseInterceptors(FilesInterceptor('files', 10, { storage })) // Max 5 images + 5 files = 10
   updatePost(
     @Param('postId') postId: string,
     @Req() req,
-    @Body() body: { content: string; title?: string; linkUrl?: string; removeImage?: string; removeFile?: string; removeLink?: string },
-    @UploadedFile() file?: Express.Multer.File
+    @Body() body: { 
+      content: string; 
+      title?: string; 
+      links?: string;
+      imagesToRemove?: string;
+      filesToRemove?: string;
+      linksToRemove?: string;
+    },
+    @UploadedFiles() files?: Express.Multer.File[]
   ) {
     const userId = req.user.userId;
     
-    let newImagePath: string | undefined;
-    let newFileUrl: string | undefined;
-    let newFileName: string | undefined;
+    const newImages: string[] = [];
+    const newFiles: { url: string; name: string }[] = [];
     
-    if (file) {
-      const filePath = `/uploads/posts/${file.filename}`;
-      const fileType = getFileType(file.mimetype);
-      
-      if (fileType === 'image') {
-        newImagePath = filePath;
-      } else {
-        newFileUrl = filePath;
-        newFileName = file.originalname;
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const filePath = `/uploads/posts/${file.filename}`;
+        const fileType = getFileType(file.mimetype);
+        
+        if (fileType === 'image' && newImages.length < 5) {
+          newImages.push(filePath);
+        } else if (fileType === 'file' && newFiles.length < 5) {
+          newFiles.push({ url: filePath, name: file.originalname });
+        }
       }
+    }
+    
+    // Parse arrays from JSON strings
+    let links: string[] | undefined;
+    let imagesToRemove: string[] | undefined;
+    let filesToRemove: string[] | undefined;
+    let linksToRemove: string[] | undefined;
+    
+    try {
+      if (body.links) links = JSON.parse(body.links);
+      if (body.imagesToRemove) imagesToRemove = JSON.parse(body.imagesToRemove);
+      if (body.filesToRemove) filesToRemove = JSON.parse(body.filesToRemove);
+      if (body.linksToRemove) linksToRemove = JSON.parse(body.linksToRemove);
+    } catch {
+      // Ignore parse errors
     }
     
     return this.postsService.update(
@@ -130,13 +167,12 @@ export class PostsController {
       body.content, 
       userId, 
       body.title, 
-      body.linkUrl, 
-      body.removeImage === 'true',
-      body.removeFile === 'true',
-      body.removeLink === 'true',
-      newImagePath,
-      newFileUrl,
-      newFileName
+      newImages.length > 0 ? newImages : undefined,
+      newFiles.length > 0 ? newFiles : undefined,
+      links,
+      imagesToRemove,
+      filesToRemove,
+      linksToRemove
     );
   }
 

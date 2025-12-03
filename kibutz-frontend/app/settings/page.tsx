@@ -351,14 +351,6 @@ export default function SettingsPage() {
           <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
             Kibutz
           </Link>
-          <span className="text-gray-300">|</span>
-          <Link 
-            href="/"
-            className="flex items-center gap-2 text-gray-600 hover:text-black transition text-sm"
-          >
-            <FaArrowRight className="w-3 h-3" />
-            חזרה לכל הקהילות
-          </Link>
         </div>
         <div className="relative">
           <button

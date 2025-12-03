@@ -185,4 +185,60 @@ export class UsersService {
 
     return { message: 'Account deleted successfully' };
   }
+
+  // Public profile - get user by ID (limited info)
+  async getPublicProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        profileImage: true,
+        createdAt: true,
+        lastActiveAt: true,
+        showOnline: true,
+      },
+    });
+
+    return user;
+  }
+
+  // Get communities created by user
+  async getCreatedCommunities(userId: string) {
+    return this.prisma.community.findMany({
+      where: { ownerId: userId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        image: true,
+        memberCount: true,
+        price: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // Get communities user is a member of
+  async getMemberCommunities(userId: string) {
+    const memberships = await this.prisma.communityMember.findMany({
+      where: { userId },
+      include: {
+        community: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            image: true,
+            memberCount: true,
+            price: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: 'desc' },
+    });
+
+    return memberships.map(m => m.community);
+  }
 }

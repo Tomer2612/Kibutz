@@ -16,9 +16,10 @@ export class CommunitiesService {
     facebookUrl?: string | null,
     instagramUrl?: string | null,
     galleryImages?: string[],
+    price?: number | null,
   ) {
     try {
-      console.log('Creating community with:', { name, description, ownerId, image, topic, youtubeUrl, whatsappUrl, facebookUrl, instagramUrl, galleryImages });
+      console.log('Creating community with:', { name, description, ownerId, image, topic, youtubeUrl, whatsappUrl, facebookUrl, instagramUrl, galleryImages, price });
       
       // Create community
       const community = await this.prisma.community.create({
@@ -29,6 +30,7 @@ export class CommunitiesService {
           image: image || null,
           topic: topic || null,
           memberCount: 1,
+          price: price ?? 0,
           youtubeUrl: youtubeUrl || null,
           whatsappUrl: whatsappUrl || null,
           facebookUrl: facebookUrl || null,
@@ -109,6 +111,7 @@ export class CommunitiesService {
     facebookUrl?: string | null,
     instagramUrl?: string | null,
     galleryImages?: string[],
+    price?: number | null,
   ) {
     try {
       const community = await this.prisma.community.findUnique({
@@ -149,6 +152,9 @@ export class CommunitiesService {
       }
       if (galleryImages !== undefined) {
         updateData.galleryImages = galleryImages;
+      }
+      if (price !== undefined) {
+        updateData.price = price;
       }
 
       return await this.prisma.community.update({
@@ -675,5 +681,50 @@ export class CommunitiesService {
     });
 
     return { onlineCount };
+  }
+
+  async updateRules(communityId: string, userId: string, rules: string[]) {
+    try {
+      const community = await this.prisma.community.findUnique({
+        where: { id: communityId },
+      });
+
+      if (!community) {
+        throw new NotFoundException('Community not found');
+      }
+
+      // Check if user has permission (owner or manager)
+      const membership = await this.prisma.communityMember.findUnique({
+        where: { userId_communityId: { userId, communityId } },
+      });
+
+      if (!membership || (membership.role !== 'OWNER' && membership.role !== 'MANAGER')) {
+        throw new ForbiddenException('Only owners and managers can update community rules');
+      }
+
+      return await this.prisma.community.update({
+        where: { id: communityId },
+        data: { rules },
+      });
+    } catch (err) {
+      if (err instanceof NotFoundException || err instanceof ForbiddenException) {
+        throw err;
+      }
+      console.error('Failed to update community rules:', err);
+      throw new InternalServerErrorException('Could not update community rules');
+    }
+  }
+
+  async getRules(communityId: string) {
+    const community = await this.prisma.community.findUnique({
+      where: { id: communityId },
+      select: { rules: true },
+    });
+
+    if (!community) {
+      throw new NotFoundException('Community not found');
+    }
+
+    return { rules: community.rules || [] };
   }
 }

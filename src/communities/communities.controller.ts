@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req, Param, Put, Delete, UseInterceptors, UploadedFile, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Param, Put, Patch, Delete, Query, UseInterceptors, UploadedFile, UploadedFiles } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -83,6 +83,7 @@ export class CommunitiesController {
       instagramUrl?: string;
       existingGalleryImages?: string;
       existingPrimaryImage?: string;
+      price?: string;
     },
     @UploadedFiles() files?: { image?: any[]; galleryImages?: any[] },
   ) {
@@ -104,6 +105,8 @@ export class CommunitiesController {
     const existingGallery = body.existingGalleryImages ? JSON.parse(body.existingGalleryImages) : [];
     const galleryImages = [...existingGallery, ...newGalleryPaths];
     
+    const price = body.price !== undefined ? parseFloat(body.price) : undefined;
+    
     return this.communitiesService.update(
       id,
       userId,
@@ -116,6 +119,7 @@ export class CommunitiesController {
       body.facebookUrl,
       body.instagramUrl,
       galleryImages,
+      price,
     );
   }
 
@@ -209,7 +213,24 @@ export class CommunitiesController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get(':id/top-members')
-  getTopMembers(@Param('id') id: string) {
-    return this.communitiesService.getTopMembers(id, 3);
+  getTopMembers(@Param('id') id: string, @Query('limit') limit?: string) {
+    const memberLimit = limit ? parseInt(limit, 10) : 3;
+    return this.communitiesService.getTopMembers(id, Math.min(memberLimit, 100));
+  }
+
+  @Get(':id/rules')
+  getRules(@Param('id') id: string) {
+    return this.communitiesService.getRules(id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':id/rules')
+  updateRules(
+    @Param('id') id: string,
+    @Body() body: { rules: string[] },
+    @Req() req,
+  ) {
+    const userId = req.user.userId;
+    return this.communitiesService.updateRules(id, userId, body.rules);
   }
 }

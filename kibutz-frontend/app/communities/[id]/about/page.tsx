@@ -236,11 +236,11 @@ export default function CommunityAboutPage() {
             { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
             { label: 'קורס', href: '#' },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן', href: '#' },
-            { label: 'לוח תוצאות', href: '#' },
+            { label: 'יומן אירועים', href: '#' },
+            { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${communityId}/about`, active: true },
             ...(userRole === 'OWNER' || userRole === 'MANAGER' 
-              ? [{ label: 'ניהול', href: `/communities/${communityId}/manage` }] 
+              ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] 
               : []),
           ].map((link) => (
             <Link

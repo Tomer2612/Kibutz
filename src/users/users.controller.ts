@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, UseGuards, Req, UseInterceptors, UploadedFile, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, UseGuards, Req, UseInterceptors, UploadedFile, Body, BadRequestException, Param, NotFoundException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -97,5 +97,25 @@ export class UsersController {
   @Delete('me')
   async deleteAccount(@Req() req) {
     return this.usersService.deleteAccount(req.user.userId);
+  }
+
+  // Public endpoints - no auth required
+  @Get(':userId')
+  async getPublicProfile(@Param('userId') userId: string) {
+    const profile = await this.usersService.getPublicProfile(userId);
+    if (!profile) {
+      throw new NotFoundException('User not found');
+    }
+    return profile;
+  }
+
+  @Get(':userId/communities/created')
+  async getCreatedCommunities(@Param('userId') userId: string) {
+    return this.usersService.getCreatedCommunities(userId);
+  }
+
+  @Get(':userId/communities/member')
+  async getMemberCommunities(@Param('userId') userId: string) {
+    return this.usersService.getMemberCommunities(userId);
   }
 }

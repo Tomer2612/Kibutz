@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaUsers, FaFileAlt, FaImage, FaTags, FaCog, FaSignOutAlt, FaTrash, FaSearch, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar } from 'react-icons/fa';
+import { FaUsers, FaFileAlt, FaImage, FaTags, FaCog, FaSignOutAlt, FaTrash, FaSearch, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar, FaPlus, FaLock } from 'react-icons/fa';
 import { TopicIcon, COMMUNITY_TOPICS } from '../../../lib/topicIcons';
 
 interface JwtPayload {
@@ -27,6 +27,7 @@ interface Community {
   facebookUrl: string | null;
   instagramUrl: string | null;
   galleryImages: string[];
+  rules: string[];
 }
 
 interface ImageFile {
@@ -67,6 +68,14 @@ export default function ManageCommunityPage() {
   // Images
   const [images, setImages] = useState<ImageFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Community Rules
+  const [rules, setRules] = useState<string[]>([]);
+  const [newRule, setNewRule] = useState('');
+  const [savingRules, setSavingRules] = useState(false);
+  
+  // Price
+  const [price, setPrice] = useState<number>(0);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -138,6 +147,8 @@ export default function ManageCommunityPage() {
         setWhatsappUrl(data.whatsappUrl || '');
         setFacebookUrl(data.facebookUrl || '');
         setInstagramUrl(data.instagramUrl || '');
+        setRules(data.rules || []);
+        setPrice(data.price ?? 0);
         
         // Load images
         const loadedImages: ImageFile[] = [];
@@ -248,6 +259,9 @@ export default function ManageCommunityPage() {
       formData.append('facebookUrl', facebookUrl);
       formData.append('instagramUrl', instagramUrl);
       
+      // Price
+      formData.append('price', price.toString());
+      
       // Find primary image
       const primaryImage = images.find(img => img.isPrimary);
       if (primaryImage) {
@@ -287,6 +301,20 @@ export default function ManageCommunityPage() {
         throw new Error(errorData.message || 'Failed to update community');
       }
 
+      // Also save rules
+      const rulesRes = await fetch(`http://localhost:4000/communities/${communityId}/rules`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ rules }),
+      });
+
+      if (!rulesRes.ok) {
+        console.error('Failed to save rules');
+      }
+
       setMessage('הקהילה עודכנה בהצלחה!');
       setMessageType('success');
       setTimeout(() => {
@@ -298,6 +326,47 @@ export default function ManageCommunityPage() {
       setMessageType('error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Rules handlers
+  const handleAddRule = () => {
+    if (!newRule.trim()) return;
+    setRules(prev => [...prev, newRule.trim()]);
+    setNewRule('');
+  };
+
+  const handleRemoveRule = (index: number) => {
+    setRules(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveRules = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      setSavingRules(true);
+      const res = await fetch(`http://localhost:4000/communities/${communityId}/rules`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ rules }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to save rules');
+      }
+
+      setMessage('כללי הקהילה נשמרו בהצלחה!');
+      setMessageType('success');
+    } catch (err) {
+      console.error('Save rules error:', err);
+      setMessage('שגיאה בשמירת הכללים');
+      setMessageType('error');
+    } finally {
+      setSavingRules(false);
     }
   };
 
@@ -358,10 +427,10 @@ export default function ManageCommunityPage() {
             { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
             { label: 'קורס', href: '#' },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן', href: '#' },
-            { label: 'לוח תוצאות', href: '#' },
+            { label: 'יומן אירועים', href: '#' },
+            { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${communityId}/about` },
-            { label: 'ניהול', href: `/communities/${communityId}/manage`, active: true },
+            { label: 'ניהול קהילה', href: `/communities/${communityId}/manage`, active: true },
           ].map((link) => (
             <Link
               key={link.label}
@@ -502,6 +571,29 @@ export default function ManageCommunityPage() {
                     </select>
                   </div>
                 </div>
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
+                  מחיר חודשי (₪)
+                </label>
+                <div className="relative">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">₪</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    placeholder="0 = חינם"
+                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
+                    value={price}
+                    onChange={(e) => setPrice(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {price === 0 ? 'הקהילה תהיה חינמית' : `מחיר: ₪${price} לחודש`}
+                </p>
               </div>
 
               {/* Description */}
@@ -678,9 +770,75 @@ export default function ManageCommunityPage() {
               </div>
             </form>
 
-            {/* Danger Zone - Only visible to owners */}
-            {isOwner && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6 shadow-sm w-full lg:w-80 lg:self-start lg:flex-none">
+            {/* Right Sidebar */}
+            <div className="w-full lg:w-80 lg:self-start lg:flex-none space-y-4">
+              {/* Community Rules Panel */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <FaLock className="w-4 h-4 text-gray-500" />
+                  כללי הקהילה
+                </h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  הגדירו את הכללים שחברי הקהילה יראו בעמוד הפיד
+                </p>
+                
+                {/* Existing Rules */}
+                {rules.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {rules.map((rule, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-start gap-2 bg-gray-50 rounded-lg p-3 border border-gray-200"
+                      >
+                        <span className="text-green-500 mt-0.5">✓</span>
+                        <span className="flex-1 text-sm text-gray-700">{rule}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRule(index)}
+                          className="p-1 text-gray-400 hover:text-red-500 transition"
+                          title="הסר כלל"
+                        >
+                          <FaTimes className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Add New Rule */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="כלל חדש..."
+                    className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-sm"
+                    value={newRule}
+                    onChange={(e) => setNewRule(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddRule();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddRule}
+                    disabled={!newRule.trim()}
+                    className="px-3 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition flex items-center gap-1 text-sm"
+                  >
+                    <FaPlus className="w-3 h-3" />
+                    הוסף
+                  </button>
+                </div>
+                
+                {rules.length === 0 && (
+                  <p className="mt-3 text-xs text-gray-400 text-center">הכללים יישמרו עם "שמור שינויים"</p>
+                )}
+              </div>
+
+              {/* Danger Zone - Only visible to owners */}
+              {isOwner && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 shadow-sm">
                 <h3 className="font-bold text-red-900 mb-3 flex items-center gap-2">
                   <FaTrash className="w-4 h-4" />
                   אזור מסוכן
@@ -697,7 +855,8 @@ export default function ManageCommunityPage() {
                   מחק קהילה
                 </button>
               </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </section>

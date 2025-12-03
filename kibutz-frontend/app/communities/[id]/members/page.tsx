@@ -329,11 +329,11 @@ export default function CommunityMembersPage() {
             { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
             { label: 'קורס', href: '#' },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members`, active: true },
-            { label: 'יומן', href: '#' },
-            { label: 'לוח תוצאות', href: '#' },
+            { label: 'יומן אירועים', href: '#' },
+            { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${communityId}/about` },
             ...(currentUserRole === 'OWNER' || currentUserRole === 'MANAGER' 
-              ? [{ label: 'ניהול', href: `/communities/${communityId}/manage` }] 
+              ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] 
               : []),
           ].map((link) => (
             <Link
@@ -442,24 +442,26 @@ export default function CommunityMembersPage() {
                 className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-xl transition"
               >
                 {/* Profile Image */}
-                <div className="relative flex-shrink-0">
+                <Link href={`/profile/${member.id}`} className="relative flex-shrink-0">
                   {member.profileImage ? (
                     <img
                       src={`http://localhost:4000${member.profileImage}`}
                       alt={member.name}
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-12 h-12 rounded-full object-cover hover:opacity-80 transition"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center text-lg font-bold text-pink-600">
+                    <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center text-lg font-bold text-pink-600 hover:opacity-80 transition">
                       {member.name?.charAt(0) || member.email.charAt(0).toUpperCase()}
                     </div>
                   )}
-                </div>
+                </Link>
 
                 {/* Member Info */}
                 <div className="flex-1 text-right">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-black">{member.name || 'משתמש'}</span>
+                    <Link href={`/profile/${member.id}`} className="font-semibold text-black hover:underline">
+                      {member.name || 'משתמש'}
+                    </Link>
                     {getRoleBadge(member.role)}
                   </div>
                   <p className="text-sm text-gray-500">

@@ -10,14 +10,23 @@ export class PostsService {
     authorId: string, 
     communityId: string, 
     title?: string, 
-    image?: string,
-    fileUrl?: string,
-    fileName?: string,
-    linkUrl?: string
+    images?: string[],
+    files?: { url: string; name: string }[],
+    links?: string[],
+    category?: string
   ) {
     try {
       return await this.prisma.post.create({
-        data: { title, content, image, fileUrl, fileName, linkUrl, authorId, communityId },
+        data: { 
+          title, 
+          content, 
+          images: images || [],
+          files: files || [],
+          links: links || [],
+          category,
+          authorId, 
+          communityId 
+        },
         include: {
           author: {
             select: { id: true, email: true, name: true, profileImage: true },
@@ -74,13 +83,12 @@ export class PostsService {
     content: string, 
     userId: string, 
     title?: string,
-    linkUrl?: string,
-    removeImage?: boolean,
-    removeFile?: boolean,
-    removeLink?: boolean,
-    newImagePath?: string,
-    newFileUrl?: string,
-    newFileName?: string
+    images?: string[],
+    files?: { url: string; name: string }[],
+    links?: string[],
+    imagesToRemove?: string[],
+    filesToRemove?: string[],
+    linksToRemove?: string[]
   ) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
@@ -96,28 +104,58 @@ export class PostsService {
 
     const updateData: any = { content, title };
     
-    // Handle link updates
-    if (linkUrl !== undefined) {
-      updateData.linkUrl = linkUrl;
-    }
-    if (removeLink) {
-      updateData.linkUrl = null;
+    // Handle images - add new ones and remove specified
+    if (images || imagesToRemove) {
+      const currentImages = (post.images as string[]) || [];
+      let newImages = [...currentImages];
+      
+      // Remove specified images
+      if (imagesToRemove && imagesToRemove.length > 0) {
+        newImages = newImages.filter(img => !imagesToRemove.includes(img));
+      }
+      
+      // Add new images (up to limit of 5)
+      if (images && images.length > 0) {
+        newImages = [...newImages, ...images].slice(0, 5);
+      }
+      
+      updateData.images = newImages;
     }
     
-    // Handle image - new upload or removal
-    if (newImagePath) {
-      updateData.image = newImagePath;
-    } else if (removeImage) {
-      updateData.image = null;
+    // Handle files - add new ones and remove specified
+    if (files || filesToRemove) {
+      const currentFiles = (post.files as { url: string; name: string }[]) || [];
+      let newFiles = [...currentFiles];
+      
+      // Remove specified files
+      if (filesToRemove && filesToRemove.length > 0) {
+        newFiles = newFiles.filter(file => !filesToRemove.includes(file.url));
+      }
+      
+      // Add new files (up to limit of 5)
+      if (files && files.length > 0) {
+        newFiles = [...newFiles, ...files].slice(0, 5);
+      }
+      
+      updateData.files = newFiles;
     }
     
-    // Handle file - new upload or removal
-    if (newFileUrl) {
-      updateData.fileUrl = newFileUrl;
-      updateData.fileName = newFileName;
-    } else if (removeFile) {
-      updateData.fileUrl = null;
-      updateData.fileName = null;
+    // Handle links - add new ones and remove specified
+    if (links || linksToRemove) {
+      const currentLinks = (post.links as string[]) || [];
+      let newLinks = [...currentLinks];
+      
+      // Remove specified links
+      if (linksToRemove && linksToRemove.length > 0) {
+        newLinks = newLinks.filter(link => !linksToRemove.includes(link));
+      }
+      
+      // Add new links (up to limit of 10)
+      if (links && links.length > 0) {
+        newLinks = [...newLinks, ...links].slice(0, 10);
+      }
+      
+      updateData.links = newLinks;
     }
 
     return this.prisma.post.update({

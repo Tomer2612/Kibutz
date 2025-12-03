@@ -40,11 +40,13 @@ model Community {
   image         String?
   topic         String?
   memberCount   Int               @default(0)
+  price         Float?            @default(0)
   youtubeUrl    String?
   whatsappUrl   String?
   facebookUrl   String?
   instagramUrl  String?
   galleryImages String[]
+  rules         String[]
   posts         Post[]
   owner         User              @relation(fields: [ownerId], references: [id])
   members       CommunityMember[]
@@ -90,10 +92,10 @@ model Post {
   id          String      @id @default(cuid())
   title       String?
   content     String
-  image       String?
-  fileUrl     String?
-  fileName    String?
-  linkUrl     String?
+  images      String[]
+  files       Json[]
+  links       String[]
+  category    String?
   isPinned    Boolean     @default(false)
   pinnedAt    DateTime?
   createdAt   DateTime    @default(now())
