@@ -6,8 +6,6 @@ import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import {
   FaPlus,
-  FaLock,
-  FaCalendarAlt,
   FaUsers,
   FaMapMarkerAlt,
   FaUserPlus,
@@ -38,13 +36,13 @@ import {
   FaTrophy,
   FaMedal,
 } from 'react-icons/fa';
-import { TopicIcon } from '../../lib/topicIcons';
 
 interface Community {
   id: string;
   name: string;
   description: string;
   image?: string | null;
+  logo?: string | null;
   ownerId: string;
   createdAt: string;
   topic?: string | null;
@@ -140,6 +138,9 @@ export default function CommunityFeedPage() {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [loading, setLoading] = useState(true);
   const [postSubmitting, setPostSubmitting] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [addingLink, setAddingLink] = useState(false);
+  const [addingEditLink, setAddingEditLink] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   
   // Edit/Delete state
@@ -172,6 +173,14 @@ export default function CommunityFeedPage() {
   const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentContent, setEditCommentContent] = useState('');
+  const [submittingComment, setSubmittingComment] = useState<Record<string, boolean>>({});
+  const [commentMenuOpenId, setCommentMenuOpenId] = useState<string | null>(null);
+  
+  // Delete post modal state
+  const [deletePostModalId, setDeletePostModalId] = useState<string | null>(null);
+  
+  // Link previews state
+  const [linkPreviews, setLinkPreviews] = useState<Record<string, { title?: string; description?: string; image?: string; url: string }>>({});
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isMember, setIsMember] = useState<boolean | null>(null);
   const [isOwner, setIsOwner] = useState(false);
@@ -407,6 +416,68 @@ export default function CommunityFeedPage() {
     return () => clearInterval(interval);
   }, [selectedCommunityId]);
 
+  // Fetch link previews for posts
+  useEffect(() => {
+    const fetchLinkPreviews = async () => {
+      const allLinks: string[] = [];
+      posts.forEach(post => {
+        if (post.links && post.links.length > 0) {
+          post.links.forEach(link => {
+            if (!linkPreviews[link]) {
+              allLinks.push(link);
+            }
+          });
+        }
+      });
+
+      // Fetch previews for new links using backend endpoint
+      for (const link of allLinks) {
+        try {
+          const res = await fetch(`http://localhost:4000/posts/link-preview?url=${encodeURIComponent(link)}`);
+          if (res.ok) {
+            const preview = await res.json();
+            setLinkPreviews(prev => ({
+              ...prev,
+              [link]: preview
+            }));
+          } else {
+            // Fallback to basic info
+            const url = new URL(link);
+            setLinkPreviews(prev => ({
+              ...prev,
+              [link]: {
+                url: link,
+                title: url.hostname.replace('www.', ''),
+                description: null,
+                image: null,
+              }
+            }));
+          }
+        } catch (err) {
+          // Invalid URL or fetch error, use fallback
+          try {
+            const url = new URL(link);
+            setLinkPreviews(prev => ({
+              ...prev,
+              [link]: {
+                url: link,
+                title: url.hostname.replace('www.', ''),
+                description: null,
+                image: null,
+              }
+            }));
+          } catch {
+            // Skip invalid URLs
+          }
+        }
+      }
+    };
+
+    if (posts.length > 0) {
+      fetchLinkPreviews();
+    }
+  }, [posts]);
+
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPostContent.trim() || !selectedCommunityId) {
@@ -513,13 +584,21 @@ export default function CommunityFeedPage() {
   };
 
   const addLink = () => {
-    if (newLinkInput.trim()) {
+    if (addingLink) return;
+    const trimmedLink = newLinkInput.trim();
+    if (trimmedLink) {
       if (newPostLinks.length >= 10) {
         alert('ניתן להוסיף עד 10 קישורים');
         return;
       }
-      setNewPostLinks(prev => [...prev, newLinkInput.trim()]);
+      if (newPostLinks.includes(trimmedLink)) {
+        alert('קישור זה כבר קיים');
+        return;
+      }
+      setAddingLink(true);
+      setNewPostLinks(prev => [...prev, trimmedLink]);
       setNewLinkInput('');
+      setAddingLink(false);
     }
   };
 
@@ -569,8 +648,9 @@ export default function CommunityFeedPage() {
   // Edit post handler - full edit with all attachments
   const handleEditPost = async (postId: string) => {
     const token = localStorage.getItem('token');
-    if (!token || !editContent.trim()) return;
+    if (!token || !editContent.trim() || editSubmitting) return;
 
+    setEditSubmitting(true);
     try {
       const formData = new FormData();
       formData.append('content', editContent);
@@ -619,6 +699,8 @@ export default function CommunityFeedPage() {
     } catch (err) {
       console.error('Edit post error:', err);
       alert('שגיאה בעדכון הפוסט');
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -704,14 +786,22 @@ export default function CommunityFeedPage() {
   };
 
   const addEditLink = () => {
-    if (editLinkInput.trim()) {
+    if (addingEditLink) return;
+    const trimmedLink = editLinkInput.trim();
+    if (trimmedLink) {
       const currentTotal = editLinks.length - linksToRemove.length;
       if (currentTotal >= 10) {
         alert('ניתן להוסיף עד 10 קישורים');
         return;
       }
-      setEditLinks(prev => [...prev, editLinkInput.trim()]);
+      if (editLinks.includes(trimmedLink) && !linksToRemove.includes(trimmedLink)) {
+        alert('קישור זה כבר קיים');
+        return;
+      }
+      setAddingEditLink(true);
+      setEditLinks(prev => [...prev, trimmedLink]);
       setEditLinkInput('');
+      setAddingEditLink(false);
     }
   };
 
@@ -835,8 +925,6 @@ export default function CommunityFeedPage() {
 
   // Delete post handler
   const handleDeletePost = async (postId: string) => {
-    if (!window.confirm('האם אתם בטוחים שברצונכם למחוק את הפוסט?')) return;
-
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -850,6 +938,7 @@ export default function CommunityFeedPage() {
 
       if (!res.ok) throw new Error('Failed to delete post');
       setPosts((prev) => prev.filter((post) => post.id !== postId));
+      setDeletePostModalId(null);
     } catch (err) {
       console.error('Delete post error:', err);
       alert('שגיאה במחיקת הפוסט');
@@ -882,7 +971,9 @@ export default function CommunityFeedPage() {
   const handleAddComment = async (postId: string) => {
     const token = localStorage.getItem('token');
     const content = newCommentContent[postId]?.trim();
-    if (!token || !content) return;
+    if (!token || !content || submittingComment[postId]) return;
+
+    setSubmittingComment((prev) => ({ ...prev, [postId]: true }));
 
     try {
       const res = await fetch(`http://localhost:4000/posts/${postId}/comments`, {
@@ -921,6 +1012,8 @@ export default function CommunityFeedPage() {
     } catch (err) {
       console.error('Add comment error:', err);
       alert('שגיאה בהוספת התגובה');
+    } finally {
+      setSubmittingComment((prev) => ({ ...prev, [postId]: false }));
     }
   };
 
@@ -1024,7 +1117,17 @@ export default function CommunityFeedPage() {
             Kibutz
           </Link>
           <div className="relative flex items-center gap-2">
-            <TopicIcon topic={community?.topic} size="md" />
+            {community?.logo ? (
+              <img
+                src={`http://localhost:4000${community.logo}`}
+                alt={community.name}
+                className="w-8 h-8 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                <FaUsers className="w-4 h-4 text-gray-400" />
+              </div>
+            )}
             <div className="relative">
               <select
                 value={selectedCommunityId || ''}
@@ -1071,34 +1174,8 @@ export default function CommunityFeedPage() {
           ))}
         </nav>
 
-        {/* Left side of screen (RTL last): Search + Category Filter + User Avatar */}
+        {/* Left side of screen (RTL last): Search + User Avatar */}
         <div className="flex items-center gap-3">
-          {/* Category filter pills */}
-          <div className="hidden md:flex items-center gap-1.5">
-            <button
-              onClick={() => setCategoryFilter('')}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
-                categoryFilter === '' 
-                  ? 'bg-black text-white' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              הכל
-            </button>
-            {POST_CATEGORIES.map(cat => (
-              <button
-                key={cat.value}
-                onClick={() => setCategoryFilter(cat.value)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition border ${
-                  categoryFilter === cat.value 
-                    ? cat.color + ' ring-1 ring-offset-1 ring-gray-400'
-                    : cat.color + ' opacity-70 hover:opacity-100'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
           <div className="relative">
             <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -1210,86 +1287,196 @@ export default function CommunityFeedPage() {
 
       {/* Main 3-column layout - only show if member */}
       {isMember !== false && (
-      <section className="max-w-7xl mx-auto py-6 px-4">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)_220px]">
-          {/* LEFT: White sidebar tabs */}
-          <div className="space-y-4 order-2 lg:order-1">
-            {/* Filter buttons */}
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setShowSavedOnly(false)}
-                className={`flex-1 font-semibold rounded-xl px-4 py-3 flex items-center justify-center gap-2 transition ${
-                  !showSavedOnly ? 'bg-black text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <span>פוסטים אחרונים</span>
-              </button>
-              {userEmail && (
-                <button 
-                  onClick={() => setShowSavedOnly(true)}
-                  className={`flex-1 font-semibold rounded-xl px-4 py-3 flex items-center justify-center gap-2 transition ${
-                    showSavedOnly ? 'bg-black text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <FaBookmark className="w-4 h-4" />
-                  <span>שמורים</span>
-                </button>
-              )}
-            </div>
-
-            {/* אזור מצטרפים חדשים */}
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
-              <h3 className="font-semibold text-black mb-3">אזור מצטרפים חדשים</h3>
-              <div className="space-y-2 text-sm text-gray-600">
-                <a href="#" className="flex items-center gap-2 hover:text-black">
-                  <FaMapMarkerAlt className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                  <span>בואו נתחיל</span>
-                </a>
-                <a href="#" className="flex items-center gap-2 hover:text-black">
-                  <FaUserPlus className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                  <span>הציגו את עצמכם</span>
-                </a>
-              </div>
-            </div>
-
-            {/* קהילה */}
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
-              <h3 className="font-semibold text-black mb-3">קהילה</h3>
-              <div className="space-y-2 text-sm text-gray-600">
-                <a href="#" className="flex items-center gap-2 hover:text-black">
-                  <FaBell className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                  <span>עדכונים וחדשות</span>
-                </a>
-                <a href="#" className="flex items-center gap-2 hover:text-black">
-                  <FaComments className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                  <span>דיבורים</span>
-                </a>
-              </div>
-            </div>
-
-            {/* מדברים אפייה */}
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
-              <h3 className="font-semibold text-black mb-3">מדברים אפייה</h3>
-              <div className="space-y-2 text-sm text-gray-600">
-                <a href="#" className="flex items-center gap-2 hover:text-black">
-                  <FaBook className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                  <span>מתכונים</span>
-                </a>
-                <a href="#" className="flex items-center gap-2 hover:text-black">
-                  <FaLightbulb className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                  <span>טיפים לבישול ואפייה</span>
-                </a>
-                <a href="#" className="flex items-center gap-2 hover:text-black">
-                  <FaQuestionCircle className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                  <span>שאלות ותשובות</span>
-                </a>
-              </div>
-            </div>
-
+      <section className="flex">
+        {/* LEFT: Fixed sidebar attached to left edge */}
+        <div className="hidden lg:block w-[240px] flex-shrink-0 bg-white border-l border-gray-200 min-h-[calc(100vh-64px)]">
+          {/* Recent Posts button */}
+          <div className="p-2">
+            <button 
+              onClick={() => setShowSavedOnly(false)}
+              className={`w-full px-4 py-3 flex items-center gap-3 rounded-xl ${
+                !showSavedOnly 
+                  ? 'bg-gray-900 text-white' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" opacity="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1.5" opacity="0.6"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.5" opacity="0.6"/>
+                <rect x="14" y="14" width="7" height="7" rx="1.5" opacity="0.3"/>
+              </svg>
+              <span className="text-sm font-medium">פוסטים אחרונים</span>
+            </button>
           </div>
 
+          {/* Saved Posts button */}
+          {userEmail && (
+            <div className="px-2 pb-2">
+              <button 
+                onClick={() => setShowSavedOnly(true)}
+                className={`w-full px-4 py-3 flex items-center gap-3 rounded-xl ${
+                  showSavedOnly 
+                    ? 'bg-gray-900 text-white' 
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <FaBookmark className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm font-medium">פוסטים שמורים</span>
+              </button>
+            </div>
+          )}
+
+          {/* Category filter pills */}
+          <div className="px-4 py-3 border-b border-gray-100">
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setCategoryFilter('')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  categoryFilter === '' 
+                    ? 'bg-gray-900 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                הכל
+              </button>
+              {POST_CATEGORIES.map(cat => (
+                <button
+                  key={cat.value}
+                  onClick={() => setCategoryFilter(cat.value)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                    categoryFilter === cat.value 
+                      ? cat.color + ' ring-1 ring-gray-400'
+                      : cat.color + ' opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* אזור מצטרפים חדשים */}
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900 text-sm mb-2">אזור מצטרפים חדשים</h3>
+            <div className="space-y-1.5 text-sm text-gray-600">
+              <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
+                <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                </svg>
+                <span>בואו נתחיל</span>
+              </a>
+              <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
+                <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+                </svg>
+                <span>הציגו את עצמכם</span>
+              </a>
+            </div>
+          </div>
+
+          {/* קהילה */}
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900 text-sm mb-2">קהילה</h3>
+            <div className="space-y-1.5 text-sm text-gray-600">
+              <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
+                <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                </svg>
+                <span>עדכונים וחדשות</span>
+              </a>
+              <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
+                <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
+                </svg>
+                <span>דיבורים</span>
+              </a>
+            </div>
+          </div>
+
+          {/* מדברים אפייה */}
+          <div className="px-4 py-3">
+            <h3 className="font-semibold text-gray-900 text-sm mb-2">מדברים אפייה</h3>
+            <div className="space-y-1.5 text-sm text-gray-600">
+              <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
+                <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                </svg>
+                <span>מתכונים</span>
+              </a>
+              <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
+                <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+                </svg>
+                <span>טיפים לבישול ואפייה</span>
+              </a>
+              <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
+                <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                </svg>
+                <span>שאלות ותשובות</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Main content area */}
+        <div className="flex-1 py-6 px-4 lg:px-6">
+          {/* Mobile filters - shown on mobile only */}
+          <div className="lg:hidden mb-4 space-y-2">
+            <button 
+              onClick={() => setShowSavedOnly(false)}
+              className={`w-full rounded-xl px-4 py-2.5 text-sm flex items-center gap-3 ${
+                !showSavedOnly ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200'
+              }`}
+            >
+              <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" opacity="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1.5" opacity="0.6"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.5" opacity="0.6"/>
+                <rect x="14" y="14" width="7" height="7" rx="1.5" opacity="0.3"/>
+              </svg>
+              <span className="font-medium">פוסטים אחרונים</span>
+            </button>
+            {userEmail && (
+              <button 
+                onClick={() => setShowSavedOnly(true)}
+                className={`w-full rounded-xl px-4 py-2.5 text-sm flex items-center gap-3 ${
+                  showSavedOnly ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200'
+                }`}
+              >
+                <FaBookmark className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium">פוסטים שמורים</span>
+              </button>
+            )}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <button
+                onClick={() => setCategoryFilter('')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  categoryFilter === '' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                הכל
+              </button>
+              {POST_CATEGORIES.map(cat => (
+                <button
+                  key={cat.value}
+                  onClick={() => setCategoryFilter(cat.value)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                    categoryFilter === cat.value ? cat.color + ' ring-1 ring-gray-400' : cat.color + ' opacity-60'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px] max-w-5xl">
+
           {/* CENTER: Posts feed */}
-          <div className="space-y-6 order-1 lg:order-2">
+          <div className="space-y-6">
             {/* Post composer - hide when viewing saved posts */}
             {userEmail && !showSavedOnly && (
               <div className="bg-white border border-gray-200 rounded-2xl p-5">
@@ -1396,13 +1583,14 @@ export default function CommunityFeedPage() {
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLink(); } }}
                         placeholder="https://example.com"
                         className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                        disabled={addingLink}
                       />
                       <button
                         onClick={addLink}
-                        disabled={!newLinkInput.trim()}
-                        className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50"
+                        disabled={!newLinkInput.trim() || addingLink}
+                        className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        הוסף
+                        {addingLink ? '...' : 'הוסף'}
                       </button>
                       <button
                         onClick={() => { setShowLinkInput(false); setNewLinkInput(''); }}
@@ -1472,10 +1660,16 @@ export default function CommunityFeedPage() {
                   <button
                     onClick={(e) => handleCreatePost(e as unknown as React.FormEvent)}
                     disabled={postSubmitting || !newPostContent.trim()}
-                    className="px-5 py-2 bg-black text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+                    className="px-5 py-2 bg-black text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
-                    <FaPlus className="w-3 h-3" />
-                    פרסם
+                    {postSubmitting ? (
+                      <span>...</span>
+                    ) : (
+                      <>
+                        פרסם
+                        <FaPlus className="w-3 h-3" />
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -1503,10 +1697,10 @@ export default function CommunityFeedPage() {
                 
                 return filteredPosts.length > 0 ? (
                   filteredPosts.map((post) => (
-                  <div key={post.id} className={`bg-white border rounded-2xl p-5 ${post.isPinned ? 'border-yellow-400 border-2' : 'border-gray-200'}`}>
+                  <div key={post.id} className={`bg-white border rounded-2xl p-5 ${post.isPinned ? 'border-gray-400 border-2' : 'border-gray-200'}`}>
                     {/* Pinned indicator */}
                     {post.isPinned && (
-                      <div className="flex items-center gap-2 text-yellow-600 text-sm font-medium mb-3 bg-yellow-50 px-3 py-1.5 rounded-lg w-fit">
+                      <div className="flex items-center gap-2 text-gray-600 text-sm font-medium mb-3 bg-gray-100 px-3 py-1.5 rounded-lg w-fit">
                         <FaThumbtack className="w-3 h-3" />
                         <span>פוסט מוצמד</span>
                       </div>
@@ -1617,7 +1811,7 @@ export default function CommunityFeedPage() {
                               {(userId === post.author?.id || isOwner || isManager) && (
                                 <button
                                   onClick={() => {
-                                    handleDeletePost(post.id);
+                                    setDeletePostModalId(post.id);
                                     setMenuOpenPostId(null);
                                   }}
                                   className="w-full px-4 py-2 text-right text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -1800,13 +1994,14 @@ export default function CommunityFeedPage() {
                                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEditLink(); } }}
                                 placeholder="https://example.com"
                                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                                disabled={addingEditLink}
                               />
                               <button
                                 onClick={addEditLink}
-                                disabled={!editLinkInput.trim()}
-                                className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50"
+                                disabled={!editLinkInput.trim() || addingEditLink}
+                                className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                הוסף
+                                {addingEditLink ? '...' : 'הוסף'}
                               </button>
                               <button
                                 onClick={() => { setShowEditLinkInput(false); setEditLinkInput(''); }}
@@ -1859,15 +2054,17 @@ export default function CommunityFeedPage() {
                         <div className="flex gap-2 mt-3 justify-end">
                           <button
                             onClick={resetEditState}
-                            className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                            disabled={editSubmitting}
+                            className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50"
                           >
                             ביטול
                           </button>
                           <button
                             onClick={() => handleEditPost(post.id)}
-                            className="px-4 py-2 text-sm bg-black text-white rounded-lg hover:opacity-90"
+                            disabled={editSubmitting || !editContent.trim()}
+                            className="px-4 py-2 text-sm bg-black text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            שמור
+                            {editSubmitting ? '...' : 'שמור'}
                           </button>
                         </div>
                       </div>
@@ -1878,30 +2075,47 @@ export default function CommunityFeedPage() {
                         )}
                         <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{post.content}</p>
                         
-                        {/* Images Display - Grid for multiple images */}
+                        {/* Images Display - Dynamic sizing based on count */}
                         {post.images && post.images.length > 0 && (
                           <div className={`mt-3 grid gap-2 ${
                             post.images.length === 1 ? 'grid-cols-1' : 
                             post.images.length === 2 ? 'grid-cols-2' : 
+                            post.images.length === 3 ? 'grid-cols-3' :
+                            post.images.length === 4 ? 'grid-cols-2' :
                             'grid-cols-3'
                           }`}>
-                            {post.images.map((image, index) => (
-                              <div key={index} className="relative group">
+                            {post.images.slice(0, 5).map((image, index) => (
+                              <div 
+                                key={index} 
+                                className={`relative ${
+                                  post.images!.length === 1 ? '' : 
+                                  post.images!.length === 3 && index === 0 ? 'col-span-3' :
+                                  post.images!.length === 5 && index < 2 ? 'col-span-1' :
+                                  ''
+                                }`}
+                              >
                                 <img
                                   src={`http://localhost:4000${image}`}
                                   alt={`תמונה ${index + 1}`}
-                                  className="w-full h-48 object-cover rounded-lg border-2 border-purple-200 cursor-pointer hover:opacity-90 transition"
+                                  className={`w-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition ${
+                                    post.images!.length === 1 ? 'max-h-[500px]' :
+                                    post.images!.length === 2 ? 'h-64' :
+                                    post.images!.length === 3 && index === 0 ? 'h-64' :
+                                    post.images!.length === 3 ? 'h-40' :
+                                    post.images!.length === 4 ? 'h-48' :
+                                    'h-40'
+                                  }`}
                                   onClick={() => openLightbox(post.images!, index)}
                                 />
-                                <button
-                                  onClick={() => handleDownload(
-                                    `http://localhost:4000${image}`,
-                                    image.split('/').pop() || 'image'
-                                  )}
-                                  className="absolute bottom-2 left-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg px-2 py-1 flex items-center gap-1 text-xs opacity-0 group-hover:opacity-100 transition"
-                                >
-                                  <FaDownload className="w-3 h-3" />
-                                </button>
+                                {/* Show remaining count on 5th image if more than 5 */}
+                                {index === 4 && post.images!.length > 5 && (
+                                  <div 
+                                    className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center cursor-pointer"
+                                    onClick={() => openLightbox(post.images!, index)}
+                                  >
+                                    <span className="text-white text-2xl font-bold">+{post.images!.length - 5}</span>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -1925,28 +2139,58 @@ export default function CommunityFeedPage() {
                                   <FaFile className="w-6 h-6 text-orange-500" />
                                 )}
                                 <span className="flex-1 text-sm text-orange-700">{file.name || 'קובץ מצורף'}</span>
-                                <FaDownload className="w-4 h-4 text-orange-400" />
                               </button>
                             ))}
                           </div>
                         )}
                         
-                        {/* Links Display */}
+                        {/* Links Display with Preview */}
                         {post.links && post.links.length > 0 && (
                           <div className="mt-3 space-y-2">
-                            {post.links.map((link, index) => (
-                              <a
-                                key={index}
-                                href={link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-3 bg-blue-50 rounded-lg px-4 py-3 border border-blue-100 hover:bg-blue-100 transition"
-                              >
-                                <FaLink className="w-5 h-5 text-blue-500" />
-                                <span className="flex-1 text-sm text-blue-700 truncate">{link}</span>
-                                <FaExternalLinkAlt className="w-4 h-4 text-blue-400" />
-                              </a>
-                            ))}
+                            {post.links.map((link, index) => {
+                              const preview = linkPreviews[link];
+                              return (
+                                <a
+                                  key={index}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition"
+                                >
+                                  {preview?.image && (
+                                    <div className="w-full h-40 bg-gray-100">
+                                      <img 
+                                        src={preview.image} 
+                                        alt={preview.title || link}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="p-3">
+                                    <div className="flex items-start gap-2">
+                                      <FaLink className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        {preview?.title ? (
+                                          <>
+                                            <p className="font-medium text-gray-900 text-sm truncate">{preview.title}</p>
+                                            {preview.description && (
+                                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{preview.description}</p>
+                                            )}
+                                            <p className="text-xs text-blue-500 mt-1 truncate">{new URL(link).hostname}</p>
+                                          </>
+                                        ) : (
+                                          <p className="text-sm text-blue-600 truncate">{link}</p>
+                                        )}
+                                      </div>
+                                      <FaExternalLinkAlt className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                    </div>
+                                  </div>
+                                </a>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -2006,60 +2250,78 @@ export default function CommunityFeedPage() {
                                       </span>
                                     </div>
                                     {editingCommentId === comment.id ? (
-                                      <input
-                                        type="text"
-                                        value={editCommentContent}
-                                        onChange={(e) => setEditCommentContent(e.target.value)}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter' && editCommentContent.trim()) {
-                                            handleEditComment(comment.id, post.id);
-                                          } else if (e.key === 'Escape') {
-                                            setEditingCommentId(null);
-                                            setEditCommentContent('');
-                                          }
-                                        }}
-                                        className="w-full px-2 py-1 border border-blue-300 rounded text-right text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        autoFocus
-                                      />
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          type="text"
+                                          value={editCommentContent}
+                                          onChange={(e) => setEditCommentContent(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && editCommentContent.trim()) {
+                                              handleEditComment(comment.id, post.id);
+                                            } else if (e.key === 'Escape') {
+                                              setEditingCommentId(null);
+                                              setEditCommentContent('');
+                                            }
+                                          }}
+                                          className="flex-1 px-2 py-1 border border-blue-300 rounded text-right text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                          autoFocus
+                                        />
+                                        <button
+                                          onClick={() => handleEditComment(comment.id, post.id)}
+                                          className="text-green-500 hover:text-green-600 p-1"
+                                          title="שמור"
+                                        >
+                                          <FaCheck className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={() => { setEditingCommentId(null); setEditCommentContent(''); }}
+                                          className="text-gray-400 hover:text-gray-600 p-1"
+                                          title="בטל"
+                                        >
+                                          <FaTimes className="w-3 h-3" />
+                                        </button>
+                                      </div>
                                     ) : (
                                       <p className="text-sm text-gray-700 text-right">{comment.content}</p>
                                     )}
                                   </div>
-                                  {userId === comment.user?.id && (
-                                    <div className="flex flex-col gap-1" dir="ltr">
-                                      {editingCommentId === comment.id ? (
+                                  {userId === comment.user?.id && editingCommentId !== comment.id && (
+                                    <div className="relative" dir="ltr">
+                                      <button
+                                        onClick={() => setCommentMenuOpenId(commentMenuOpenId === comment.id ? null : comment.id)}
+                                        className="text-gray-400 hover:text-gray-600 p-1"
+                                      >
+                                        <FaEllipsisH className="w-3 h-3" />
+                                      </button>
+                                      {commentMenuOpenId === comment.id && (
                                         <>
-                                          <button
-                                            onClick={() => handleEditComment(comment.id, post.id)}
-                                            className="text-gray-400 hover:text-green-500 p-1"
-                                            title="שמור"
-                                          >
-                                            <FaCheck className="w-3 h-3" />
-                                          </button>
-                                          <button
-                                            onClick={() => { setEditingCommentId(null); setEditCommentContent(''); }}
-                                            className="text-gray-400 hover:text-gray-600 p-1"
-                                            title="בטל"
-                                          >
-                                            <FaTimes className="w-3 h-3" />
-                                          </button>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <button
-                                            onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); }}
-                                            className="text-gray-400 hover:text-blue-500 p-1"
-                                            title="ערוך"
-                                          >
-                                            <FaEdit className="w-3 h-3" />
-                                          </button>
-                                          <button
-                                            onClick={() => handleDeleteComment(comment.id, post.id)}
-                                            className="text-gray-400 hover:text-red-500 p-1"
-                                            title="מחק"
-                                          >
-                                            <FaTrash className="w-3 h-3" />
-                                          </button>
+                                          <div 
+                                            className="fixed inset-0 z-10"
+                                            onClick={() => setCommentMenuOpenId(null)}
+                                          />
+                                          <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[100px]">
+                                            <button
+                                              onClick={() => { 
+                                                setEditingCommentId(comment.id); 
+                                                setEditCommentContent(comment.content);
+                                                setCommentMenuOpenId(null);
+                                              }}
+                                              className="w-full px-3 py-2 text-right text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            >
+                                              <FaEdit className="w-3 h-3" />
+                                              עריכה
+                                            </button>
+                                            <button
+                                              onClick={() => {
+                                                handleDeleteComment(comment.id, post.id);
+                                                setCommentMenuOpenId(null);
+                                              }}
+                                              className="w-full px-3 py-2 text-right text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                            >
+                                              <FaTrash className="w-3 h-3" />
+                                              מחיקה
+                                            </button>
+                                          </div>
                                         </>
                                       )}
                                     </div>
@@ -2077,10 +2339,10 @@ export default function CommunityFeedPage() {
                           <div className="flex gap-2 items-center">
                             <button
                               onClick={() => handleAddComment(post.id)}
-                              disabled={!newCommentContent[post.id]?.trim()}
-                              className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:opacity-90 disabled:opacity-50"
+                              disabled={!newCommentContent[post.id]?.trim() || submittingComment[post.id]}
+                              className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              שלח
+                              {submittingComment[post.id] ? '...' : 'שלח'}
                             </button>
                             <input
                               type="text"
@@ -2089,12 +2351,13 @@ export default function CommunityFeedPage() {
                                 setNewCommentContent((prev) => ({ ...prev, [post.id]: e.target.value }))
                               }
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter' && newCommentContent[post.id]?.trim()) {
+                                if (e.key === 'Enter' && newCommentContent[post.id]?.trim() && !submittingComment[post.id]) {
                                   handleAddComment(post.id);
                                 }
                               }}
+                              disabled={submittingComment[post.id]}
                               placeholder="כתבו תגובה..."
-                              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
                             />
                             {userProfile?.profileImage ? (
                               <img 
@@ -2138,7 +2401,7 @@ export default function CommunityFeedPage() {
           </div>
 
           {/* RIGHT: Sidebar with online members, rules, events, top members */}
-          <div className="space-y-4 order-3 lg:order-3">
+          <div className="space-y-4">
             {/* Online Members */}
             <div className="bg-[#F7F8FA] rounded-2xl p-5">
               <div className="flex items-center gap-3">
@@ -2162,7 +2425,7 @@ export default function CommunityFeedPage() {
               </div>
               {community?.rules && community.rules.length > 0 ? (
                 <ul className="space-y-2 text-sm text-gray-600">
-                  {community.rules.map((rule, index) => (
+                  {community.rules.slice(0, 3).map((rule, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <svg className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -2170,6 +2433,9 @@ export default function CommunityFeedPage() {
                       <span>{rule}</span>
                     </li>
                   ))}
+                  {community.rules.length > 3 && (
+                    <li className="text-gray-400 text-xs">ועוד {community.rules.length - 3} כללים...</li>
+                  )}
                 </ul>
               ) : (
                 <p className="text-gray-500 text-sm text-center py-2">
@@ -2252,6 +2518,7 @@ export default function CommunityFeedPage() {
             </div>
           </div>
         </div>
+        </div>
       </section>
       )}
 
@@ -2328,21 +2595,41 @@ export default function CommunityFeedPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
 
-          {/* Download button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDownload(
-                `http://localhost:4000${lightboxImages[lightboxIndex]}`,
-                lightboxImages[lightboxIndex].split('/').pop() || 'image'
-              );
-            }}
-            className="absolute bottom-4 right-4 text-white bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg flex items-center gap-2 transition"
+      {/* Delete Post Confirmation Modal */}
+      {deletePostModalId && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30"
+          onClick={() => setDeletePostModalId(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <FaDownload className="w-4 h-4" />
-            הורד תמונה
-          </button>
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <FaTrash className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">מחיקת פוסט</h3>
+              <p className="text-gray-600 mb-6">האם אתם בטוחים שברצונכם למחוק את הפוסט? פעולה זו לא ניתנת לביטול.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeletePostModalId(null)}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition"
+                >
+                  ביטול
+                </button>
+                <button
+                  onClick={() => handleDeletePost(deletePostModalId)}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition"
+                >
+                  מחיקה
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </main>

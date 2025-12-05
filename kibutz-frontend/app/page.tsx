@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaSearch, FaChevronDown, FaCog, FaSignOutAlt, FaUserPlus, FaUserMinus, FaSignInAlt, FaDoorOpen } from 'react-icons/fa';
+import { FaSearch, FaChevronDown, FaCog, FaSignOutAlt } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 
 const COMMUNITY_TOPICS = [
@@ -68,6 +68,7 @@ interface Community {
   name: string;
   description: string;
   image?: string | null;
+  logo?: string | null;
   ownerId: string;
   createdAt: string;
   topic?: string | null;
@@ -92,19 +93,12 @@ export default function Home() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [filteredCommunities, setFilteredCommunities] = useState<Community[]>([]);
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
-  const [joiningCommunity, setJoiningCommunity] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedPrice, setSelectedPrice] = useState('');
   const [loading, setLoading] = useState(true);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [banPopup, setBanPopup] = useState<{ 
-    show: boolean; 
-    daysLeft: number; 
-    managerEmail?: string | null;
-    managerName?: string | null;
-  } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -188,73 +182,21 @@ export default function Home() {
     setFilteredCommunities(filtered);
   }, [searchTerm, communities, selectedTopic, selectedSize, selectedPrice]);
 
-  const handleJoinLeave = async (e: React.MouseEvent, communityId: string, isMember: boolean) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const token = localStorage.getItem('token');
-    if (!token) {
+  const handleCardClick = (community: Community) => {
+    if (!userEmail) {
+      // Not logged in - go to login
       router.push('/login');
       return;
     }
-
-    setJoiningCommunity(communityId);
-    try {
-      const endpoint = isMember ? 'leave' : 'join';
-      const res = await fetch(`http://localhost:4000/communities/${communityId}/${endpoint}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        if (isMember) {
-          setUserMemberships(prev => prev.filter(id => id !== communityId));
-          // Update member count locally
-          setCommunities(prev => prev.map(c => 
-            c.id === communityId ? { ...c, memberCount: (c.memberCount || 1) - 1 } : c
-          ));
-        } else {
-          setUserMemberships(prev => [...prev, communityId]);
-          // Update member count locally
-          setCommunities(prev => prev.map(c => 
-            c.id === communityId ? { ...c, memberCount: (c.memberCount || 0) + 1 } : c
-          ));
-          // Redirect to the community feed after joining
-          router.push(`/communities/feed?communityId=${communityId}`);
-        }
-      } else {
-        // Handle ban error
-        const error = await res.json();
-        if (error.message && error.message.includes('banned')) {
-          const match = error.message.match(/(\d+)\s*day/);
-          const daysLeft = match ? parseInt(match[1]) : 7;
-          
-          // Fetch manager info to show contact
-          try {
-            const managersRes = await fetch(`http://localhost:4000/communities/${communityId}/managers`);
-            if (managersRes.ok) {
-              const managers = await managersRes.json();
-              const owner = managers.find((m: { role: string }) => m.role === 'OWNER');
-              const manager = managers.find((m: { role: string }) => m.role === 'MANAGER');
-              const contact = owner || manager;
-              setBanPopup({ 
-                show: true, 
-                daysLeft,
-                managerEmail: contact?.email || null,
-                managerName: contact?.name || null
-              });
-            } else {
-              setBanPopup({ show: true, daysLeft, managerEmail: null, managerName: null });
-            }
-          } catch {
-            setBanPopup({ show: true, daysLeft, managerEmail: null, managerName: null });
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Failed to join/leave:', err);
-    } finally {
-      setJoiningCommunity(null);
+    
+    const isMember = userMemberships.includes(community.id) || community.ownerId === userId;
+    
+    if (isMember) {
+      // Member/Owner - go to feed
+      router.push(`/communities/feed?communityId=${community.id}`);
+    } else {
+      // Logged in but not a member - leave for now (will implement join flow later)
+      // For now, just show they need to join
     }
   };
 
@@ -469,9 +411,6 @@ export default function Home() {
           </div>
         ) : filteredCommunities.length > 0 ? (
           filteredCommunities.map((community) => {
-            const isMember = userMemberships.includes(community.id) || community.ownerId === userId;
-            const isOwner = community.ownerId === userId;
-            
             // Format member count: under 100 show exact, 100+ show +100, 1000+ show +1,000, etc
             const formatMemberCount = (count: number) => {
               if (count >= 10000) {
@@ -491,23 +430,37 @@ export default function Home() {
             return (
               <div
                 key={community.id}
-                className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
+                onClick={() => handleCardClick(community)}
+                className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200 cursor-pointer"
               >
-                <Link href={isMember ? `/communities/feed?communityId=${community.id}` : '#'}>
-                  {community.image ? (
-                    <img
-                      src={`http://localhost:4000${community.image}`}
-                      alt={community.name}
-                      className="w-full h-44 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-44 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
-                      <span className="text-gray-400 font-medium">תמונת קהילה</span>
-                    </div>
-                  )}
-                </Link>
+                {community.image ? (
+                  <img
+                    src={`http://localhost:4000${community.image}`}
+                    alt={community.name}
+                    className="w-full h-44 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-44 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
+                    <span className="text-gray-400 font-medium">תמונת קהילה</span>
+                  </div>
+                )}
                 <div className="p-5 text-right" dir="rtl">
-                  <h2 className="font-bold text-xl text-black mb-2">{community.name}</h2>
+                  <div className="flex items-start gap-3 mb-2">
+                    {community.logo ? (
+                      <img
+                        src={`http://localhost:4000${community.logo}`}
+                        alt={community.name}
+                        className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-gray-400 text-lg font-bold">{community.name.charAt(0)}</span>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h2 className="font-bold text-xl text-black">{community.name}</h2>
+                    </div>
+                  </div>
                   <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
                     {community.description}
                   </p>
@@ -516,7 +469,7 @@ export default function Home() {
                   <div className="border-t border-gray-200 my-4"></div>
                   
                   {/* Topic + Member count + Price badges - all on same line */}
-                  <div className="flex flex-wrap items-center justify-start gap-2 mb-4">
+                  <div className="flex flex-wrap items-center justify-start gap-2">
                     {/* Topic badge */}
                     {community.topic && (() => {
                       const colors = getTopicColor(community.topic);
@@ -527,8 +480,11 @@ export default function Home() {
                       );
                     })()}
                     
-                    {/* Member count - Gray badge */}
-                    <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-sm font-medium border border-gray-200">
+                    {/* Member count badge */}
+                    <span 
+                      className="px-3 py-1.5 rounded-full text-sm font-medium"
+                      style={{ backgroundColor: '#F4F4F5', color: '#52525B' }}
+                    >
                       {(community.memberCount ?? 0) === 1 
                         ? 'משתמש אחד' 
                         : (community.memberCount ?? 0) < 100
@@ -536,64 +492,23 @@ export default function Home() {
                           : `${formatMemberCount(community.memberCount ?? 0)}+ משתמשים`}
                     </span>
                     
-                    {/* Free/Paid badge - Green for free, Blue for paid */}
+                    {/* Free/Paid badge */}
                     {(community.price ?? 0) === 0 ? (
-                      <span className="bg-emerald-100 text-emerald-600 px-3 py-1.5 rounded-full text-sm font-medium border border-emerald-200">
+                      <span 
+                        className="px-3 py-1.5 rounded-full text-sm font-medium"
+                        style={{ backgroundColor: '#E9FCC5', color: '#365908' }}
+                      >
                         חינם
                       </span>
                     ) : (
-                      <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-200">
+                      <span 
+                        className="px-3 py-1.5 rounded-full text-sm font-medium"
+                        style={{ backgroundColor: '#DCF1FE', color: '#02527D' }}
+                      >
                         ₪{community.price} לחודש
                       </span>
                     )}
                   </div>
-                  
-                  {/* Join/Leave Button */}
-                  {userEmail && (
-                    isOwner ? (
-                      <Link
-                        href={`/communities/${community.id}/manage`}
-                        className="w-full py-2.5 rounded-full font-semibold text-center block bg-black text-white hover:opacity-90 transition"
-                      >
-                        נהל קהילה
-                      </Link>
-                    ) : isMember ? (
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/communities/feed?communityId=${community.id}`}
-                          className="flex-1 py-2.5 rounded-full font-semibold text-center bg-black text-white hover:opacity-90 transition flex items-center justify-center gap-2"
-                        >
-                          <FaSignInAlt className="w-4 h-4" />
-                          כניסה
-                        </Link>
-                        <button
-                          onClick={(e) => handleJoinLeave(e, community.id, true)}
-                          disabled={joiningCommunity === community.id}
-                          className="px-4 py-2.5 rounded-full font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition disabled:opacity-50 flex items-center gap-1"
-                        >
-                          <FaDoorOpen className="w-4 h-4" />
-                          עזיבה
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={(e) => handleJoinLeave(e, community.id, false)}
-                        disabled={joiningCommunity === community.id}
-                        className="w-full py-2.5 rounded-full font-semibold bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
-                        <FaUserPlus className="w-4 h-4" />
-                        {joiningCommunity === community.id ? 'מצטרף...' : 'הצטרף לקהילה'}
-                      </button>
-                    )
-                  )}
-                  {!userEmail && (
-                    <Link
-                      href="/login"
-                      className="w-full py-2.5 rounded-full font-semibold text-center block bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
-                    >
-                      התחבר להצטרפות
-                    </Link>
-                  )}
                 </div>
               </div>
             );
@@ -604,50 +519,6 @@ export default function Home() {
           </div>
         )}
       </div>
-
-      {/* Ban Popup Modal */}
-      {banPopup?.show && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 z-50"
-            onClick={() => setBanPopup(null)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-8 z-50 max-w-md w-full mx-4 text-center" dir="rtl">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">לא ניתן להצטרף לקהילה</h3>
-            <p className="text-gray-600 mb-4">
-              הפרת את כללי הקהילה והוסרת ממנה.
-            </p>
-            <p className="text-gray-600 mb-4">
-              תצטרך לחכות <span className="font-bold text-red-600">{banPopup.daysLeft} ימים</span> או לפנות למנהל הקהילה.
-            </p>
-            {banPopup.managerEmail && (
-              <div className="bg-gray-50 rounded-xl p-4 mb-4 text-sm">
-                <p className="text-gray-500 mb-1">ליצירת קשר עם מנהל הקהילה:</p>
-                <a 
-                  href={`mailto:${banPopup.managerEmail}`}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  {banPopup.managerEmail}
-                </a>
-                {banPopup.managerName && (
-                  <p className="text-gray-500 text-xs mt-1">({banPopup.managerName})</p>
-                )}
-              </div>
-            )}
-            <button
-              onClick={() => setBanPopup(null)}
-              className="bg-black text-white px-6 py-2.5 rounded-xl font-medium hover:bg-gray-800 transition"
-            >
-              הבנתי
-            </button>
-          </div>
-        </>
-      )}
     </main>
   );
 }

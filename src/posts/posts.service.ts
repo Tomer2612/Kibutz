@@ -377,4 +377,71 @@ export class PostsService {
       },
     });
   }
+
+  async getLinkPreview(url: string) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; Kibutz/1.0; +http://kibutz.com)',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch URL');
+      }
+      
+      const html = await response.text();
+      
+      // Extract Open Graph meta tags
+      const getMetaContent = (property: string): string | null => {
+        const match = html.match(new RegExp(`<meta[^>]*property=["']${property}["'][^>]*content=["']([^"']+)["']`, 'i')) 
+          || html.match(new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*property=["']${property}["']`, 'i'));
+        return match ? match[1] : null;
+      };
+      
+      const getMetaName = (name: string): string | null => {
+        const match = html.match(new RegExp(`<meta[^>]*name=["']${name}["'][^>]*content=["']([^"']+)["']`, 'i'))
+          || html.match(new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*name=["']${name}["']`, 'i'));
+        return match ? match[1] : null;
+      };
+      
+      // Get title
+      let title = getMetaContent('og:title') || getMetaName('twitter:title');
+      if (!title) {
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        title = titleMatch ? titleMatch[1].trim() : null;
+      }
+      
+      // Get description
+      const description = getMetaContent('og:description') || getMetaName('description') || getMetaName('twitter:description');
+      
+      // Get image
+      let image = getMetaContent('og:image') || getMetaName('twitter:image');
+      if (image && !image.startsWith('http')) {
+        const urlObj = new URL(url);
+        image = image.startsWith('/') ? `${urlObj.origin}${image}` : `${urlObj.origin}/${image}`;
+      }
+      
+      return {
+        url,
+        title: title || new URL(url).hostname,
+        description: description || null,
+        image: image || null,
+      };
+    } catch (err) {
+      console.error('Link preview error:', err);
+      // Return basic fallback
+      try {
+        const urlObj = new URL(url);
+        return {
+          url,
+          title: urlObj.hostname.replace('www.', ''),
+          description: null,
+          image: null,
+        };
+      } catch {
+        return { url, title: url, description: null, image: null };
+      }
+    }
+  }
 }

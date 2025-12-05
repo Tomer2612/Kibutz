@@ -225,4 +225,10 @@ export class PostsController {
     const userId = req.user.userId;
     return this.postsService.createComment(postId, userId, body.content);
   }
+
+  // Get link preview metadata
+  @Get('link-preview')
+  async getLinkPreview(@Query('url') url: string) {
+    return this.postsService.getLinkPreview(url);
+  }
 }

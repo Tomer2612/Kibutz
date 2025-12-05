@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
-import { FaCheck, FaPlus, FaMinus, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaCheck, FaPlus, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
 interface FAQ {
   question: string;
@@ -23,48 +23,20 @@ interface PricingPlan {
   price: number;
   period: string;
   features: string[];
-  popular?: boolean;
 }
 
-const plans: PricingPlan[] = [
-  {
-    name: 'בסיסי',
-    price: 49,
-    period: 'לחודש',
-    features: [
-      'קהילה אחת',
-      'עד 100 חברים',
-      'תמיכה במייל',
-      'עמלה 8%',
-    ],
-  },
-  {
-    name: 'פרו',
-    price: 99,
-    period: 'לחודש',
-    features: [
-      'קהילה אחת',
-      'ללא הגבלת תוכן',
-      'ללא הגבלת משתמשים',
-      'דומיין מותאם',
-      'עמלה 5%',
-    ],
-    popular: true,
-  },
-  {
-    name: 'עסקי',
-    price: 199,
-    period: 'לחודש',
-    features: [
-      'עד 5 קהילות',
-      'ללא הגבלת תוכן',
-      'ללא הגבלת משתמשים',
-      'דומיין מותאם',
-      'תמיכה בעדיפות',
-      'עמלה 3%',
-    ],
-  },
-];
+const plan: PricingPlan = {
+  name: 'מנוי קהילה',
+  price: 99,
+  period: 'לחודש',
+  features: [
+    'קהילה אחת',
+    'ללא הגבלת תוכן',
+    'ללא הגבלת משתמשים',
+    'דומיין מותאם',
+    'עמלה 5%',
+  ],
+};
 
 const faqs: FAQ[] = [
   {
@@ -91,7 +63,7 @@ const faqs: FAQ[] = [
 
 export default function PricingPage() {
   const router = useRouter();
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [openFaqs, setOpenFaqs] = useState<Set<number>>(new Set());
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -119,7 +91,15 @@ export default function PricingPage() {
   }, []);
 
   const toggleFaq = (index: number) => {
-    setOpenFaq(openFaq === index ? null : index);
+    setOpenFaqs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
   };
 
   const handleLogout = () => {
@@ -226,61 +206,52 @@ export default function PricingPage() {
         </p>
       </section>
 
-      {/* Pricing Cards */}
-      <section className="flex flex-wrap justify-center gap-6 px-4 pb-16">
-        {plans.map((plan, index) => (
-          <div
-            key={index}
-            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 text-center relative flex flex-col"
-            style={{ width: '250px', minHeight: '352px' }}
-          >
-            {plan.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-3 py-1 rounded-full">
-                הכי פופולרי
-              </div>
-            )}
-            
-            {/* Plan Name */}
-            <h3 className="text-lg font-bold text-black mb-4">{plan.name}</h3>
-            
-            {/* Price */}
-            <div className="mb-6">
-              <div className="flex items-baseline justify-center gap-1">
-                <span className="text-4xl font-bold text-black">{plan.price}</span>
-                <span className="text-gray-600 text-sm">₪/{plan.period}</span>
-              </div>
+      {/* Pricing Card */}
+      <section className="flex justify-center px-4 pb-16">
+        <div
+          className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center flex flex-col"
+          style={{ width: '300px', minHeight: '380px' }}
+        >
+          {/* Plan Name */}
+          <h3 className="text-xl font-bold text-black mb-4">{plan.name}</h3>
+          
+          {/* Price */}
+          <div className="mb-6">
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-5xl font-bold text-black">{plan.price}</span>
+              <span className="text-gray-600 text-sm">₪/{plan.period}</span>
             </div>
-
-            {/* Features */}
-            <div className="space-y-2 mb-6 text-right flex-1">
-              {plan.features.map((feature, fIndex) => (
-                <div key={fIndex} className="flex items-center gap-2">
-                  <div 
-                    className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: '#E9FCC5' }}
-                  >
-                    <FaCheck 
-                      style={{ 
-                        color: '#365908',
-                        width: '10px',
-                        height: '8px'
-                      }} 
-                    />
-                  </div>
-                  <span className="text-gray-700 text-sm">{feature}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* CTA Button */}
-            <button
-              onClick={handleCreateCommunity}
-              className="block w-full bg-black text-white py-2.5 rounded-lg font-semibold hover:opacity-90 transition text-sm"
-            >
-              יצירת קהילה
-            </button>
           </div>
-        ))}
+
+          {/* Features */}
+          <div className="space-y-3 mb-8 text-right flex-1">
+            {plan.features.map((feature, fIndex) => (
+              <div key={fIndex} className="flex items-center gap-2">
+                <div 
+                  className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: '#E9FCC5' }}
+                >
+                  <FaCheck 
+                    style={{ 
+                      color: '#365908',
+                      width: '10px',
+                      height: '8px'
+                    }} 
+                  />
+                </div>
+                <span className="text-gray-700 text-sm">{feature}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA Button */}
+          <button
+            onClick={handleCreateCommunity}
+            className="block w-full bg-black text-white py-3 rounded-lg font-semibold hover:opacity-90 transition"
+          >
+            יצירת קהילה
+          </button>
+        </div>
       </section>
 
       {/* FAQ Section */}
@@ -300,17 +271,17 @@ export default function PricingPage() {
                 className="w-full flex items-center justify-between p-4 text-right hover:bg-gray-50 transition"
               >
                 <span className="font-medium text-black">{faq.question}</span>
-                {openFaq === index ? (
-                  <FaMinus className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                ) : (
+                <span className={`transform transition-transform duration-300 ${openFaqs.has(index) ? 'rotate-45' : ''}`}>
                   <FaPlus className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                )}
+                </span>
               </button>
-              {openFaq === index && (
-                <div className="px-4 pb-4 text-gray-600 text-right">
-                  {faq.answer}
+              <div className={`grid transition-all duration-300 ease-in-out ${openFaqs.has(index) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 text-gray-600 text-right">
+                    {faq.answer}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>

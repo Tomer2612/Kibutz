@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaSearch, FaCog, FaSignOutAlt, FaCrown, FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo } from 'react-icons/fa';
-import { TopicIcon } from '../../../lib/topicIcons';
+import { FaSearch, FaCog, FaSignOutAlt, FaCrown, FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo, FaUsers } from 'react-icons/fa';
 
 interface JwtPayload {
   email: string;
@@ -45,6 +44,7 @@ interface Community {
   name: string;
   description: string;
   image?: string | null;
+  logo?: string | null;
   topic?: string | null;
   ownerId: string;
 }
@@ -318,7 +318,17 @@ export default function CommunityMembersPage() {
             Kibutz
           </Link>
           <div className="flex items-center gap-2">
-            {community?.topic && <TopicIcon topic={community.topic} size="md" />}
+            {community?.logo ? (
+              <img
+                src={`http://localhost:4000${community.logo}`}
+                alt={community.name}
+                className="w-8 h-8 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                <FaUsers className="w-4 h-4 text-gray-400" />
+              </div>
+            )}
             <span className="font-medium text-black">{community?.name}</span>
           </div>
         </div>

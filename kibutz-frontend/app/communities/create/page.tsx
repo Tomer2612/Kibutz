@@ -4,8 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaUsers, FaFileAlt, FaImage, FaTags, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar } from 'react-icons/fa';
-import { TopicIcon, COMMUNITY_TOPICS } from '../../lib/topicIcons';
+import { FaUsers, FaFileAlt, FaImage, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar } from 'react-icons/fa';
 
 interface JwtPayload {
   email: string;
@@ -23,7 +22,6 @@ interface ImageFile {
 export default function CreateCommunityPage() {
   const router = useRouter();
   const [name, setName] = useState('');
-  const [topic, setTopic] = useState('');
   const [description, setDescription] = useState('');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
@@ -37,6 +35,10 @@ export default function CreateCommunityPage() {
   const [whatsappUrl, setWhatsappUrl] = useState('');
   const [facebookUrl, setFacebookUrl] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
+  
+  // Logo
+  const [logo, setLogo] = useState<{ file: File; preview: string } | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   
   // Images
   const [images, setImages] = useState<ImageFile[]>([]);
@@ -67,6 +69,21 @@ export default function CreateCommunityPage() {
       router.push('/login');
     }
   }, [router]);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogo({ file, preview: reader.result as string });
+    };
+    reader.readAsDataURL(file);
+    
+    if (logoInputRef.current) {
+      logoInputRef.current.value = '';
+    }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -114,7 +131,7 @@ export default function CreateCommunityPage() {
   const handleCreateCommunity = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !description.trim() || !topic) {
+    if (!name.trim() || !description.trim()) {
       setMessage('אנא מלאו את כל השדות החובה');
       setMessageType('error');
       return;
@@ -133,7 +150,11 @@ export default function CreateCommunityPage() {
       const formData = new FormData();
       formData.append('name', name);
       formData.append('description', description);
-      formData.append('topic', topic);
+      
+      // Logo
+      if (logo) {
+        formData.append('logo', logo.file);
+      }
       
       // Social links
       if (youtubeUrl) formData.append('youtubeUrl', youtubeUrl);
@@ -286,30 +307,51 @@ export default function CreateCommunityPage() {
               <p className="text-xs text-gray-500 mt-1">עד 100 תווים</p>
             </div>
 
-            {/* Community Topic */}
+            {/* Community Logo */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                נושא הקהילה *
+                לוגו הקהילה (אופציונלי)
               </label>
-              <div className="flex items-center gap-3">
-                {topic && <TopicIcon topic={topic} size="md" />}
-                <div className="relative flex-1">
-                  <FaTags className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <select
-                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right appearance-none"
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    required
+              <p className="text-xs text-gray-500 mb-3 text-right">
+                תמונת לוגו מרובעת מומלצת (JPG, PNG, GIF עד 5MB)
+              </p>
+              <div className="flex items-center gap-4">
+                {logo ? (
+                  <div className="relative group">
+                    <img
+                      src={logo.preview}
+                      alt="לוגו הקהילה"
+                      className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLogo(null)}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    >
+                      <FaTimes className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                    <FaImage className="w-8 h-8 text-gray-300" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label
+                    htmlFor="logo-upload"
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition text-sm"
                   >
-                    <option value="" disabled>
-                      בחרו נושא לקהילה
-                    </option>
-                    {COMMUNITY_TOPICS.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
+                    <FaImage className="text-gray-400" />
+                    <span className="text-gray-600">{logo ? 'החלף לוגו' : 'העלה לוגו'}</span>
+                  </label>
                 </div>
               </div>
             </div>

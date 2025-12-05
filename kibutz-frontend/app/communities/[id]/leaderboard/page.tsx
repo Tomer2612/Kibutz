@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import { FaTrophy, FaMedal, FaUsers, FaCog, FaSignOutAlt, FaSearch, FaStar, FaHeart, FaComment, FaFileAlt } from 'react-icons/fa';
-import { TopicIcon } from '../../../lib/topicIcons';
 
 interface JwtPayload {
   email: string;
@@ -18,6 +17,7 @@ interface Community {
   id: string;
   name: string;
   topic: string | null;
+  logo: string | null;
 }
 
 interface LeaderboardMember {
@@ -160,7 +160,17 @@ export default function LeaderboardPage() {
             Kibutz
           </Link>
           <div className="flex items-center gap-2">
-            {community?.topic && <TopicIcon topic={community.topic} size="md" />}
+            {community?.logo ? (
+              <img
+                src={`http://localhost:4000${community.logo}`}
+                alt={community.name}
+                className="w-8 h-8 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                <FaUsers className="w-4 h-4 text-gray-400" />
+              </div>
+            )}
             <span className="font-medium text-black">{community?.name}</span>
           </div>
         </div>

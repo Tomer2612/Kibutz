@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
-import { FaPlus, FaMinus, FaCog, FaSignOutAlt, FaEnvelope, FaPhone, FaFacebook, FaInstagram, FaTwitter, FaPaperPlane } from 'react-icons/fa';
+import { FaPlus, FaCog, FaSignOutAlt, FaEnvelope, FaFacebook, FaInstagram, FaTwitter, FaPaperPlane } from 'react-icons/fa';
 
 interface FAQ {
   question: string;
@@ -51,7 +51,7 @@ const faqs: FAQ[] = [
 
 export default function SupportPage() {
   const router = useRouter();
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [openFaqs, setOpenFaqs] = useState<Set<number>>(new Set());
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -91,7 +91,15 @@ export default function SupportPage() {
   }, []);
 
   const toggleFaq = (index: number) => {
-    setOpenFaq(openFaq === index ? null : index);
+    setOpenFaqs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
   };
 
   const handleLogout = () => {
@@ -236,17 +244,17 @@ export default function SupportPage() {
                 className="w-full flex items-center justify-between p-4 text-right hover:bg-gray-50 transition"
               >
                 <span className="font-medium text-black">{faq.question}</span>
-                {openFaq === index ? (
-                  <FaMinus className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                ) : (
+                <span className={`transform transition-transform duration-300 ${openFaqs.has(index) ? 'rotate-45' : ''}`}>
                   <FaPlus className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                )}
+                </span>
               </button>
-              {openFaq === index && (
-                <div className="px-4 pb-4 text-gray-600 text-right">
-                  {faq.answer}
+              <div className={`grid transition-all duration-300 ease-in-out ${openFaqs.has(index) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 text-gray-600 text-right">
+                    {faq.answer}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
@@ -350,17 +358,6 @@ export default function SupportPage() {
                     </a>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                    <FaPhone className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">טלפון</p>
-                    <a href="tel:+972-3-1234567" className="text-black font-medium hover:underline">
-                      03-1234567
-                    </a>
-                  </div>
-                </div>
               </div>
               
               {/* Social Links */}
@@ -385,25 +382,6 @@ export default function SupportPage() {
                   >
                     <FaTwitter className="w-5 h-5" />
                   </a>
-                </div>
-              </div>
-            </div>
-
-            {/* Business Hours */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-              <h3 className="text-lg font-bold text-black mb-4">שעות פעילות של המוקד הטלפוני</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">ראשון - חמישי</span>
-                  <span className="text-black font-medium">18:00 - 09:00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">שישי</span>
-                  <span className="text-black font-medium"> 13:00 - 09:00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">שבת</span>
-                  <span className="text-gray-400">סגור</span>
                 </div>
               </div>
             </div>

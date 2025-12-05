@@ -10,6 +10,7 @@ export class CommunitiesService {
     description: string,
     ownerId: string,
     image?: string | null,
+    logo?: string | null,
     topic?: string | null,
     youtubeUrl?: string | null,
     whatsappUrl?: string | null,
@@ -19,7 +20,7 @@ export class CommunitiesService {
     price?: number | null,
   ) {
     try {
-      console.log('Creating community with:', { name, description, ownerId, image, topic, youtubeUrl, whatsappUrl, facebookUrl, instagramUrl, galleryImages, price });
+      console.log('Creating community with:', { name, description, ownerId, image, logo, topic, youtubeUrl, whatsappUrl, facebookUrl, instagramUrl, galleryImages, price });
       
       // Create community
       const community = await this.prisma.community.create({
@@ -28,6 +29,7 @@ export class CommunitiesService {
           description, 
           ownerId,
           image: image || null,
+          logo: logo || null,
           topic: topic || null,
           memberCount: 1,
           price: price ?? 0,
@@ -105,6 +107,7 @@ export class CommunitiesService {
     name: string,
     description: string,
     image?: string | null,
+    logo?: string | null,
     topic?: string | null,
     youtubeUrl?: string | null,
     whatsappUrl?: string | null,
@@ -134,6 +137,9 @@ export class CommunitiesService {
       const updateData: any = { name, description };
       if (image !== undefined) {
         updateData.image = image; // Can be null to remove, or a path to set
+      }
+      if (logo !== undefined) {
+        updateData.logo = logo; // Can be null to remove, or a path to set
       }
       if (topic !== undefined) {
         updateData.topic = topic;

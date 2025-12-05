@@ -25,25 +25,28 @@ export class CommunitiesController {
   @Post()
   @UseInterceptors(FileFieldsInterceptor([
     { name: 'image', maxCount: 1 },
+    { name: 'logo', maxCount: 1 },
     { name: 'galleryImages', maxCount: 10 },
   ], { storage }))
   create(
     @Req() req,
     @Body() body: any,
-    @UploadedFiles() files?: { image?: any[]; galleryImages?: any[] },
+    @UploadedFiles() files?: { image?: any[]; logo?: any[]; galleryImages?: any[] },
   ) {
     const userId = req.user.userId;
     const { name, description, topic, youtubeUrl, whatsappUrl, facebookUrl, instagramUrl } = body;
     const imagePath = files?.image?.[0] ? `/uploads/communities/${files.image[0].filename}` : null;
+    const logoPath = files?.logo?.[0] ? `/uploads/communities/${files.logo[0].filename}` : null;
     const galleryPaths = files?.galleryImages?.map(f => `/uploads/communities/${f.filename}`) || [];
     
-    console.log('Create community - name:', name, 'description:', description, 'imagePath:', imagePath);
+    console.log('Create community - name:', name, 'description:', description, 'imagePath:', imagePath, 'logoPath:', logoPath);
     
     return this.communitiesService.create(
       name, 
       description, 
       userId, 
-      imagePath, 
+      imagePath,
+      logoPath,
       topic,
       youtubeUrl,
       whatsappUrl,
@@ -67,6 +70,7 @@ export class CommunitiesController {
   @Put(':id')
   @UseInterceptors(FileFieldsInterceptor([
     { name: 'image', maxCount: 1 },
+    { name: 'logo', maxCount: 1 },
     { name: 'galleryImages', maxCount: 10 },
   ], { storage }))
   update(
@@ -77,18 +81,21 @@ export class CommunitiesController {
       description: string; 
       topic?: string | null; 
       removeImage?: string;
+      removeLogo?: string;
       youtubeUrl?: string;
       whatsappUrl?: string;
       facebookUrl?: string;
       instagramUrl?: string;
       existingGalleryImages?: string;
       existingPrimaryImage?: string;
+      existingLogo?: string;
       price?: string;
     },
-    @UploadedFiles() files?: { image?: any[]; galleryImages?: any[] },
+    @UploadedFiles() files?: { image?: any[]; logo?: any[]; galleryImages?: any[] },
   ) {
     const userId = req.user.userId;
     let imagePath: string | null | undefined = undefined;
+    let logoPath: string | null | undefined = undefined;
     
     if (files?.image?.[0]) {
       // New image uploaded
@@ -99,6 +106,17 @@ export class CommunitiesController {
     } else if (body.removeImage === 'true') {
       // Remove image
       imagePath = null;
+    }
+    
+    if (files?.logo?.[0]) {
+      // New logo uploaded
+      logoPath = `/uploads/communities/${files.logo[0].filename}`;
+    } else if (body.existingLogo) {
+      // Keep existing logo
+      logoPath = body.existingLogo;
+    } else if (body.removeLogo === 'true') {
+      // Remove logo
+      logoPath = null;
     }
     
     const newGalleryPaths = files?.galleryImages?.map(f => `/uploads/communities/${f.filename}`) || [];
@@ -113,6 +131,7 @@ export class CommunitiesController {
       body.name,
       body.description,
       imagePath,
+      logoPath,
       body.topic,
       body.youtubeUrl,
       body.whatsappUrl,

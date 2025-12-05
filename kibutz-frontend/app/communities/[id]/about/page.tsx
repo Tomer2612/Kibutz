@@ -5,13 +5,13 @@ import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import { FaUsers, FaCalendarAlt, FaSearch, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-import { TopicIcon } from '../../../lib/topicIcons';
 
 interface Community {
   id: string;
   name: string;
   description: string;
   image?: string | null;
+  logo?: string | null;
   ownerId: string;
   createdAt: string;
   topic?: string | null;
@@ -225,7 +225,17 @@ export default function CommunityAboutPage() {
             Kibutz
           </Link>
           <div className="flex items-center gap-2">
-            {community?.topic && <TopicIcon topic={community.topic} size="md" />}
+            {community?.logo ? (
+              <img
+                src={`http://localhost:4000${community.logo}`}
+                alt={community.name}
+                className="w-8 h-8 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                <FaUsers className="w-4 h-4 text-gray-400" />
+              </div>
+            )}
             <span className="font-medium text-black">{community?.name}</span>
           </div>
         </div>
@@ -330,7 +340,7 @@ export default function CommunityAboutPage() {
           <div className="space-y-6">
             {/* About Section - moved above image */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-black mb-4">אודות הקהילה</h2>
+              <h2 className="text-xl font-bold text-black mb-4">{community.name}</h2>
               <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                 {community.description}
               </p>
@@ -346,86 +356,110 @@ export default function CommunityAboutPage() {
             )}
           </div>
 
-          {/* Right Sidebar - Stats */}
-          <div className="space-y-4">
-            {/* מידע וקישורים נוספים */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-black mb-4 text-center">מידע וקישורים נוספים</h3>
-              
-              {/* Stats Grid */}
-              <div className="grid grid-cols-3 gap-4 text-center mb-4">
+          {/* Right Sidebar - Combined Info Card */}
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            {/* Community Identity */}
+            <div className="p-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                {community.logo ? (
+                  <img
+                    src={`http://localhost:4000${community.logo}`}
+                    alt={community.name}
+                    className="w-12 h-12 rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+                    <FaUsers className="w-6 h-6 text-gray-400" />
+                  </div>
+                )}
                 <div>
-                  <p className="text-lg font-bold text-black">{managerCount}</p>
-                  <p className="text-xs text-gray-500">מנהלים</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-black">
-                    {userEmail ? 1 : 0} <span className="text-green-500">●</span>
-                  </p>
-                  <p className="text-xs text-gray-500">מחוברים</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-black">
-                    {(() => {
-                      const count = community.memberCount || 1;
-                      if (count >= 10000) return `${Math.floor(count / 10000) * 10000}+`;
-                      if (count >= 1000) return `${Math.floor(count / 1000) * 1000}+`;
-                      if (count >= 100) return `${Math.floor(count / 100) * 100}+`;
-                      return count;
-                    })()}
-                  </p>
-                  <p className="text-xs text-gray-500">משתמשים</p>
+                  <h3 className="font-bold text-black text-lg">{community.name}</h3>
+                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                    <FaCalendarAlt className="w-3 h-3" />
+                    <span>נוצרה ב־{new Date(community.createdAt).toLocaleDateString('he-IL')}</span>
+                  </div>
                 </div>
               </div>
+            </div>
+            
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-4 text-center p-5 border-b border-gray-100">
+              <div>
+                <p className="text-xl font-bold text-black">{managerCount}</p>
+                <p className="text-xs text-gray-500">מנהלים</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold text-black">
+                  {userEmail ? 1 : 0}
+                </p>
+                <p className="text-xs text-gray-500">מחוברים</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold text-black">
+                  {(() => {
+                    const count = community.memberCount || 1;
+                    if (count >= 10000) return `${Math.floor(count / 10000) * 10000}+`;
+                    if (count >= 1000) return `${Math.floor(count / 1000) * 1000}+`;
+                    if (count >= 100) return `${Math.floor(count / 100) * 100}+`;
+                    return count;
+                  })()}
+                </p>
+                <p className="text-xs text-gray-500">משתמשים</p>
+              </div>
+            </div>
 
-              {/* Social Links */}
-              {(community.youtubeUrl || community.whatsappUrl || community.facebookUrl || community.instagramUrl) && (
-                <div className="flex justify-center gap-4 pt-3 border-t border-gray-100">
+            {/* Social Links */}
+            {(community.youtubeUrl || community.whatsappUrl || community.facebookUrl || community.instagramUrl) && (
+              <div className="p-5">
+                <h4 className="text-sm font-medium text-gray-500 mb-3 text-center">עקבו אחרינו</h4>
+                <div className="flex justify-center gap-3">
                   {community.youtubeUrl && (
-                    <a href={community.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-red-500 hover:text-red-600 transition" title="יוטוב">
+                    <a 
+                      href={community.youtubeUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-900 hover:text-white text-gray-600 flex items-center justify-center transition" 
+                      title="יוטוב"
+                    >
                       <FaYoutube className="w-5 h-5" />
                     </a>
                   )}
                   {community.whatsappUrl && (
-                    <a href={community.whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:text-green-600 transition" title="קבוצת ואטסאפ">
+                    <a 
+                      href={community.whatsappUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-900 hover:text-white text-gray-600 flex items-center justify-center transition" 
+                      title="קבוצת ואטסאפ"
+                    >
                       <FaWhatsapp className="w-5 h-5" />
                     </a>
                   )}
                   {community.facebookUrl && (
-                    <a href={community.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition" title="פייסבוק">
+                    <a 
+                      href={community.facebookUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-900 hover:text-white text-gray-600 flex items-center justify-center transition" 
+                      title="פייסבוק"
+                    >
                       <FaFacebook className="w-5 h-5" />
                     </a>
                   )}
                   {community.instagramUrl && (
-                    <a href={community.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:text-pink-600 transition" title="אינסטגרם">
+                    <a 
+                      href={community.instagramUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-900 hover:text-white text-gray-600 flex items-center justify-center transition" 
+                      title="אינסטגרם"
+                    >
                       <FaInstagram className="w-5 h-5" />
                     </a>
                   )}
                 </div>
-              )}
-            </div>
-
-            {/* Community Info Card - removed member count */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <TopicIcon topic={community.topic} size="md" />
-                <div>
-                  <h3 className="font-bold text-black">{community.name}</h3>
-                  {community.topic && (
-                    <span className="inline-flex items-center text-xs font-medium text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">
-                      {community.topic}
-                    </span>
-                  )}
-                </div>
               </div>
-              
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <div className="flex items-center gap-1">
-                  <FaCalendarAlt className="w-4 h-4" />
-                  <span>נוצרה ב־{new Date(community.createdAt).toLocaleDateString('he-IL')}</span>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

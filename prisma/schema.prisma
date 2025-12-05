@@ -38,6 +38,7 @@ model Community {
   ownerId       String
   createdAt     DateTime          @default(now())
   image         String?
+  logo          String?
   topic         String?
   memberCount   Int               @default(0)
   price         Float?            @default(0)
