@@ -49,6 +49,7 @@ model Community {
   galleryImages String[]
   rules         String[]
   posts         Post[]
+  events        Event[]
   owner         User              @relation(fields: [ownerId], references: [id])
   members       CommunityMember[]
   bans          CommunityBan[]
@@ -107,6 +108,40 @@ model Post {
   likes       Like[]
   comments    Comment[]
   savedBy     SavedPost[]
+  poll        Poll?
+}
+
+model Poll {
+  id        String       @id @default(cuid())
+  question  String
+  postId    String       @unique
+  createdAt DateTime     @default(now())
+  expiresAt DateTime?
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  options   PollOption[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id     String     @id @default(cuid())
+  text   String
+  pollId String
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes  PollVote[]
+
+  @@map("poll_options")
+}
+
+model PollVote {
+  id        String     @id @default(cuid())
+  optionId  String
+  oderId  String
+  createdAt DateTime   @default(now())
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, oderId])
+  @@map("poll_votes")
 }
 
 model Like {
@@ -143,4 +178,53 @@ model SavedPost {
 
   @@unique([userId, postId])
   @@map("saved_posts")
+}
+
+// Events System
+model Event {
+  id              String      @id @default(cuid())
+  title           String
+  description     String?
+  coverImage      String?
+  date            DateTime
+  endDate         DateTime?
+  duration        Int?        // Duration in minutes
+  timezone        String      @default("Asia/Jerusalem")
+  isRecurring     Boolean     @default(false)
+  recurringType   String?     // daily, weekly, monthly
+  locationType    String      @default("online") // online, in-person
+  locationName    String?     // Zoom, Google Meet, Physical address
+  locationUrl     String?     // Meeting link
+  category        String?     // workshop, meetup, webinar, q&a, etc.
+  capacity        Int?        // Max attendees (null = unlimited)
+  sendReminders   Boolean     @default(true)
+  reminderDays    Int         @default(1) // Days before event to send reminder
+  attendeeType    String      @default("all") // all, managers
+  communityId     String
+  createdById     String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  community       Community   @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  rsvps           EventRsvp[]
+
+  @@map("events")
+}
+
+model EventRsvp {
+  id        String     @id @default(cuid())
+  eventId   String
+  userId    String
+  status    RsvpStatus @default(GOING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("event_rsvps")
+}
+
+enum RsvpStatus {
+  GOING
+  MAYBE
+  NOT_GOING
 }

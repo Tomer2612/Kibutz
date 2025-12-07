@@ -243,10 +243,10 @@ export default function CommunityAboutPage() {
         {/* Center: Nav links */}
         <nav className="flex items-center gap-4">
           {[
-            { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
+            { label: 'עמוד בית', href: `/communities/feed?community=${communityId}` },
             { label: 'קורס', href: '#' },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן אירועים', href: '#' },
+            { label: 'יומן אירועים', href: `/communities/events?community=${communityId}` },
             { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${communityId}/about`, active: true },
             ...(userRole === 'OWNER' || userRole === 'MANAGER' 

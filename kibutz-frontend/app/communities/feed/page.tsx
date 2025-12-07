@@ -7,13 +7,7 @@ import Link from 'next/link';
 import {
   FaPlus,
   FaUsers,
-  FaMapMarkerAlt,
-  FaUserPlus,
-  FaBell,
   FaComments,
-  FaBook,
-  FaLightbulb,
-  FaQuestionCircle,
   FaHeart,
   FaRegHeart,
   FaEdit,
@@ -26,7 +20,6 @@ import {
   FaLink,
   FaFile,
   FaFilePdf,
-  FaDownload,
   FaCheck,
   FaExternalLinkAlt,
   FaCog,
@@ -35,6 +28,10 @@ import {
   FaThumbtack,
   FaTrophy,
   FaMedal,
+  FaPoll,
+  FaCalendarAlt,
+  FaVideo,
+  FaMapMarkerAlt,
 } from 'react-icons/fa';
 
 interface Community {
@@ -86,6 +83,19 @@ interface Post {
   };
   isLiked?: boolean;
   isSaved?: boolean;
+  poll?: {
+    id: string;
+    question: string;
+    expiresAt?: string | null;
+    totalVotes: number;
+    userVotedOptionId: string | null;
+    options: {
+      id: string;
+      text: string;
+      votes: number;
+      percentage: number;
+    }[];
+  } | null;
 }
 
 // Post categories with colors
@@ -110,6 +120,15 @@ interface TopMember {
   email: string;
   profileImage: string | null;
   points: number;
+}
+
+interface UpcomingEvent {
+  id: string;
+  title: string;
+  date: string;
+  locationType: string;
+  locationName?: string;
+  _count?: { rsvps: number };
 }
 
 // NAV_LINKS will be generated dynamically based on communityId
@@ -142,6 +161,7 @@ export default function CommunityFeedPage() {
   const [addingLink, setAddingLink] = useState(false);
   const [addingEditLink, setAddingEditLink] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'mostLiked' | 'mostCommented'>('newest');
   
   // Edit/Delete state
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
@@ -164,7 +184,6 @@ export default function CommunityFeedPage() {
   // Filter state
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchInput, setShowSearchInput] = useState(false);
   
   // Comments state
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
@@ -181,15 +200,23 @@ export default function CommunityFeedPage() {
   
   // Link previews state
   const [linkPreviews, setLinkPreviews] = useState<Record<string, { title?: string; description?: string; image?: string; url: string }>>({});
+  
+  // Poll state for new post
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+  const [votingPollId, setVotingPollId] = useState<string | null>(null);
+  
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isMember, setIsMember] = useState<boolean | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isManager, setIsManager] = useState(false);
-  const [canEdit, setCanEdit] = useState(false);
-  const [canDelete, setCanDelete] = useState(false);
+  const [, setCanEdit] = useState(false);
+  const [, setCanDelete] = useState(false);
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
   const [topMembers, setTopMembers] = useState<TopMember[]>([]);
   const [onlineCount, setOnlineCount] = useState<number>(0);
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
   
   // Lightbox state
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
@@ -382,6 +409,20 @@ export default function CommunityFeedPage() {
         } catch (err) {
           console.error('Error fetching online count:', err);
         }
+
+        // Fetch upcoming events
+        try {
+          const eventsRes = await fetch(
+            `http://localhost:4000/events/community/${selectedCommunityId}/upcoming?limit=3`,
+            token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+          );
+          if (eventsRes.ok) {
+            const eventsData = await eventsRes.json();
+            setUpcomingEvents(eventsData);
+          }
+        } catch (err) {
+          console.error('Error fetching upcoming events:', err);
+        }
       } catch (err) {
         console.error('Error loading community feed:', err);
         setCommunity(null);
@@ -415,6 +456,30 @@ export default function CommunityFeedPage() {
     const interval = setInterval(refreshOnlineCount, 30000); // 30 seconds
     return () => clearInterval(interval);
   }, [selectedCommunityId]);
+
+  // Refresh posts (including poll data) every 15 seconds
+  useEffect(() => {
+    if (!selectedCommunityId || !userId) return;
+    
+    const refreshPosts = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const postsRes = await fetch(
+          `http://localhost:4000/posts/community/${selectedCommunityId}?userId=${userId}`,
+          token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+        );
+        if (postsRes.ok) {
+          const postsData = await postsRes.json();
+          setPosts(postsData);
+        }
+      } catch (err) {
+        // Silently ignore refresh errors
+      }
+    };
+
+    const interval = setInterval(refreshPosts, 15000); // 15 seconds
+    return () => clearInterval(interval);
+  }, [selectedCommunityId, userId]);
 
   // Fetch link previews for posts
   useEffect(() => {
@@ -522,6 +587,30 @@ export default function CommunityFeedPage() {
 
       if (!res.ok) throw new Error('Failed to create post');
       const newPost = await res.json();
+      
+      // If poll was added, create it
+      if (showPollCreator && pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2) {
+        try {
+          const pollRes = await fetch(`http://localhost:4000/posts/${newPost.id}/poll`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              question: pollQuestion.trim(),
+              options: pollOptions.filter(o => o.trim()),
+            }),
+          });
+          if (pollRes.ok) {
+            const pollData = await pollRes.json();
+            newPost.poll = pollData;
+          }
+        } catch (pollErr) {
+          console.error('Poll creation error:', pollErr);
+        }
+      }
+      
       setPosts((prev) => [newPost, ...prev]);
       setNewPostContent('');
       setNewPostTitle('');
@@ -533,6 +622,9 @@ export default function CommunityFeedPage() {
       setFilePreviews([]);
       setNewLinkInput('');
       setShowLinkInput(false);
+      setShowPollCreator(false);
+      setPollQuestion('');
+      setPollOptions(['', '']);
     } catch (err) {
       console.error('Create post error:', err);
       alert('שגיאה בפרסום הפוסט');
@@ -1017,6 +1109,61 @@ export default function CommunityFeedPage() {
     }
   };
 
+  // Vote on poll handler
+  const handleVotePoll = async (pollId: string, optionId: string, postId: string, currentVotedOptionId: string | null) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('אנא התחברו כדי להצביע');
+      return;
+    }
+
+    setVotingPollId(pollId);
+    try {
+      // If clicking the same option, remove the vote
+      if (currentVotedOptionId === optionId) {
+        const res = await fetch(`http://localhost:4000/posts/polls/${pollId}/vote`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const updatedPoll = await res.json();
+          setPosts((prev) =>
+            prev.map((p) =>
+              p.id === postId ? { ...p, poll: updatedPoll } : p
+            )
+          );
+        }
+      } else {
+        // Vote for new option
+        const res = await fetch(`http://localhost:4000/posts/polls/${pollId}/vote`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ optionId }),
+        });
+
+        if (res.ok) {
+          const updatedPoll = await res.json();
+          setPosts((prev) =>
+            prev.map((p) =>
+              p.id === postId ? { ...p, poll: updatedPoll } : p
+            )
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Vote poll error:', err);
+      alert('שגיאה בהצבעה');
+    } finally {
+      setVotingPollId(null);
+    }
+  };
+
   // Delete comment handler
   const handleDeleteComment = async (commentId: string, postId: string) => {
     const token = localStorage.getItem('token');
@@ -1155,7 +1302,7 @@ export default function CommunityFeedPage() {
             { label: 'עמוד בית', href: `/communities/feed?communityId=${selectedCommunityId}`, active: true },
             { label: 'קורס', href: '#' },
             { label: 'חברי קהילה', href: `/communities/${selectedCommunityId}/members` },
-            { label: 'יומן אירועים', href: '#' },
+            { label: 'יומן אירועים', href: `/communities/events?community=${selectedCommunityId}` },
             { label: 'לוח תוצאות', href: `/communities/${selectedCommunityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${selectedCommunityId}/about` },
             ...((isOwner || isManager) ? [{ label: 'ניהול קהילה', href: `/communities/${selectedCommunityId}/manage` }] : []),
@@ -1329,6 +1476,7 @@ export default function CommunityFeedPage() {
 
           {/* Category filter pills */}
           <div className="px-4 py-3 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900 text-xs mb-2">סינון לפי קטגוריה</h3>
             <div className="flex flex-wrap gap-1.5">
               <button
                 onClick={() => setCategoryFilter('')}
@@ -1353,6 +1501,53 @@ export default function CommunityFeedPage() {
                   {cat.label}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Sorting options */}
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900 text-xs mb-2">מיון לפי</h3>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setSortBy('newest')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  sortBy === 'newest' 
+                    ? 'bg-gray-900 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                חדש ביותר
+              </button>
+              <button
+                onClick={() => setSortBy('oldest')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  sortBy === 'oldest' 
+                    ? 'bg-gray-900 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                ישן ביותר
+              </button>
+              <button
+                onClick={() => setSortBy('mostLiked')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  sortBy === 'mostLiked' 
+                    ? 'bg-gray-900 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                הכי אהוב
+              </button>
+              <button
+                onClick={() => setSortBy('mostCommented')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  sortBy === 'mostCommented' 
+                    ? 'bg-gray-900 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                הכי מדובר
+              </button>
             </div>
           </div>
 
@@ -1391,31 +1586,6 @@ export default function CommunityFeedPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
                 </svg>
                 <span>דיבורים</span>
-              </a>
-            </div>
-          </div>
-
-          {/* מדברים אפייה */}
-          <div className="px-4 py-3">
-            <h3 className="font-semibold text-gray-900 text-sm mb-2">מדברים אפייה</h3>
-            <div className="space-y-1.5 text-sm text-gray-600">
-              <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
-                <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                </svg>
-                <span>מתכונים</span>
-              </a>
-              <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
-                <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-                </svg>
-                <span>טיפים לבישול ואפייה</span>
-              </a>
-              <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
-                <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-                </svg>
-                <span>שאלות ותשובות</span>
               </a>
             </div>
           </div>
@@ -1470,6 +1640,42 @@ export default function CommunityFeedPage() {
                   {cat.label}
                 </button>
               ))}
+            </div>
+            {/* Mobile sorting */}
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              <span className="text-xs text-gray-500 w-full mb-1">מיון:</span>
+              <button
+                onClick={() => setSortBy('newest')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  sortBy === 'newest' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                חדש ביותר
+              </button>
+              <button
+                onClick={() => setSortBy('oldest')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  sortBy === 'oldest' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                ישן ביותר
+              </button>
+              <button
+                onClick={() => setSortBy('mostLiked')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  sortBy === 'mostLiked' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                הכי אהוב
+              </button>
+              <button
+                onClick={() => setSortBy('mostCommented')}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                  sortBy === 'mostCommented' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                הכי מדובר
+              </button>
             </div>
           </div>
 
@@ -1619,6 +1825,69 @@ export default function CommunityFeedPage() {
                   </div>
                 )}
                 
+                {/* Poll Creator */}
+                {showPollCreator && (
+                  <div className="mt-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                        <FaPoll className="w-4 h-4 text-indigo-500" />
+                        יצירת סקר
+                      </h4>
+                      <button
+                        onClick={() => {
+                          setShowPollCreator(false);
+                          setPollQuestion('');
+                          setPollOptions(['', '']);
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-600"
+                      >
+                        <FaTimes className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={pollQuestion}
+                      onChange={(e) => setPollQuestion(e.target.value)}
+                      placeholder="שאלת הסקר..."
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
+                    />
+                    <div className="space-y-2">
+                      {pollOptions.map((option, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={option}
+                            onChange={(e) => {
+                              const newOptions = [...pollOptions];
+                              newOptions[index] = e.target.value;
+                              setPollOptions(newOptions);
+                            }}
+                            placeholder={`אפשרות ${index + 1}`}
+                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                          {pollOptions.length > 2 && (
+                            <button
+                              onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== index))}
+                              className="p-2 text-red-400 hover:text-red-600"
+                            >
+                              <FaTimes className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {pollOptions.length < 6 && (
+                      <button
+                        onClick={() => setPollOptions([...pollOptions, ''])}
+                        className="mt-2 text-sm text-indigo-500 hover:text-indigo-700 flex items-center gap-1"
+                      >
+                        <FaPlus className="w-3 h-3" />
+                        הוסף אפשרות
+                      </button>
+                    )}
+                  </div>
+                )}
+                
                 <div className="flex justify-between items-center mt-3">
                   {/* Attachment buttons */}
                   <div className="flex items-center gap-4">
@@ -1654,6 +1923,14 @@ export default function CommunityFeedPage() {
                     >
                       <FaLink className="w-5 h-5" />
                       <span className="text-sm">קישור {newPostLinks.length > 0 && `(${newPostLinks.length}/10)`}</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setShowPollCreator(!showPollCreator)}
+                      className={`flex items-center gap-2 transition ${showPollCreator ? 'text-indigo-600' : 'text-indigo-500 hover:text-indigo-700'}`}
+                    >
+                      <FaPoll className="w-5 h-5" />
+                      <span className="text-sm">סקר</span>
                     </button>
                   </div>
                   
@@ -1693,11 +1970,27 @@ export default function CommunityFeedPage() {
                       p.title?.toLowerCase().includes(query) ||
                       p.author?.name?.toLowerCase().includes(query)
                     );
+                  })
+                  .sort((a, b) => {
+                    // Pinned posts always first
+                    if (a.isPinned && !b.isPinned) return -1;
+                    if (!a.isPinned && b.isPinned) return 1;
+                    // Then sort by selected criteria
+                    if (sortBy === 'newest') {
+                      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                    } else if (sortBy === 'oldest') {
+                      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                    } else if (sortBy === 'mostLiked') {
+                      return (b._count?.likes || 0) - (a._count?.likes || 0);
+                    } else if (sortBy === 'mostCommented') {
+                      return (b._count?.comments || 0) - (a._count?.comments || 0);
+                    }
+                    return 0;
                   });
                 
                 return filteredPosts.length > 0 ? (
                   filteredPosts.map((post) => (
-                  <div key={post.id} className={`bg-white border rounded-2xl p-5 ${post.isPinned ? 'border-gray-400 border-2' : 'border-gray-200'}`}>
+                  <div key={post.id} className={`bg-white border rounded-2xl p-5 ${post.isPinned ? 'border-[#3F3F46] border-2' : 'border-gray-200'}`}>
                     {/* Pinned indicator */}
                     {post.isPinned && (
                       <div className="flex items-center gap-2 text-gray-600 text-sm font-medium mb-3 bg-gray-100 px-3 py-1.5 rounded-lg w-fit">
@@ -2074,6 +2367,56 @@ export default function CommunityFeedPage() {
                           <h3 className="text-lg font-bold text-black mb-2">{post.title}</h3>
                         )}
                         <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                        
+                        {/* Poll Display */}
+                        {post.poll && (
+                          <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                            <div className="flex items-center gap-2 mb-3">
+                              <FaPoll className="w-4 h-4 text-indigo-500" />
+                              <h4 className="font-medium text-gray-900">{post.poll.question}</h4>
+                            </div>
+                            <div className="space-y-2">
+                              {post.poll.options.map((option) => {
+                                const isVoted = post.poll?.userVotedOptionId === option.id;
+                                const hasVoted = !!post.poll?.userVotedOptionId;
+                                const isVoting = votingPollId === post.poll?.id;
+                                
+                                return (
+                                  <button
+                                    key={option.id}
+                                    onClick={() => post.poll && handleVotePoll(post.poll.id, option.id, post.id, post.poll.userVotedOptionId)}
+                                    disabled={isVoting}
+                                    className={`w-full relative overflow-hidden rounded-lg border transition ${
+                                      isVoted 
+                                        ? 'border-indigo-400 bg-indigo-50' 
+                                        : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50'
+                                    }`}
+                                  >
+                                    {/* Progress bar background */}
+                                    <div 
+                                      className={`absolute inset-y-0 right-0 transition-all duration-500 ${isVoted ? 'bg-indigo-100' : 'bg-gray-100'}`}
+                                      style={{ width: `${option.percentage}%` }}
+                                    />
+                                    <div className="relative flex items-center justify-between px-4 py-3">
+                                      <div className="flex items-center gap-2">
+                                        {isVoted && <FaCheck className="w-3 h-3 text-indigo-600" />}
+                                        <span className={`text-sm ${isVoted ? 'font-medium text-indigo-700' : 'text-gray-700'}`}>
+                                          {option.text}
+                                        </span>
+                                      </div>
+                                      <span className={`text-sm font-medium ${isVoted ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                        {option.votes} ({option.percentage}%)
+                                      </span>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-3 text-center">
+                              {post.poll.totalVotes} {post.poll.totalVotes === 1 ? 'הצבעה' : 'הצבעות'}
+                            </p>
+                          </div>
+                        )}
                         
                         {/* Images Display - Dynamic sizing based on count */}
                         {post.images && post.images.length > 0 && (
@@ -2452,13 +2795,65 @@ export default function CommunityFeedPage() {
 
             {/* אירועים קרובים */}
             <div className="bg-[#F7F8FA] rounded-2xl p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <svg className="w-4 h-4 flex-shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <h3 className="font-semibold text-black">אירועים קרובים</h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <FaCalendarAlt className="w-4 h-4 flex-shrink-0 text-gray-500" />
+                  <h3 className="font-semibold text-black">אירועים קרובים</h3>
+                </div>
+                <Link 
+                  href={`/communities/events?community=${selectedCommunityId}`}
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  הכל
+                </Link>
               </div>
-              <p className="text-gray-500 text-sm text-center py-2">אין אירועים קרובים</p>
+              {upcomingEvents.length > 0 ? (
+                <div className="space-y-3">
+                  {upcomingEvents.map(event => {
+                    const eventDate = new Date(event.date);
+                    const formatEventTime = eventDate.toLocaleTimeString('he-IL', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    });
+                    
+                    return (
+                      <Link
+                        key={event.id}
+                        href={`/communities/events?community=${selectedCommunityId}`}
+                        className="block p-3 bg-white rounded-xl hover:shadow-sm transition"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 bg-black text-white rounded-xl flex flex-col items-center justify-center text-sm font-medium flex-shrink-0">
+                            <span className="text-lg font-bold">{eventDate.getDate()}</span>
+                            <span className="text-[10px] opacity-70">
+                              {eventDate.toLocaleDateString('he-IL', { month: 'short' })}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-black truncate">{event.title}</p>
+                            <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                              {event.locationType === 'online' ? (
+                                <FaVideo className="w-3 h-3" />
+                              ) : (
+                                <FaMapMarkerAlt className="w-3 h-3" />
+                              )}
+                              <span>{formatEventTime}</span>
+                              {event._count?.rsvps ? (
+                                <>
+                                  <span>·</span>
+                                  <span>{event._count.rsvps} מגיעים</span>
+                                </>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm text-center py-2">אין אירועים קרובים</p>
+              )}
             </div>
 
             {/* חברי קהילה מובילים */}

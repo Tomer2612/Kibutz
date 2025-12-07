@@ -231,4 +231,40 @@ export class PostsController {
   async getLinkPreview(@Query('url') url: string) {
     return this.postsService.getLinkPreview(url);
   }
+
+  // Create a poll for a post
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':postId/poll')
+  createPoll(
+    @Param('postId') postId: string,
+    @Req() req,
+    @Body() body: { question: string; options: string[]; expiresAt?: string }
+  ) {
+    const userId = req.user.userId;
+    const expiresAt = body.expiresAt ? new Date(body.expiresAt) : undefined;
+    return this.postsService.createPoll(postId, userId, body.question, body.options, expiresAt);
+  }
+
+  // Vote on a poll
+  @UseGuards(AuthGuard('jwt'))
+  @Post('polls/:pollId/vote')
+  votePoll(
+    @Param('pollId') pollId: string,
+    @Req() req,
+    @Body() body: { optionId: string }
+  ) {
+    const userId = req.user.userId;
+    return this.postsService.votePoll(pollId, body.optionId, userId);
+  }
+
+  // Remove vote from a poll
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('polls/:pollId/vote')
+  removeVote(
+    @Param('pollId') pollId: string,
+    @Req() req
+  ) {
+    const userId = req.user.userId;
+    return this.postsService.removeVote(pollId, userId);
+  }
 }

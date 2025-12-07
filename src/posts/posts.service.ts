@@ -65,17 +65,64 @@ export class PostsService {
           where: { userId },
           select: { id: true },
         } : false,
+        poll: {
+          include: {
+            options: {
+              orderBy: { id: 'asc' },
+              include: {
+                _count: {
+                  select: { votes: true },
+                },
+                votes: userId ? {
+                  where: { oderId: userId },
+                  select: { id: true },
+                } : false,
+              },
+            },
+          },
+        },
       },
     });
 
     // Transform to include isLiked and isSaved booleans
-    return posts.map(post => ({
-      ...post,
-      isLiked: userId ? (post.likes as any[])?.length > 0 : false,
-      isSaved: userId ? (post.savedBy as any[])?.length > 0 : false,
-      likes: undefined,
-      savedBy: undefined,
-    }));
+    return posts.map(post => {
+      // Transform poll data if exists
+      let pollData: {
+        id: string;
+        question: string;
+        expiresAt: Date | null;
+        totalVotes: number;
+        userVotedOptionId: string | null;
+        options: { id: string; text: string; votes: number; percentage: number }[];
+      } | null = null;
+      if (post.poll) {
+        const totalVotes = post.poll.options.reduce((sum, opt) => sum + (opt._count?.votes || 0), 0);
+        pollData = {
+          id: post.poll.id,
+          question: post.poll.question,
+          expiresAt: post.poll.expiresAt,
+          totalVotes,
+          userVotedOptionId: userId 
+            ? post.poll.options.find(opt => (opt.votes as any[])?.length > 0)?.id || null 
+            : null,
+          options: post.poll.options.map(opt => ({
+            id: opt.id,
+            text: opt.text,
+            votes: opt._count?.votes || 0,
+            percentage: totalVotes > 0 ? Math.round((opt._count?.votes || 0) / totalVotes * 100) : 0,
+          })),
+        };
+      }
+
+      return {
+        ...post,
+        isLiked: userId ? (post.likes as any[])?.length > 0 : false,
+        isSaved: userId ? (post.savedBy as any[])?.length > 0 : false,
+        likes: undefined,
+        savedBy: undefined,
+        poll: pollData,
+      };
+    });
   }
 
   async update(
@@ -443,5 +490,210 @@ export class PostsService {
         return { url, title: url, description: null, image: null };
       }
     }
+  }
+
+  // Create a poll for a post
+  async createPoll(postId: string, userId: string, question: string, options: string[], expiresAt?: Date) {
+    // Verify post exists and user is author
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      include: { poll: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('Only the post author can add a poll');
+    }
+
+    if (post.poll) {
+      throw new ForbiddenException('Post already has a poll');
+    }
+
+    if (options.length < 2) {
+      throw new ForbiddenException('Poll must have at least 2 options');
+    }
+
+    // Create poll with options
+    const poll = await this.prisma.poll.create({
+      data: {
+        question,
+        postId,
+        expiresAt: expiresAt || null,
+        options: {
+          create: options.map(text => ({ text })),
+        },
+      },
+      include: {
+        options: {
+          include: {
+            _count: {
+              select: { votes: true },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      id: poll.id,
+      question: poll.question,
+      expiresAt: poll.expiresAt,
+      totalVotes: 0,
+      userVotedOptionId: null,
+      options: poll.options.map(opt => ({
+        id: opt.id,
+        text: opt.text,
+        votes: 0,
+        percentage: 0,
+      })),
+    };
+  }
+
+  // Vote on a poll
+  async votePoll(pollId: string, optionId: string, userId: string) {
+    // Verify poll exists
+    const poll = await this.prisma.poll.findUnique({
+      where: { id: pollId },
+      include: { options: true },
+    });
+
+    if (!poll) {
+      throw new NotFoundException('Poll not found');
+    }
+
+    // Check if poll has expired
+    if (poll.expiresAt && new Date() > poll.expiresAt) {
+      throw new ForbiddenException('Poll has expired');
+    }
+
+    // Verify option belongs to this poll
+    const option = poll.options.find(opt => opt.id === optionId);
+    if (!option) {
+      throw new NotFoundException('Option not found in this poll');
+    }
+
+    // Check if user already voted on this poll
+    const existingVote = await this.prisma.pollVote.findFirst({
+      where: {
+        oderId: userId,
+        option: {
+          pollId: pollId,
+        },
+      },
+    });
+
+    if (existingVote) {
+      // Update vote to new option
+      await this.prisma.pollVote.delete({
+        where: { id: existingVote.id },
+      });
+    }
+
+    // Create the vote
+    await this.prisma.pollVote.create({
+      data: {
+        optionId,
+        oderId: userId,
+      },
+    });
+
+    // Return updated poll data
+    const updatedPoll = await this.prisma.poll.findUnique({
+      where: { id: pollId },
+      include: {
+        options: {
+          orderBy: { id: 'asc' },
+          include: {
+            _count: {
+              select: { votes: true },
+            },
+            votes: {
+              where: { oderId: userId },
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
+
+    const totalVotes = updatedPoll!.options.reduce((sum, opt) => sum + (opt._count?.votes || 0), 0);
+
+    return {
+      id: updatedPoll!.id,
+      question: updatedPoll!.question,
+      expiresAt: updatedPoll!.expiresAt,
+      totalVotes,
+      userVotedOptionId: optionId,
+      options: updatedPoll!.options.map(opt => ({
+        id: opt.id,
+        text: opt.text,
+        votes: opt._count?.votes || 0,
+        percentage: totalVotes > 0 ? Math.round((opt._count?.votes || 0) / totalVotes * 100) : 0,
+      })),
+    };
+  }
+
+  // Remove vote from a poll
+  async removeVote(pollId: string, userId: string) {
+    // Verify poll exists
+    const poll = await this.prisma.poll.findUnique({
+      where: { id: pollId },
+    });
+
+    if (!poll) {
+      throw new NotFoundException('Poll not found');
+    }
+
+    // Find and delete user's vote
+    const existingVote = await this.prisma.pollVote.findFirst({
+      where: {
+        oderId: userId,
+        option: {
+          pollId: pollId,
+        },
+      },
+    });
+
+    if (!existingVote) {
+      throw new NotFoundException('No vote found to remove');
+    }
+
+    await this.prisma.pollVote.delete({
+      where: { id: existingVote.id },
+    });
+
+    // Return updated poll data
+    const updatedPoll = await this.prisma.poll.findUnique({
+      where: { id: pollId },
+      include: {
+        options: {
+          orderBy: { id: 'asc' },
+          include: {
+            _count: {
+              select: { votes: true },
+            },
+          },
+        },
+      },
+    });
+
+    const totalVotes = updatedPoll!.options.reduce((sum, opt) => sum + (opt._count?.votes || 0), 0);
+
+    return {
+      id: updatedPoll!.id,
+      question: updatedPoll!.question,
+      expiresAt: updatedPoll!.expiresAt,
+      totalVotes,
+      userVotedOptionId: null,
+      options: updatedPoll!.options.map(opt => ({
+        id: opt.id,
+        text: opt.text,
+        votes: opt._count?.votes || 0,
+        percentage: totalVotes > 0 ? Math.round((opt._count?.votes || 0) / totalVotes * 100) : 0,
+      })),
+    };
   }
 }
