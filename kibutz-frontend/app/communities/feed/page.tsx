@@ -1302,7 +1302,7 @@ export default function CommunityFeedPage() {
             { label: 'עמוד בית', href: `/communities/feed?communityId=${selectedCommunityId}`, active: true },
             { label: 'קורס', href: '#' },
             { label: 'חברי קהילה', href: `/communities/${selectedCommunityId}/members` },
-            { label: 'יומן אירועים', href: `/communities/events?community=${selectedCommunityId}` },
+            { label: 'יומן אירועים', href: `/communities/events?communityId=${selectedCommunityId}` },
             { label: 'לוח תוצאות', href: `/communities/${selectedCommunityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${selectedCommunityId}/about` },
             ...((isOwner || isManager) ? [{ label: 'ניהול קהילה', href: `/communities/${selectedCommunityId}/manage` }] : []),
@@ -2801,7 +2801,7 @@ export default function CommunityFeedPage() {
                   <h3 className="font-semibold text-black">אירועים קרובים</h3>
                 </div>
                 <Link 
-                  href={`/communities/events?community=${selectedCommunityId}`}
+                  href={`/communities/events?communityId=${selectedCommunityId}`}
                   className="text-xs text-gray-500 hover:text-gray-700"
                 >
                   הכל
@@ -2819,7 +2819,7 @@ export default function CommunityFeedPage() {
                     return (
                       <Link
                         key={event.id}
-                        href={`/communities/events?community=${selectedCommunityId}`}
+                        href={`/communities/events?communityId=${selectedCommunityId}`}
                         className="block p-3 bg-white rounded-xl hover:shadow-sm transition"
                       >
                         <div className="flex items-start gap-3">

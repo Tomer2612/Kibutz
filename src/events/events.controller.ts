@@ -18,10 +18,14 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { EventsService } from './events.service';
 import { RsvpStatus } from '@prisma/client';
+import { PrismaService } from '../users/prisma.service';
 
 @Controller('events')
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(
+    private readonly eventsService: EventsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // Create event
   @UseGuards(AuthGuard('jwt'))
@@ -112,12 +116,36 @@ export class EventsController {
     @Query('month') month: string,
     @Req() req,
   ) {
-    const userId = req.user?.userId;
+    // Extract userId from JWT token if present (without requiring auth)
+    let userId: string | undefined;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const jwt = require('jsonwebtoken');
+        // Use the same secret as auth.module.ts
+        const decoded = jwt.verify(token, 'supersecret');
+        userId = decoded.sub || decoded.userId;
+      } catch (e) {
+        // Token invalid or expired, continue without user
+      }
+    }
+    
+    // Check if user is manager
+    let isManager = false;
+    if (userId) {
+      const membership = await this.prisma.communityMember.findUnique({
+        where: { userId_communityId: { userId, communityId } },
+      });
+      isManager = membership?.role === 'OWNER' || membership?.role === 'MANAGER';
+    }
+    
     return this.eventsService.getEventsForMonth(
       communityId,
       parseInt(year),
       parseInt(month),
       userId,
+      isManager,
     );
   }
 

@@ -1,9 +1,11 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, forwardRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { jwtDecode } from 'jwt-decode';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { he } from 'date-fns/locale';
 import { 
   FaCalendarAlt, 
   FaPlus, 
@@ -24,6 +26,220 @@ import {
   FaEllipsisV,
   FaChevronDown
 } from 'react-icons/fa';
+
+// Register Hebrew locale for DatePicker
+registerLocale('he', he);
+
+// Generate time options with 15-minute intervals
+const generateTimeOptions = () => {
+  const options = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
+      const h = hour.toString().padStart(2, '0');
+      const m = minute.toString().padStart(2, '0');
+      options.push(`${h}:${m}`);
+    }
+  }
+  return options;
+};
+
+const timeOptions = generateTimeOptions();
+
+// Auto-format date input as user types (e.g., "21124" -> "02/11/2024")
+const formatDateInput = (value: string): string => {
+  // Remove all non-digits
+  const digits = value.replace(/\D/g, '');
+  
+  if (digits.length === 0) return '';
+  
+  let day = '';
+  let month = '';
+  let year = '';
+  
+  if (digits.length >= 1) {
+    day = digits.slice(0, Math.min(2, digits.length));
+  }
+  if (digits.length >= 3) {
+    month = digits.slice(2, Math.min(4, digits.length));
+  }
+  if (digits.length >= 5) {
+    year = digits.slice(4, Math.min(8, digits.length));
+  }
+  
+  // Pad with zeros for display
+  if (digits.length >= 2 && day.length === 1) day = '0' + day;
+  if (digits.length >= 4 && month.length === 1) month = '0' + month;
+  
+  let result = day;
+  if (month) result += '/' + month;
+  if (year) result += '/' + year;
+  
+  return result;
+};
+
+// Parse formatted date to YYYY-MM-DD for state
+const parseDateToISO = (formatted: string): string => {
+  const parts = formatted.split('/');
+  if (parts.length === 3 && parts[2].length === 4) {
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    return `${year}-${month}-${day}`;
+  }
+  return '';
+};
+
+// Custom Date Input Component with separate icon click
+function DateInput({ 
+  value, 
+  onChange, 
+  onIconClick 
+}: { 
+  value: string; 
+  onChange: (dateISO: string, formatted: string) => void;
+  onIconClick: () => void;
+}) {
+  const [displayValue, setDisplayValue] = useState(() => {
+    if (value) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+    }
+    return '';
+  });
+  
+  useEffect(() => {
+    if (value) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        setDisplayValue(`${day}/${month}/${year}`);
+      }
+    }
+  }, [value]);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const formatted = formatDateInput(raw);
+    setDisplayValue(formatted);
+    
+    const isoDate = parseDateToISO(formatted);
+    if (isoDate) {
+      onChange(isoDate, formatted);
+    } else if (formatted === '') {
+      onChange('', '');
+    }
+  };
+  
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={displayValue}
+        onChange={handleChange}
+        placeholder="dd/mm/yyyy"
+        className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black bg-white"
+      />
+      <FaCalendarAlt 
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600"
+        onClick={onIconClick}
+      />
+    </div>
+  );
+}
+
+// Auto-format time input as user types (e.g., "930" -> "09:30")
+const formatTimeInput = (value: string): string => {
+  const digits = value.replace(/\D/g, '');
+  
+  if (digits.length === 0) return '';
+  
+  let hours = '';
+  let minutes = '';
+  
+  if (digits.length >= 1) {
+    hours = digits.slice(0, Math.min(2, digits.length));
+  }
+  if (digits.length >= 3) {
+    minutes = digits.slice(2, Math.min(4, digits.length));
+  }
+  
+  // Pad with zeros
+  if (digits.length >= 2 && hours.length === 1) hours = '0' + hours;
+  if (digits.length >= 4 && minutes.length === 1) minutes = '0' + minutes;
+  
+  let result = hours;
+  if (minutes || digits.length > 2) result += ':' + minutes;
+  
+  return result;
+};
+
+// Custom Time Picker Component
+function TimePicker({ 
+  value, 
+  onChange 
+}: { 
+  value: string; 
+  onChange: (time: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const formatted = formatTimeInput(raw);
+    if (formatted.length <= 5) {
+      onChange(formatted);
+    }
+  };
+  
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={handleInputChange}
+        placeholder="00:00"
+        className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black bg-white"
+      />
+      <FaClock 
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600"
+        onClick={() => setIsOpen(!isOpen)}
+      />
+      
+      {isOpen && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+            {timeOptions.map((time) => (
+              <button
+                key={time}
+                type="button"
+                onClick={() => {
+                  onChange(time);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-4 py-2 text-right hover:bg-gray-100 transition ${
+                  value === time ? 'bg-black text-white hover:bg-black' : 'text-black'
+                }`}
+              >
+                {time}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 interface JwtPayload {
   sub: string;
@@ -88,7 +304,7 @@ const HEBREW_DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 function EventsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const communityId = searchParams.get('community');
+  const communityId = searchParams.get('communityId');
 
   const [events, setEvents] = useState<Event[]>([]);
   const [community, setCommunity] = useState<Community | null>(null);
@@ -166,7 +382,8 @@ function EventsPageContent() {
           });
           if (membershipRes.ok) {
             const membershipData = await membershipRes.json();
-            setIsManager(membershipData.role === 'OWNER' || membershipData.role === 'MANAGER');
+            const isManagerOrOwner = membershipData.role === 'OWNER' || membershipData.role === 'MANAGER';
+            setIsManager(isManagerOrOwner);
           }
         }
 
@@ -258,20 +475,52 @@ function EventsPageContent() {
       return;
     }
 
-    setRsvpLoading(eventId);
+    const event = events.find(e => e.id === eventId);
+    const previousRsvp = event?.userRsvp;
+    const previousCounts = event?.rsvpCounts || { going: 0, maybe: 0, notGoing: 0 };
+    
+    // Optimistic update - update UI immediately
+    const isRemoving = event?.userRsvp === status;
+    
+    // Calculate optimistic counts
+    const optimisticCounts = { ...previousCounts };
+    if (previousRsvp) {
+      // Decrement previous status count
+      if (previousRsvp === 'GOING') optimisticCounts.going = Math.max(0, optimisticCounts.going - 1);
+      if (previousRsvp === 'MAYBE') optimisticCounts.maybe = Math.max(0, optimisticCounts.maybe - 1);
+      if (previousRsvp === 'NOT_GOING') optimisticCounts.notGoing = Math.max(0, optimisticCounts.notGoing - 1);
+    }
+    if (!isRemoving) {
+      // Increment new status count
+      if (status === 'GOING') optimisticCounts.going++;
+      if (status === 'MAYBE') optimisticCounts.maybe++;
+      if (status === 'NOT_GOING') optimisticCounts.notGoing++;
+    }
+    
+    // Update UI immediately
+    setEvents(prev => prev.map(e => 
+      e.id === eventId 
+        ? { ...e, userRsvp: isRemoving ? null : status, rsvpCounts: optimisticCounts } 
+        : e
+    ));
+
     try {
-      const event = events.find(e => e.id === eventId);
-      
       // If clicking same status, remove RSVP
-      if (event?.userRsvp === status) {
+      if (isRemoving) {
         const res = await fetch(`http://localhost:4000/events/${eventId}/rsvp`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
+          // Update with server-confirmed counts
           setEvents(prev => prev.map(e => 
-            e.id === eventId ? { ...e, userRsvp: null, rsvpCounts: data.rsvpCounts } : e
+            e.id === eventId ? { ...e, rsvpCounts: data.rsvpCounts } : e
+          ));
+        } else {
+          // Revert on error
+          setEvents(prev => prev.map(e => 
+            e.id === eventId ? { ...e, userRsvp: previousRsvp, rsvpCounts: previousCounts } : e
           ));
         }
       } else {
@@ -285,15 +534,23 @@ function EventsPageContent() {
         });
         if (res.ok) {
           const data = await res.json();
+          // Update with server-confirmed counts
           setEvents(prev => prev.map(e => 
-            e.id === eventId ? { ...e, userRsvp: status, rsvpCounts: data.rsvpCounts } : e
+            e.id === eventId ? { ...e, rsvpCounts: data.rsvpCounts } : e
+          ));
+        } else {
+          // Revert on error
+          setEvents(prev => prev.map(e => 
+            e.id === eventId ? { ...e, userRsvp: previousRsvp, rsvpCounts: previousCounts } : e
           ));
         }
       }
     } catch (err) {
       console.error('RSVP error:', err);
-    } finally {
-      setRsvpLoading(null);
+      // Revert on error
+      setEvents(prev => prev.map(e => 
+        e.id === eventId ? { ...e, userRsvp: previousRsvp, rsvpCounts: previousCounts } : e
+      ));
     }
   };
 
@@ -321,6 +578,15 @@ function EventsPageContent() {
   };
 
   const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('he-IL', { 
+      weekday: 'short', 
+      day: 'numeric', 
+      month: 'short'
+    });
+  };
+
+  const formatDateFull = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('he-IL', { 
       weekday: 'long', 
@@ -354,8 +620,8 @@ function EventsPageContent() {
         return 'bg-black text-white';
       }
       if (event.userRsvp === 'MAYBE') {
-        // Maybe - diagonal stripes like Google Calendar
-        return 'bg-gradient-to-br from-gray-200 via-white via-50% to-gray-200 text-gray-700 border border-gray-300';
+        // Maybe - diagonal stripes pattern
+        return 'text-gray-700 border border-gray-300 maybe-striped';
       }
       if (event.userRsvp === 'NOT_GOING') {
         // Not going - line through
@@ -426,13 +692,7 @@ function EventsPageContent() {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
-      </div>
-    );
-  }
+  // No loading spinner - content renders immediately like other pages
 
   return (
     <div className="min-h-screen bg-gray-100" dir="rtl">
@@ -462,10 +722,10 @@ function EventsPageContent() {
         {/* Center: Nav links */}
         <nav className="flex items-center gap-4">
           {[
-            { label: 'עמוד בית', href: `/communities/feed?community=${communityId}`, active: false },
+            { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}`, active: false },
             { label: 'קורס', href: '#' },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן אירועים', href: `/communities/events?community=${communityId}`, active: true },
+            { label: 'יומן אירועים', href: `/communities/events?communityId=${communityId}`, active: true },
             { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${communityId}/about` },
           ].map((link) => (
@@ -695,8 +955,8 @@ function EventsPageContent() {
             </div>
 
             {/* Selected Date Events */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4">
-              <h3 className="font-bold text-black mb-4">
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 h-fit max-h-[calc(100vh-200px)] flex flex-col">
+              <h3 className="font-bold text-black mb-4 flex-shrink-0">
                 {selectedDate 
                   ? formatDate(selectedDate.toISOString())
                   : 'בחרו תאריך'
@@ -705,19 +965,21 @@ function EventsPageContent() {
               
               {selectedDate ? (
                 selectedDateEvents.length > 0 ? (
-                  <div className="space-y-3">
-                    {selectedDateEvents.map(event => (
-                      <EventCard 
-                        key={event.id} 
-                        event={event} 
-                        onRsvp={handleRsvp}
-                        onEdit={handleEditEvent}
-                        onDelete={(id) => setDeleteEventId(id)}
-                        rsvpLoading={rsvpLoading}
-                        isManager={isManager}
-                        compact
-                      />
-                    ))}
+                  <div className="space-y-3 overflow-y-auto flex-1" dir="ltr">
+                    <div dir="rtl" className="space-y-3">
+                      {selectedDateEvents.map(event => (
+                        <EventCard 
+                          key={event.id} 
+                          event={event} 
+                          onRsvp={handleRsvp}
+                          onEdit={handleEditEvent}
+                          onDelete={(id) => setDeleteEventId(id)}
+                          rsvpLoading={rsvpLoading}
+                          isManager={isManager}
+                          compact
+                        />
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-8">אין אירועים בתאריך זה</p>
@@ -863,6 +1125,16 @@ function EventCard({
     });
   };
 
+  const getDateParts = (dateString: string) => {
+    const date = new Date(dateString);
+    return {
+      day: date.getDate(),
+      month: date.toLocaleDateString('he-IL', { month: 'short' }),
+      weekday: date.toLocaleDateString('he-IL', { weekday: 'short' })
+    };
+  };
+
+  const dateParts = getDateParts(event.date);
   const category = EVENT_CATEGORIES.find(c => c.value === event.category);
   const isLoading = rsvpLoading === event.id;
 
@@ -873,7 +1145,7 @@ function EventCard({
         <div className="absolute top-2 left-2 z-10">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="p-2 rounded-full bg-white/90 hover:bg-gray-100 transition shadow-sm"
+            className="p-2 rounded-full hover:bg-gray-100 transition"
           >
             <FaEllipsisV className="w-3 h-3 text-gray-600" />
           </button>
@@ -918,100 +1190,118 @@ function EventCard({
         </div>
       )}
 
-      <div className={compact ? 'p-3' : 'p-4'}>
-        {/* Category & Date */}
-        <div className="flex items-center gap-2 mb-2">
-          {category && (
-            <span className={`text-xs px-2 py-0.5 rounded-full ${category.color}`}>
-              {category.label}
-            </span>
-          )}
-          <span className="text-xs text-gray-500">
-            {formatDate(event.date)} · {formatTime(event.date)}
-          </span>
-        </div>
-
-        {/* Title */}
-        <h4 className={`font-bold text-black ${compact ? 'text-sm' : 'text-lg'} mb-2`}>
-          {event.title}
-        </h4>
-
-        {/* Description */}
-        {event.description && !compact && (
-          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{event.description}</p>
-        )}
-
-        {/* Location */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-          {event.locationType === 'online' ? (
-            <>
-              <FaVideo className="w-4 h-4" />
-              <span>{event.locationName || 'מפגש מקוון'}</span>
-            </>
-          ) : (
-            <>
-              <FaMapMarkerAlt className="w-4 h-4" />
-              <span>{event.locationName || 'מפגש פיזי'}</span>
-            </>
-          )}
-          {event.duration && (
-            <>
-              <span className="text-gray-300">•</span>
-              <FaClock className="w-3 h-3" />
-              <span>{event.duration} דקות</span>
-            </>
-          )}
-        </div>
-
-        {/* Attendees Count */}
-        {event.rsvpCounts && (
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-            <FaUsers className="w-4 h-4" />
-            <span>{event.rsvpCounts.going} מגיעים</span>
-            {event.rsvpCounts.maybe > 0 && (
-              <span className="text-gray-400">· {event.rsvpCounts.maybe} אולי</span>
-            )}
+      <div className={compact ? 'p-3' : 'p-4 flex gap-4'}>
+        {/* Date Box - only show in non-compact mode */}
+        {!compact && (
+          <div className="flex-shrink-0 w-14 text-center">
+            <div className="bg-black text-white rounded-t-lg py-1 px-2">
+              <span className="text-xs font-medium uppercase">{dateParts.month}</span>
+            </div>
+            <div className="border-x border-b border-gray-200 rounded-b-lg py-2">
+              <span className="text-2xl font-bold text-black">{dateParts.day}</span>
+              <div className="text-xs text-gray-500">{dateParts.weekday}</div>
+            </div>
           </div>
         )}
 
-        {/* RSVP Buttons */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => onRsvp(event.id, 'GOING')}
-            disabled={isLoading}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
-              event.userRsvp === 'GOING'
-                ? 'bg-green-100 text-green-700 border-2 border-green-400'
-                : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-600'
-            }`}
-          >
-            <FaCheck className="w-3 h-3" />
-            <span>מגיע/ה</span>
-          </button>
-          <button
-            onClick={() => onRsvp(event.id, 'MAYBE')}
-            disabled={isLoading}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
-              event.userRsvp === 'MAYBE'
-                ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-400'
-                : 'bg-gray-100 text-gray-600 hover:bg-yellow-50 hover:text-yellow-600'
-            }`}
-          >
-            <FaQuestion className="w-3 h-3" />
-            <span>אולי</span>
-          </button>
-          <button
-            onClick={() => onRsvp(event.id, 'NOT_GOING')}
-            disabled={isLoading}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
-              event.userRsvp === 'NOT_GOING'
-                ? 'bg-red-100 text-red-700 border-2 border-red-400'
-                : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600'
-            }`}
-          >
-            <FaTimes className="w-3 h-3" />
-            <span>לא מגיע/ה</span>
-          </button>
+        <div className="flex-1">
+          {/* Category & Time */}
+          <div className="flex items-center gap-2 mb-2">
+            {category && (
+              <span className={`text-xs px-2 py-0.5 rounded-full ${category.color}`}>
+                {category.label}
+              </span>
+            )}
+            <span className="text-sm font-medium text-gray-900 flex items-center gap-1">
+              <FaClock className="w-3 h-3" />
+              {formatTime(event.date)}
+            </span>
+            {event.duration && (
+              <span className="text-xs text-gray-500">
+                ({event.duration >= 60 
+                  ? event.duration === 60 
+                    ? 'שעה' 
+                    : `${Math.floor(event.duration / 60)}:${String(event.duration % 60).padStart(2, '0')} שעות`
+                  : `${event.duration} דק׳`})
+              </span>
+            )}
+          </div>
+
+          {/* Title */}
+          <h4 className={`font-bold text-black ${compact ? 'text-sm' : 'text-lg'} mb-2`}>
+            {event.title}
+          </h4>
+
+          {/* Description */}
+          {event.description && !compact && (
+            <p className="text-gray-600 text-sm mb-3 line-clamp-2">{event.description}</p>
+          )}
+
+          {/* Location */}
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+            {event.locationType === 'online' ? (
+              <>
+                <FaVideo className="w-4 h-4" />
+                <span>{event.locationName || 'מפגש מקוון'}</span>
+              </>
+            ) : (
+              <>
+                <FaMapMarkerAlt className="w-4 h-4" />
+                <span>{event.locationName || 'מפגש פיזי'}</span>
+              </>
+            )}
+          </div>
+
+          {/* Attendees Count */}
+          {event.rsvpCounts && (
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+              <FaUsers className="w-4 h-4" />
+              <span>{event.rsvpCounts.going} מגיעים</span>
+              {event.rsvpCounts.maybe > 0 && (
+                <span className="text-gray-400">· {event.rsvpCounts.maybe} אולי</span>
+              )}
+            </div>
+          )}
+
+          {/* RSVP Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => onRsvp(event.id, 'GOING')}
+              disabled={isLoading}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
+                event.userRsvp === 'GOING'
+                  ? 'bg-green-100 text-green-700 border-2 border-green-400'
+                  : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-600'
+              }`}
+            >
+              <FaCheck className="w-3 h-3" />
+              <span>מגיע/ה</span>
+            </button>
+            <button
+              onClick={() => onRsvp(event.id, 'MAYBE')}
+              disabled={isLoading}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
+                event.userRsvp === 'MAYBE'
+                  ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-400'
+                  : 'bg-gray-100 text-gray-600 hover:bg-yellow-50 hover:text-yellow-600'
+              }`}
+            >
+              <FaQuestion className="w-3 h-3" />
+              <span>אולי</span>
+            </button>
+            <button
+              onClick={() => onRsvp(event.id, 'NOT_GOING')}
+              disabled={isLoading}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
+                event.userRsvp === 'NOT_GOING'
+                  ? 'bg-red-100 text-red-700 border-2 border-red-400'
+                  : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600'
+              }`}
+            >
+              <FaTimes className="w-3 h-3" />
+              <span>לא מגיע/ה</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1118,20 +1408,23 @@ function AddEventModal({
     }
   };
 
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir="rtl">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-xl font-bold text-black">הוסף אירוע</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <FaTimes className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto" dir="ltr">
+          <form onSubmit={handleSubmit} className="p-6 space-y-5" dir="rtl">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">כותרת</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">כותרת <span className="text-red-500">*</span></label>
             <input
               type="text"
               value={title}
@@ -1139,32 +1432,42 @@ function AddEventModal({
               placeholder="מפגש קהילה"
               maxLength={30}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-              required
             />
             <div className="text-xs text-gray-400 text-left mt-1">{title.length} / 30</div>
           </div>
 
-          {/* Date, Time, Duration, Timezone Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">תאריך</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-                required
+          {/* Date, Time, Duration Row */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">תאריך <span className="text-red-500">*</span></label>
+              <DateInput 
+                value={date} 
+                onChange={(isoDate) => setDate(isoDate)}
+                onIconClick={() => setShowDatePicker(true)}
               />
+              {showDatePicker && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
+                  <div className="absolute top-full left-0 mt-1 z-50">
+                    <DatePicker
+                      selected={date ? new Date(date) : new Date()}
+                      onChange={(d: Date | null) => {
+                        setDate(d ? d.toISOString().split('T')[0] : '');
+                        setShowDatePicker(false);
+                      }}
+                      inline
+                      locale="he"
+                      showMonthDropdown
+                      showYearDropdown
+                      dropdownMode="select"
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">שעה</label>
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-                required
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">שעה <span className="text-red-500">*</span></label>
+              <TimePicker value={time} onChange={setTime} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">משך</label>
@@ -1178,18 +1481,8 @@ function AddEventModal({
                 <option value="90">שעה וחצי</option>
                 <option value="120">שעתיים</option>
                 <option value="180">3 שעות</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">אזור זמן</label>
-              <select
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black text-sm"
-              >
-                <option value="Asia/Jerusalem">(GMT+02:00) ישראל</option>
-                <option value="America/New_York">(GMT-04:00) ניו יורק</option>
-                <option value="Europe/London">(GMT+00:00) לונדון</option>
+                <option value="240">4 שעות</option>
+                <option value="300">5 שעות</option>
               </select>
             </div>
           </div>
@@ -1223,7 +1516,11 @@ function AddEventModal({
             <div className="flex gap-2 mb-2">
               <button
                 type="button"
-                onClick={() => setLocationType('online')}
+                onClick={() => {
+                  setLocationType('online');
+                  setLocationName('Zoom');
+                  setLocationUrl('');
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
                   locationType === 'online' 
                     ? 'border-black bg-gray-50' 
@@ -1235,7 +1532,11 @@ function AddEventModal({
               </button>
               <button
                 type="button"
-                onClick={() => setLocationType('in-person')}
+                onClick={() => {
+                  setLocationType('in-person');
+                  setLocationName('');
+                  setLocationUrl('');
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
                   locationType === 'in-person' 
                     ? 'border-black bg-gray-50' 
@@ -1246,34 +1547,34 @@ function AddEventModal({
                 <span className="text-sm text-black">פיזי</span>
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                value={locationName}
-                onChange={(e) => setLocationName(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-black"
-              >
-                {locationType === 'online' ? (
-                  <>
-                    <option value="Zoom">Zoom</option>
-                    <option value="Google Meet">Google Meet</option>
-                    <option value="Microsoft Teams">Microsoft Teams</option>
-                    <option value="אחר">אחר</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="">בחרו מיקום</option>
-                    <option value="אחר">הזנה ידנית</option>
-                  </>
-                )}
-              </select>
+            {locationType === 'online' ? (
+              <div className="flex gap-2">
+                <select
+                  value={locationName}
+                  onChange={(e) => setLocationName(e.target.value)}
+                  className="w-40 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black flex-shrink-0"
+                >
+                  <option value="Zoom">Zoom</option>
+                  <option value="Google Meet">Google Meet</option>
+                  <option value="Microsoft Teams">Microsoft Teams</option>
+                </select>
+                <input
+                  type="text"
+                  value={locationUrl}
+                  onChange={(e) => setLocationUrl(e.target.value)}
+                  placeholder="קישור למפגש"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
+                />
+              </div>
+            ) : (
               <input
                 type="text"
-                value={locationUrl}
-                onChange={(e) => setLocationUrl(e.target.value)}
-                placeholder={locationType === 'online' ? 'קישור למפגש' : 'כתובת'}
-                className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
+                value={locationName}
+                onChange={(e) => setLocationName(e.target.value)}
+                placeholder="כתובת או שם המקום"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
               />
-            </div>
+            )}
           </div>
 
           {/* Description */}
@@ -1282,7 +1583,7 @@ function AddEventModal({
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="בואו להנות מכוס קפה עם חברי הקהילה! ללא סדר יום מוגדר, סתם לשבת ולדבר."
+              placeholder="בואו להנות מחברה טובה."
               rows={3}
               maxLength={300}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none text-black"
@@ -1402,7 +1703,8 @@ function AddEventModal({
               {loading ? 'יוצר...' : 'צור אירוע'}
             </button>
           </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -1508,62 +1810,173 @@ function EditEventModal({
     }
   };
 
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir="rtl">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-xl font-bold text-black">עריכת אירוע</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <FaTimes className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto" dir="ltr">
+          <form onSubmit={handleSubmit} className="p-6 space-y-5" dir="rtl">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">כותרת</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">כותרת <span className="text-red-500">*</span></label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="מפגש קהילה"
               maxLength={30}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-              required
             />
             <div className="text-xs text-gray-400 text-left mt-1">{title.length} / 30</div>
           </div>
 
           {/* Date, Time, Duration Row */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">תאריך</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-                required
+          <div className="grid grid-cols-3 gap-2">
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">תאריך <span className="text-red-500">*</span></label>
+              <DateInput 
+                value={date} 
+                onChange={(isoDate) => setDate(isoDate)}
+                onIconClick={() => setShowDatePicker(true)}
               />
+              {showDatePicker && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
+                  <div className="absolute top-full left-0 mt-1 z-50">
+                    <DatePicker
+                      selected={date ? new Date(date) : new Date()}
+                      onChange={(d: Date | null) => {
+                        setDate(d ? d.toISOString().split('T')[0] : '');
+                        setShowDatePicker(false);
+                      }}
+                      inline
+                      locale="he"
+                      showMonthDropdown
+                      showYearDropdown
+                      dropdownMode="select"
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">שעה</label>
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-                required
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">שעה <span className="text-red-500">*</span></label>
+              <TimePicker value={time} onChange={setTime} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">משך (דקות)</label>
-              <input
-                type="number"
+              <label className="block text-sm font-medium text-gray-700 mb-1">משך</label>
+              <select
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-              />
+              >
+                <option value="30">30 דקות</option>
+                <option value="60">שעה</option>
+                <option value="90">שעה וחצי</option>
+                <option value="120">שעתיים</option>
+                <option value="180">3 שעות</option>
+                <option value="240">4 שעות</option>
+                <option value="300">5 שעות</option>
+              </select>
             </div>
+          </div>
+
+          {/* Recurring */}
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="recurring-edit"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              className="w-4 h-4 text-black rounded"
+            />
+            <label htmlFor="recurring-edit" className="text-sm text-gray-700">אירוע חוזר</label>
+            {isRecurring && (
+              <select
+                value={recurringType}
+                onChange={(e) => setRecurringType(e.target.value)}
+                className="px-3 py-1 border border-gray-200 rounded-lg text-sm text-black"
+              >
+                <option value="daily">יומי</option>
+                <option value="weekly">שבועי</option>
+                <option value="monthly">חודשי</option>
+              </select>
+            )}
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">מיקום</label>
+            <div className="flex gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setLocationType('online');
+                  setLocationName('Zoom');
+                  setLocationUrl('');
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+                  locationType === 'online' 
+                    ? 'border-black bg-gray-50' 
+                    : 'border-gray-200'
+                }`}
+              >
+                <FaVideo className="w-4 h-4" />
+                <span className="text-sm text-black">מקוון</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLocationType('in-person');
+                  setLocationName('');
+                  setLocationUrl('');
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+                  locationType === 'in-person' 
+                    ? 'border-black bg-gray-50' 
+                    : 'border-gray-200'
+                }`}
+              >
+                <FaMapMarkerAlt className="w-4 h-4" />
+                <span className="text-sm text-black">פיזי</span>
+              </button>
+            </div>
+            {locationType === 'online' ? (
+              <div className="flex gap-2">
+                <select
+                  value={locationName}
+                  onChange={(e) => setLocationName(e.target.value)}
+                  className="w-40 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
+                >
+                  <option value="Zoom">Zoom</option>
+                  <option value="Google Meet">Google Meet</option>
+                  <option value="Microsoft Teams">Microsoft Teams</option>
+                </select>
+                <input
+                  type="text"
+                  value={locationUrl}
+                  onChange={(e) => setLocationUrl(e.target.value)}
+                  placeholder="קישור למפגש"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
+                />
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={locationName}
+                onChange={(e) => setLocationName(e.target.value)}
+                placeholder="כתובת או שם המקום"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
+              />
+            )}
           </div>
 
           {/* Description */}
@@ -1572,112 +1985,107 @@ function EditEventModal({
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              placeholder="בואו להנות מחברה טובה."
               rows={3}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black resize-none"
+              maxLength={300}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none text-black"
             />
-          </div>
-
-          {/* Location Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">סוג מפגש</label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="locationType"
-                  value="online"
-                  checked={locationType === 'online'}
-                  onChange={() => setLocationType('online')}
-                  className="text-black"
-                />
-                <span className="text-sm text-gray-700">מקוון</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="locationType"
-                  value="in_person"
-                  checked={locationType === 'in_person'}
-                  onChange={() => setLocationType('in_person')}
-                  className="text-black"
-                />
-                <span className="text-sm text-gray-700">פיזי</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Location Details */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {locationType === 'online' ? 'פלטפורמה' : 'שם המקום'}
-              </label>
-              <input
-                type="text"
-                value={locationName}
-                onChange={(e) => setLocationName(e.target.value)}
-                placeholder={locationType === 'online' ? 'Zoom / Google Meet' : 'כתובת'}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-              />
-            </div>
-            {locationType === 'online' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">קישור</label>
-                <input
-                  type="url"
-                  value={locationUrl}
-                  onChange={(e) => setLocationUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Category & Capacity */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">קטגוריה</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-              >
-                <option value="">בחר קטגוריה</option>
-                {EVENT_CATEGORIES.map(cat => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">מקסימום משתתפים</label>
-              <input
-                type="number"
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                placeholder="ללא הגבלה"
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-              />
-            </div>
+            <div className="text-xs text-gray-400 text-left mt-1">{description.length} / 300</div>
           </div>
 
           {/* Cover Image */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">תמונת כיסוי</label>
-            <div className="flex items-center gap-4">
-              {coverImagePreview && (
-                <img src={coverImagePreview} alt="Cover" className="w-20 h-20 rounded-lg object-cover" />
+            <div 
+              className="border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-gray-400 transition text-center"
+              onClick={() => document.getElementById('coverImageInputEdit')?.click()}
+            >
+              {coverImagePreview ? (
+                <img src={coverImagePreview} alt="Preview" className="max-h-40 mx-auto rounded-lg" />
+              ) : (
+                <div className="text-gray-400">
+                  <FaPlus className="w-8 h-8 mx-auto mb-2" />
+                  <p className="text-sm">לחצו להעלאת תמונה</p>
+                </div>
               )}
-              <label className="cursor-pointer px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                {coverImagePreview ? 'החלף תמונה' : 'הוסף תמונה'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </label>
+              <input
+                id="coverImageInputEdit"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
             </div>
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">קטגוריה</label>
+            <div className="flex flex-wrap gap-2">
+              {EVENT_CATEGORIES.map(cat => (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setCategory(cat.value)}
+                  className={`px-3 py-1.5 rounded-full text-sm ${
+                    category === cat.value 
+                      ? cat.color + ' ring-2 ring-gray-400'
+                      : cat.color + ' opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Settings Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">מי יכול להשתתף</label>
+              <select
+                value={attendeeType}
+                onChange={(e) => setAttendeeType(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-black"
+              >
+                <option value="all">כל החברים</option>
+                <option value="managers">מנהלים בלבד</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">מספר משתתפים מקסימלי</label>
+              <input
+                type="number"
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                placeholder="ללא הגבלה"
+                min="1"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-black"
+              />
+            </div>
+          </div>
+
+          {/* Reminders */}
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="reminders-edit"
+              checked={sendReminders}
+              onChange={(e) => setSendReminders(e.target.checked)}
+              className="w-4 h-4 text-black rounded"
+            />
+            <label htmlFor="reminders-edit" className="text-sm text-gray-700">שלח תזכורת במייל</label>
+            {sendReminders && (
+              <select
+                value={reminderDays}
+                onChange={(e) => setReminderDays(e.target.value)}
+                className="px-3 py-1 border border-gray-200 rounded-lg text-sm text-black"
+              >
+                <option value="1">יום לפני</option>
+                <option value="2">יומיים לפני</option>
+                <option value="7">שבוע לפני</option>
+              </select>
+            )}
           </div>
 
           {/* Actions */}
@@ -1697,7 +2105,8 @@ function EditEventModal({
               {loading ? 'מעדכן...' : 'עדכן אירוע'}
             </button>
           </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -1706,11 +2115,7 @@ function EditEventModal({
 // Wrapper with Suspense for useSearchParams
 export default function EventsPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
-      </div>
-    }>
+    <Suspense fallback={null}>
       <EventsPageContent />
     </Suspense>
   );

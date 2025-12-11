@@ -336,10 +336,10 @@ export default function CommunityMembersPage() {
         {/* Center: Nav links */}
         <nav className="flex items-center gap-4">
           {[
-            { label: 'עמוד בית', href: `/communities/feed?community=${communityId}` },
+            { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
             { label: 'קורס', href: '#' },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members`, active: true },
-            { label: 'יומן אירועים', href: `/communities/events?community=${communityId}` },
+            { label: 'יומן אירועים', href: `/communities/events?communityId=${communityId}` },
             { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${communityId}/about` },
             ...(currentUserRole === 'OWNER' || currentUserRole === 'MANAGER' 

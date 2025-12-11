@@ -320,35 +320,50 @@ export class EventsService {
     return { going, maybe, notGoing };
   }
 
-  async getEventsForMonth(communityId: string, year: number, month: number, userId?: string) {
+  async getEventsForMonth(communityId: string, year: number, month: number, userId?: string, isManager?: boolean) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    const events = await this.prisma.event.findMany({
-      where: {
-        communityId,
-        date: {
-          gte: startDate,
-          lte: endDate,
-        },
+    // Build where clause
+    const whereClause: any = {
+      communityId,
+      date: {
+        gte: startDate,
+        lte: endDate,
       },
+    };
+
+    // Filter by attendeeType - managers see all, members see only 'all' events
+    if (!isManager) {
+      whereClause.attendeeType = 'all';
+    }
+
+    const events = await this.prisma.event.findMany({
+      where: whereClause,
       orderBy: { date: 'asc' },
       include: {
-        _count: {
-          select: { rsvps: true },
+        rsvps: {
+          select: { status: true, userId: true },
         },
-        rsvps: userId ? {
-          where: { userId },
-          select: { status: true },
-        } : false,
       },
     });
 
-    return events.map(event => ({
-      ...event,
-      userRsvp: userId && event.rsvps && event.rsvps.length > 0 
-        ? event.rsvps[0].status 
-        : null,
-    }));
+    return events.map((event: any) => {
+      // Calculate rsvpCounts for all events
+      const rsvpCounts = {
+        going: event.rsvps.filter((r: any) => r.status === 'GOING').length,
+        maybe: event.rsvps.filter((r: any) => r.status === 'MAYBE').length,
+        notGoing: event.rsvps.filter((r: any) => r.status === 'NOT_GOING').length,
+      };
+      
+      return {
+        ...event,
+        userRsvp: userId 
+          ? event.rsvps.find((r: any) => r.userId === userId)?.status || null
+          : null,
+        rsvpCounts,
+        rsvps: undefined, // Don't expose full rsvps array
+      };
+    });
   }
 }
