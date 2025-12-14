@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaUsers, FaCalendarAlt, FaSearch, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaUsers, FaCalendarAlt, FaSearch, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaUser } from 'react-icons/fa';
 
 interface Community {
   id: string;
@@ -124,6 +124,7 @@ export default function CommunityAboutPage() {
 
   const [community, setCommunity] = useState<Community | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -136,6 +137,7 @@ export default function CommunityAboutPage() {
       try {
         const decoded = jwtDecode<JwtPayload>(token);
         setUserEmail(decoded.email);
+        setUserId(decoded.sub);
         
         // Fetch user profile
         fetch('http://localhost:4000/users/me', {
@@ -304,7 +306,17 @@ export default function CommunityAboutPage() {
                     className="fixed inset-0 z-40"
                     onClick={() => setProfileMenuOpen(false)}
                   />
-                  <div className="absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                    <button
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        if (userId) router.push(`/profile/${userId}`);
+                      }}
+                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                    >
+                      <FaUser className="w-4 h-4" />
+                      הפרופיל שלי
+                    </button>
                     <button
                       onClick={() => {
                         setProfileMenuOpen(false);
@@ -315,6 +327,7 @@ export default function CommunityAboutPage() {
                       <FaCog className="w-4 h-4" />
                       הגדרות
                     </button>
+                    <div className="border-t border-gray-100 my-1"></div>
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');

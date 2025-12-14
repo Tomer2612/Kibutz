@@ -6,6 +6,26 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  // Search users by name for @mentions
+  async searchUsersByName(query: string, excludeUserId?: string) {
+    if (!query || query.length < 1) {
+      return [];
+    }
+
+    return this.prisma.user.findMany({
+      where: {
+        name: { contains: query, mode: 'insensitive' },
+        ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        profileImage: true,
+      },
+      take: 10,
+    });
+  }
+
   async getAllUsers() {
     return this.prisma.user.findMany();
   }
@@ -19,6 +39,9 @@ export class UsersService {
         email: true,
         name: true,
         profileImage: true,
+        coverImage: true,
+        bio: true,
+        location: true,
         googleId: true,
       },
     });
@@ -32,6 +55,9 @@ export class UsersService {
           email: true,
           name: true,
           profileImage: true,
+          coverImage: true,
+          bio: true,
+          location: true,
           googleId: true,
         },
       });
@@ -74,7 +100,7 @@ export class UsersService {
     return user;
   }
 
-  async updateProfile(userId: string, name?: string, profileImage?: string) {
+  async updateProfile(userId: string, name?: string, profileImage?: string, coverImage?: string, bio?: string, location?: string) {
     // Find user by ID or email first
     const user = await this.findByIdOrEmail(userId);
     if (!user) {
@@ -84,6 +110,9 @@ export class UsersService {
     const data: any = {};
     if (name) data.name = name;
     if (profileImage) data.profileImage = profileImage;
+    if (coverImage) data.coverImage = coverImage;
+    if (bio !== undefined) data.bio = bio;
+    if (location !== undefined) data.location = location;
 
     return this.prisma.user.update({
       where: { id: user.id },
@@ -93,6 +122,9 @@ export class UsersService {
         email: true,
         name: true,
         profileImage: true,
+        coverImage: true,
+        bio: true,
+        location: true,
         googleId: true,
       },
     });
@@ -141,6 +173,58 @@ export class UsersService {
     }
 
     return { showOnline: user.showOnline ?? true };
+  }
+
+  async getNotificationPreferences(userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: userId },
+          { email: userId },
+        ],
+      },
+      select: {
+        notifyLikes: true,
+        notifyComments: true,
+        notifyFollows: true,
+        notifyNewPosts: true,
+        notifyMentions: true,
+        notifyCommunityJoins: true,
+      },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return user;
+  }
+
+  async updateNotificationPreferences(userId: string, preferences: {
+    notifyLikes?: boolean;
+    notifyComments?: boolean;
+    notifyFollows?: boolean;
+    notifyNewPosts?: boolean;
+    notifyMentions?: boolean;
+    notifyCommunityJoins?: boolean;
+  }) {
+    const user = await this.findByIdOrEmail(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return this.prisma.user.update({
+      where: { id: user.id },
+      data: preferences,
+      select: {
+        notifyLikes: true,
+        notifyComments: true,
+        notifyFollows: true,
+        notifyNewPosts: true,
+        notifyMentions: true,
+        notifyCommunityJoins: true,
+      },
+    });
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
@@ -195,6 +279,9 @@ export class UsersService {
         name: true,
         email: true,
         profileImage: true,
+        coverImage: true,
+        bio: true,
+        location: true,
         createdAt: true,
         lastActiveAt: true,
         showOnline: true,
@@ -213,8 +300,10 @@ export class UsersService {
         name: true,
         description: true,
         image: true,
+        logo: true,
         memberCount: true,
         price: true,
+        topic: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -231,8 +320,10 @@ export class UsersService {
             name: true,
             description: true,
             image: true,
+            logo: true,
             memberCount: true,
             price: true,
+            topic: true,
           },
         },
       },
@@ -240,5 +331,78 @@ export class UsersService {
     });
 
     return memberships.map(m => m.community);
+  }
+
+  // Get user stats (followers, following, total community members)
+  async getUserStats(userId: string) {
+    // Count followers (people who follow this user)
+    const followersCount = await this.prisma.userFollow.count({
+      where: { followingId: userId },
+    });
+
+    // Count following (people this user follows)
+    const followingCount = await this.prisma.userFollow.count({
+      where: { followerId: userId },
+    });
+
+    // Get total members across all communities owned by this user
+    const communities = await this.prisma.community.findMany({
+      where: { ownerId: userId },
+      select: { memberCount: true },
+    });
+    const totalCommunityMembers = communities.reduce((sum, c) => sum + (c.memberCount || 0), 0);
+
+    return {
+      followers: followersCount,
+      following: followingCount,
+      communityMembers: totalCommunityMembers,
+    };
+  }
+
+  // Follow a user
+  async followUser(followerId: string, followingId: string) {
+    // Check if user exists
+    const userToFollow = await this.prisma.user.findUnique({
+      where: { id: followingId },
+    });
+    if (!userToFollow) {
+      throw new Error('User not found');
+    }
+
+    // Create follow relationship
+    await this.prisma.userFollow.create({
+      data: {
+        followerId,
+        followingId,
+      },
+    });
+
+    return { success: true, message: 'User followed successfully' };
+  }
+
+  // Unfollow a user
+  async unfollowUser(followerId: string, followingId: string) {
+    await this.prisma.userFollow.deleteMany({
+      where: {
+        followerId,
+        followingId,
+      },
+    });
+
+    return { success: true, message: 'User unfollowed successfully' };
+  }
+
+  // Check if user is following another user
+  async isFollowing(followerId: string, followingId: string) {
+    const follow = await this.prisma.userFollow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId,
+          followingId,
+        },
+      },
+    });
+
+    return { isFollowing: !!follow };
   }
 }

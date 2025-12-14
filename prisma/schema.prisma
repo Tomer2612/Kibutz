@@ -13,6 +13,9 @@ model User {
   name                     String
   password                 String
   profileImage             String?
+  coverImage               String?
+  bio                      String?
+  location                 String?
   googleId                 String?           @unique
   createdAt                DateTime          @default(now())
   lastActiveAt             DateTime?         @default(now())
@@ -22,6 +25,13 @@ model User {
   emailVerificationExpires DateTime?
   passwordResetToken       String?           @unique
   passwordResetExpires     DateTime?
+  // Notification preferences
+  notifyLikes              Boolean           @default(true)
+  notifyComments           Boolean           @default(true)
+  notifyFollows            Boolean           @default(true)
+  notifyNewPosts           Boolean           @default(true)
+  notifyMentions           Boolean           @default(true)
+  notifyCommunityJoins     Boolean           @default(true)
   posts                    Post[]
   communities              Community[]
   likes                    Like[]
@@ -29,6 +39,54 @@ model User {
   savedPosts               SavedPost[]
   memberships              CommunityMember[]
   bans                     CommunityBan[]
+  followers                UserFollow[]      @relation("UserFollowers")
+  following                UserFollow[]      @relation("UserFollowing")
+  notifications            Notification[]    @relation("NotificationRecipient")
+  notificationsSent        Notification[]    @relation("NotificationActor")
+  // Direct messages
+  conversationsAsP1        Conversation[]    @relation("ConversationParticipant1")
+  conversationsAsP2        Conversation[]    @relation("ConversationParticipant2")
+  messagesSent             Message[]
+}
+
+model UserFollow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("user_follows")
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  type        NotificationType
+  recipientId String
+  actorId     String?
+  postId      String?
+  communityId String?
+  commentId   String?
+  message     String?
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  recipient   User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, isRead])
+  @@index([recipientId, createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  NEW_POST
+  MENTION
+  COMMUNITY_JOIN
 }
 
 model Community {
@@ -227,4 +285,46 @@ enum RsvpStatus {
   GOING
   MAYBE
   NOT_GOING
+}
+
+// Direct Messages
+model Conversation {
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  // Participants (always 2 users for DMs)
+  participant1Id String
+  participant2Id String
+  participant1   User     @relation("ConversationParticipant1", fields: [participant1Id], references: [id], onDelete: Cascade)
+  participant2   User     @relation("ConversationParticipant2", fields: [participant2Id], references: [id], onDelete: Cascade)
+  
+  // Last message for preview
+  lastMessageAt  DateTime?
+  lastMessageText String?
+  
+  messages     Message[]
+  
+  @@unique([participant1Id, participant2Id])
+  @@index([participant1Id])
+  @@index([participant2Id])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  content        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  isRead         Boolean      @default(false)
+  
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  conversationId String
+  
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
 }

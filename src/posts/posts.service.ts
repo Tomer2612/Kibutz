@@ -254,7 +254,7 @@ export class PostsService {
         await this.prisma.like.delete({
           where: { id: existingLike.id },
         });
-        return { liked: false };
+        return { liked: false, post: null };
       } else {
         // Like - use upsert to handle race conditions
         await this.prisma.like.upsert({
@@ -264,13 +264,20 @@ export class PostsService {
           create: { userId, postId },
           update: {}, // No update needed, just ensure it exists
         });
-        return { liked: true };
+        
+        // Get post for notification
+        const post = await this.prisma.post.findUnique({
+          where: { id: postId },
+          select: { authorId: true, communityId: true },
+        });
+        
+        return { liked: true, post };
       }
     } catch (err) {
       console.error('Toggle like error:', err);
       // If there was a race condition and like already exists, treat as success
       if (err.code === 'P2002') {
-        return { liked: true };
+        return { liked: true, post: null };
       }
       throw err;
     }
@@ -291,14 +298,18 @@ export class PostsService {
 
   // Create a comment
   async createComment(postId: string, userId: string, content: string) {
-    return this.prisma.comment.create({
+    const comment = await this.prisma.comment.create({
       data: { postId, userId, content },
       include: {
         user: {
           select: { id: true, email: true, name: true, profileImage: true },
         },
+        post: {
+          select: { authorId: true, communityId: true },
+        },
       },
     });
+    return comment;
   }
 
   // Delete a comment

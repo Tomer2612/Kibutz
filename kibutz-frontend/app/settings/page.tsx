@@ -5,7 +5,65 @@ import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaUser, FaEnvelope, FaCamera, FaCog, FaSignOutAlt, FaCheck, FaLink, FaUnlink, FaLock, FaEye, FaEyeSlash, FaPowerOff, FaArrowRight, FaTrash } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaCamera, FaCog, FaSignOutAlt, FaCheck, FaLink, FaUnlink, FaLock, FaEye, FaEyeSlash, FaPowerOff, FaArrowRight, FaTrash, FaMapMarkerAlt } from 'react-icons/fa';
+
+// Israeli cities list
+const ISRAELI_CITIES = [
+  '',
+  'תל אביב',
+  'ירושלים',
+  'חיפה',
+  'באר שבע',
+  'ראשון לציון',
+  'פתח תקווה',
+  'אשדוד',
+  'נתניה',
+  'חולון',
+  'בת ים',
+  'בני ברק',
+  'רמת גן',
+  'אשקלון',
+  'רחובות',
+  'הרצליה',
+  'כפר סבא',
+  'ביתר עילית',
+  'מודיעין',
+  'נזרת עילית',
+  'לוד',
+  'רמלה',
+  'רעננה',
+  'הוד השרון',
+  'עפולה',
+  'נהריה',
+  'קרית',
+  'אילת',
+  'טבריה',
+  'עכו',
+  'צפת',
+  'דימונה',
+  'קרית אתא',
+  'קרית גת',
+  'קרית ביאליק',
+  'קרית מלאכי',
+  'קרית מוצקין',
+  'קרית אונו',
+  'קרית שמונה',
+  'יבנה',
+  'אור יהודה',
+  'אור עקיבא',
+  'גבעתיים',
+  'נס ציונה',
+  'סדרות',
+  'עפרה',
+  'כפר קסם',
+  'כרמיאל',
+  'טירת הכרמל',
+  'מעלות אדומים',
+  'מעלות תרשיחא',
+  'שדרות',
+  'נתיבות',
+  'אחר',
+];
 
 interface JwtPayload {
   email: string;
@@ -19,6 +77,8 @@ interface UserProfile {
   email: string;
   name: string;
   profileImage: string | null;
+  bio: string | null;
+  location: string | null;
   googleConnected: boolean;
 }
 
@@ -26,6 +86,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -39,8 +100,19 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   
+  // Notification preferences state
+  const [notifyLikes, setNotifyLikes] = useState(true);
+  const [notifyComments, setNotifyComments] = useState(true);
+  const [notifyFollows, setNotifyFollows] = useState(true);
+  const [notifyNewPosts, setNotifyNewPosts] = useState(true);
+  const [notifyMentions, setNotifyMentions] = useState(true);
+  const [notifyCommunityJoins, setNotifyCommunityJoins] = useState(true);
+  const [savingNotifications, setSavingNotifications] = useState(false);
+  
   // Form state
   const [name, setName] = useState('');
+  const [bio, setBio] = useState('');
+  const [location, setLocation] = useState('');
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
@@ -67,6 +139,7 @@ export default function SettingsPage() {
     try {
       const decoded = jwtDecode<JwtPayload>(token);
       setUserEmail(decoded.email);
+      setUserId(decoded.sub);
       
       // Fetch user profile
       fetch('http://localhost:4000/users/me', {
@@ -79,6 +152,8 @@ export default function SettingsPage() {
         .then((data: UserProfile) => {
           setUserProfile(data);
           setName(data.name || '');
+          setBio(data.bio || '');
+          setLocation(data.location || '');
           if (data.profileImage) {
             setImagePreview(`http://localhost:4000${data.profileImage}`);
           }
@@ -92,6 +167,21 @@ export default function SettingsPage() {
       })
         .then(res => res.json())
         .then(data => setShowOnline(data.showOnline))
+        .catch(console.error);
+      
+      // Fetch notification preferences
+      fetch('http://localhost:4000/users/me/notification-preferences', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setNotifyLikes(data.notifyLikes ?? true);
+          setNotifyComments(data.notifyComments ?? true);
+          setNotifyFollows(data.notifyFollows ?? true);
+          setNotifyNewPosts(data.notifyNewPosts ?? true);
+          setNotifyMentions(data.notifyMentions ?? true);
+          setNotifyCommunityJoins(data.notifyCommunityJoins ?? true);
+        })
         .catch(console.error);
     } catch (e) {
       console.error('Invalid token:', e);
@@ -128,6 +218,12 @@ export default function SettingsPage() {
       if (name.trim()) {
         formData.append('name', name.trim());
       }
+      if (bio.trim()) {
+        formData.append('bio', bio.trim());
+      }
+      if (location) {
+        formData.append('location', location);
+      }
       if (profileImage) {
         formData.append('profileImage', profileImage);
       }
@@ -147,14 +243,32 @@ export default function SettingsPage() {
 
       const updatedProfile = await res.json();
       setUserProfile(updatedProfile);
-      setMessage('הפרופיל עודכן בהצלחה!');
-      setMessageType('success');
       setProfileImage(null);
       
       // Update the preview with the new image from server
       if (updatedProfile.profileImage) {
         setImagePreview(`http://localhost:4000${updatedProfile.profileImage}`);
       }
+      
+      // Also save notification preferences
+      await fetch('http://localhost:4000/users/me/notification-preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          notifyLikes,
+          notifyComments,
+          notifyFollows,
+          notifyNewPosts,
+          notifyMentions,
+          notifyCommunityJoins,
+        }),
+      });
+      
+      // Redirect to profile page after successful save
+      router.push(`/profile/${userId}`);
     } catch (err: any) {
       console.error('Profile update error:', err);
       setMessage(err.message || 'שגיאה בעדכון הפרופיל');
@@ -232,6 +346,43 @@ export default function SettingsPage() {
       setMessageType('error');
     } finally {
       setSettingOffline(false);
+    }
+  };
+
+  const handleSaveNotificationPreferences = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      setSavingNotifications(true);
+      const res = await fetch('http://localhost:4000/users/me/notification-preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          notifyLikes,
+          notifyComments,
+          notifyFollows,
+          notifyNewPosts,
+          notifyMentions,
+          notifyCommunityJoins,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to save notification preferences');
+      }
+
+      setMessage('העדפות התראות נשמרו בהצלחה');
+      setMessageType('success');
+    } catch (err: any) {
+      console.error('Save notification preferences error:', err);
+      setMessage('שגיאה בשמירת העדפות התראות');
+      setMessageType('error');
+    } finally {
+      setSavingNotifications(false);
     }
   };
 
@@ -377,7 +528,17 @@ export default function SettingsPage() {
                 className="fixed inset-0 z-40" 
                 onClick={() => setProfileMenuOpen(false)}
               />
-              <div className="absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+              <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                <button
+                  onClick={() => {
+                    setProfileMenuOpen(false);
+                    if (userId) router.push(`/profile/${userId}`);
+                  }}
+                  className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                >
+                  <FaUser className="w-4 h-4" />
+                  הפרופיל שלי
+                </button>
                 <button
                   onClick={() => {
                     setProfileMenuOpen(false);
@@ -387,6 +548,7 @@ export default function SettingsPage() {
                   <FaCog className="w-4 h-4" />
                   הגדרות
                 </button>
+                <div className="border-t border-gray-100 my-1"></div>
                 <button
                   onClick={() => {
                     localStorage.removeItem('token');
@@ -486,6 +648,47 @@ export default function SettingsPage() {
                       onChange={(e) => setName(e.target.value)}
                       maxLength={100}
                     />
+                  </div>
+                </div>
+
+                {/* Bio/Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
+                    תיאור
+                  </label>
+                  <textarea
+                    placeholder="ספרו על עצמכם..."
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right resize-none"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    maxLength={500}
+                    rows={4}
+                  />
+                  <p className="text-xs text-gray-500 mt-1 text-left">{bio.length}/500</p>
+                </div>
+
+                {/* Location */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
+                    עיר מגורים
+                  </label>
+                  <div className="relative">
+                    <FaMapMarkerAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <select
+                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right appearance-none bg-white"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                    >
+                      <option value="">בחרו עיר</option>
+                      {ISRAELI_CITIES.filter(city => city).map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
@@ -706,6 +909,127 @@ export default function SettingsPage() {
                     : 'לחיצה תסתיר אותך מרשימת המחוברים עד שתשנה חזרה'
                   }
                 </p>
+              </div>
+
+              {/* Notification Preferences Card */}
+              <div className="bg-white rounded-lg shadow-md p-8 space-y-6">
+                <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">העדפות התראות</h2>
+                
+                <div className="space-y-4">
+                  {/* Likes */}
+                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                        <span className="text-lg">❤️</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">לייקים</p>
+                        <p className="text-sm text-gray-500">קבל התראה כשמישהו אוהב את הפוסט שלך</p>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifyLikes}
+                      onChange={(e) => setNotifyLikes(e.target.checked)}
+                      className="w-5 h-5 accent-black"
+                    />
+                  </label>
+
+                  {/* Comments */}
+                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <span className="text-lg">💬</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">תגובות</p>
+                        <p className="text-sm text-gray-500">קבל התראה כשמישהו מגיב על הפוסט שלך</p>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifyComments}
+                      onChange={(e) => setNotifyComments(e.target.checked)}
+                      className="w-5 h-5 accent-black"
+                    />
+                  </label>
+
+                  {/* Follows */}
+                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                        <span className="text-lg">👤</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">עוקבים חדשים</p>
+                        <p className="text-sm text-gray-500">קבל התראה כשמישהו מתחיל לעקוב אחריך</p>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifyFollows}
+                      onChange={(e) => setNotifyFollows(e.target.checked)}
+                      className="w-5 h-5 accent-black"
+                    />
+                  </label>
+
+                  {/* New Posts */}
+                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <span className="text-lg">📝</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">פוסטים חדשים</p>
+                        <p className="text-sm text-gray-500">קבל התראה כשמישהו שאתה עוקב אחריו מפרסם</p>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifyNewPosts}
+                      onChange={(e) => setNotifyNewPosts(e.target.checked)}
+                      className="w-5 h-5 accent-black"
+                    />
+                  </label>
+
+                  {/* Mentions */}
+                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                        <span className="text-lg">@</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">אזכורים</p>
+                        <p className="text-sm text-gray-500">קבל התראה כשמישהו מזכיר אותך בתגובה</p>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifyMentions}
+                      onChange={(e) => setNotifyMentions(e.target.checked)}
+                      className="w-5 h-5 accent-black"
+                    />
+                  </label>
+
+                  {/* Community Joins */}
+                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                        <span className="text-lg">👥</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">הצטרפות לקהילה</p>
+                        <p className="text-sm text-gray-500">קבל התראה כשמישהו מצטרף לקהילה שלך</p>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifyCommunityJoins}
+                      onChange={(e) => setNotifyCommunityJoins(e.target.checked)}
+                      className="w-5 h-5 accent-black"
+                    />
+                  </label>
+                </div>
               </div>
 
               {/* Delete Account Card */}

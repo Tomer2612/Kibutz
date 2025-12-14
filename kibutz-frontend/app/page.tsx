@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaSearch, FaChevronDown, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaSearch, FaChevronDown, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
+import NotificationBell from './components/NotificationBell';
 
 const COMMUNITY_TOPICS = [
   'אנימציה',
@@ -237,7 +238,11 @@ export default function Home() {
               </a>
             </>
           ) : (
-            <div className="relative">
+            <div className="flex items-center gap-3">
+              {/* Notification Bell */}
+              <NotificationBell />
+              
+              <div className="relative">
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                 className="relative focus:outline-none"
@@ -263,7 +268,17 @@ export default function Home() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setProfileMenuOpen(false)}
                   />
-                  <div className="absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                    <button
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        if (userId) router.push(`/profile/${userId}`);
+                      }}
+                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                    >
+                      <FaUser className="w-4 h-4" />
+                      הפרופיל שלי
+                    </button>
                     <button
                       onClick={() => {
                         setProfileMenuOpen(false);
@@ -274,6 +289,7 @@ export default function Home() {
                       <FaCog className="w-4 h-4" />
                       הגדרות
                     </button>
+                    <div className="border-t border-gray-100 my-1"></div>
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
@@ -288,6 +304,7 @@ export default function Home() {
                   </div>
                 </>
               )}
+            </div>
             </div>
           )}
         </div>

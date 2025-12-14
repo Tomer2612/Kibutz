@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { jwtDecode } from 'jwt-decode';
-import { FaCog, FaSignOutAlt, FaUsers, FaMapMarkerAlt, FaCalendarAlt, FaSignInAlt, FaClock } from 'react-icons/fa';
+import { FaCog, FaSignOutAlt, FaUsers, FaMapMarkerAlt, FaCalendarAlt, FaSignInAlt, FaClock, FaUser, FaCamera } from 'react-icons/fa';
+import NotificationBell from '../../components/NotificationBell';
 
 // Topic color mapping - synced with homepage
 const TOPIC_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -50,6 +51,9 @@ interface UserProfile {
   name: string;
   email: string;
   profileImage?: string | null;
+  coverImage?: string | null;
+  bio?: string | null;
+  location?: string | null;
   createdAt: string;
   lastActiveAt?: string | null;
   showOnline?: boolean;
@@ -60,6 +64,7 @@ interface Community {
   name: string;
   description: string;
   image?: string | null;
+  logo?: string | null;
   memberCount?: number | null;
   price?: number | null;
   topic?: string | null;
@@ -85,10 +90,21 @@ export default function MemberProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Stats state
+  const [stats, setStats] = useState<{ followers: number; following: number; communityMembers: number }>({
+    followers: 0,
+    following: 0,
+    communityMembers: 0,
+  });
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
   // Current user state (for navbar)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   // Fetch current user for navbar
   useEffect(() => {
@@ -97,13 +113,17 @@ export default function MemberProfilePage() {
       try {
         const decoded = jwtDecode<JwtPayload>(token);
         setCurrentUserEmail(decoded.email);
+        setCurrentUserId(decoded.sub);
 
         fetch('http://localhost:4000/users/me', {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
           .then(data => {
-            if (data) setCurrentUserProfile({ name: data.name, profileImage: data.profileImage });
+            if (data) {
+              setCurrentUserId(data.userId);
+              setCurrentUserProfile({ name: data.name, profileImage: data.profileImage });
+            }
           })
           .catch(console.error);
       } catch (e) {
@@ -119,7 +139,21 @@ export default function MemberProfilePage() {
         setLoading(true);
         setError(null);
 
-        const profileRes = await fetch(`http://localhost:4000/users/${userId}`);
+        const token = localStorage.getItem('token');
+
+        // Fetch all data in parallel for faster loading
+        const [profileRes, createdRes, memberRes, statsRes, isFollowingRes] = await Promise.all([
+          fetch(`http://localhost:4000/users/${userId}`),
+          fetch(`http://localhost:4000/users/${userId}/communities/created`),
+          fetch(`http://localhost:4000/users/${userId}/communities/member`),
+          fetch(`http://localhost:4000/users/${userId}/stats`),
+          token 
+            ? fetch(`http://localhost:4000/users/${userId}/is-following`, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+            : Promise.resolve(null),
+        ]);
+
         if (!profileRes.ok) {
           if (profileRes.status === 404) {
             setError('המשתמש לא נמצא');
@@ -128,19 +162,28 @@ export default function MemberProfilePage() {
           }
           return;
         }
+        
         const profileData = await profileRes.json();
         setProfile(profileData);
 
-        const createdRes = await fetch(`http://localhost:4000/users/${userId}/communities/created`);
         if (createdRes.ok) {
           const createdData = await createdRes.json();
           setCreatedCommunities(createdData);
         }
 
-        const memberRes = await fetch(`http://localhost:4000/users/${userId}/communities/member`);
         if (memberRes.ok) {
           const memberData = await memberRes.json();
           setMemberCommunities(memberData);
+        }
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
+
+        if (isFollowingRes && isFollowingRes.ok) {
+          const isFollowingData = await isFollowingRes.json();
+          setIsFollowing(isFollowingData.isFollowing);
         }
 
       } catch (err) {
@@ -168,16 +211,47 @@ export default function MemberProfilePage() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">טוען פרופיל...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleFollowToggle = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    setFollowLoading(true);
+    try {
+      const method = isFollowing ? 'DELETE' : 'POST';
+      const res = await fetch(`http://localhost:4000/users/${userId}/follow`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        setIsFollowing(!isFollowing);
+        setStats(prev => ({
+          ...prev,
+          followers: isFollowing ? prev.followers - 1 : prev.followers + 1,
+        }));
+      }
+    } catch (err) {
+      console.error('Error toggling follow:', err);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleSendMessage = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    // Use global chat widget
+    if ((window as any).openChatWithUser && profile) {
+      (window as any).openChatWithUser(userId, profile.name, profile.profileImage);
+    }
+  };
 
   if (error) {
     return (
@@ -228,7 +302,11 @@ export default function MemberProfilePage() {
               </Link>
             </div>
           ) : (
-            <div className="relative">
+            <div className="flex items-center gap-3">
+              {/* Notification Bell */}
+              <NotificationBell />
+              
+              <div className="relative">
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                 className="relative focus:outline-none"
@@ -253,7 +331,17 @@ export default function MemberProfilePage() {
                     className="fixed inset-0 z-40"
                     onClick={() => setProfileMenuOpen(false)}
                   />
-                  <div className="absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                    <button
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        if (currentUserId) router.push(`/profile/${currentUserId}`);
+                      }}
+                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                    >
+                      <FaUser className="w-4 h-4" />
+                      הפרופיל שלי
+                    </button>
                     <button
                       onClick={() => {
                         setProfileMenuOpen(false);
@@ -264,6 +352,7 @@ export default function MemberProfilePage() {
                       <FaCog className="w-4 h-4" />
                       הגדרות
                     </button>
+                    <div className="border-t border-gray-100 my-1"></div>
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
@@ -279,15 +368,68 @@ export default function MemberProfilePage() {
                 </>
               )}
             </div>
+            </div>
           )}
         </div>
       </header>
 
-      {/* Profile Header with gradient background */}
-      <div className="w-full h-44 bg-gradient-to-l from-cyan-200 via-teal-100 to-blue-200"></div>
+      {/* Profile Cover Image - Bigger and customizable */}
+      <div className="w-full h-64 relative z-0">
+        {profile?.coverImage ? (
+          <img
+            src={`http://localhost:4000${profile.coverImage}`}
+            alt="Cover"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-l from-cyan-200 via-teal-100 to-blue-200"></div>
+        )}
+        
+        {/* Edit Cover Button - Only show for own profile */}
+        {currentUserId === userId && (
+          <label className="absolute bottom-4 left-4 bg-white/90 hover:bg-white text-gray-700 px-4 py-2 rounded-lg font-medium cursor-pointer transition flex items-center gap-2 shadow-md">
+            <FaCamera className="w-4 h-4" />
+            <span>{uploadingCover ? 'מעלה...' : 'עריכת כיסוי'}</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploadingCover}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                
+                setUploadingCover(true);
+                try {
+                  const formData = new FormData();
+                  formData.append('coverImage', file);
+                  
+                  const res = await fetch('http://localhost:4000/users/me', {
+                    method: 'PATCH',
+                    headers: { Authorization: `Bearer ${token}` },
+                    body: formData,
+                  });
+                  
+                  if (res.ok) {
+                    const data = await res.json();
+                    setProfile(prev => prev ? { ...prev, coverImage: data.coverImage } : prev);
+                  }
+                } catch (err) {
+                  console.error('Error uploading cover:', err);
+                } finally {
+                  setUploadingCover(false);
+                }
+              }}
+            />
+          </label>
+        )}
+      </div>
 
       {/* Main Content - Full width */}
-      <div className="w-full px-8">
+      <div className="w-full px-8 relative z-10">
         {/* Profile Section - Two columns: Left side (profile info) + Right side (stats & buttons) */}
         <div className="flex justify-between items-end -mt-20 pb-6">
           {/* Left Side - Profile Info */}
@@ -297,10 +439,10 @@ export default function MemberProfilePage() {
               <img
                 src={`http://localhost:4000${profile.profileImage}`}
                 alt={profile.name}
-                className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                className="w-36 h-36 rounded-full object-cover border-4 border-white shadow-lg"
               />
             ) : (
-              <div className="w-32 h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center">
+              <div className="w-36 h-36 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center">
                 <span className="text-4xl font-bold text-gray-400">
                   {profile?.name?.charAt(0) || '?'}
                 </span>
@@ -308,17 +450,21 @@ export default function MemberProfilePage() {
             )}
 
             {/* Name and Username */}
-            <h1 className="text-2xl font-bold text-black mt-4">
+            <h1 className="text-black mt-4" style={{ fontFamily: 'var(--font-assistant), sans-serif', fontWeight: 700, fontSize: '28px' }}>
               {profile?.name || 'משתמש'}
             </h1>
-            <p className="text-gray-500 text-sm mt-0.5">
+            <p className="text-gray-600 text-sm mt-0.5">
               {profile?.email ? formatUsername(profile.email) : ''}
             </p>
 
-            {/* About placeholder */}
-            <p className="text-gray-600 text-sm mt-3 leading-relaxed max-w-lg text-right" dir="rtl">
-              אופה כבר 15 שנה, אוהבת לבשל ולאפות מכל הלב, נהנית לגלות טעמים חדשים וליצור מנות ביתיות מגוונות.
-            </p>
+            {/* Bio */}
+            {profile?.bio ? (
+              <p className="text-gray-600 text-sm mt-3 leading-relaxed max-w-lg text-right" dir="rtl">
+                {profile.bio}
+              </p>
+            ) : currentUserId === userId ? (
+              <p className="text-gray-400 text-sm mt-3 italic">לחצו על הגדרות כדי להוסיף תיאור</p>
+            ) : null}
 
             {/* Info row: Online status, Date, Location - all on one line */}
             <div className="flex items-center gap-2 mt-3 text-sm text-gray-500">
@@ -370,47 +516,60 @@ export default function MemberProfilePage() {
                 <FaCalendarAlt className="w-3 h-3" />
                 <span>תאריך הצטרפות: {profile?.createdAt ? formatDate(profile.createdAt) : '-'}</span>
               </div>
-              <span className="text-gray-300">•</span>
-              <div className="flex items-center gap-1">
-                <FaMapMarkerAlt className="w-3 h-3" />
-                <span>תל אביב, ישראל</span>
-              </div>
+              {profile?.location && (
+                <>
+                  <span className="text-gray-300">•</span>
+                  <div className="flex items-center gap-1">
+                    <FaMapMarkerAlt className="w-3 h-3" />
+                    <span>{profile.location}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* Right Side - Stats & Buttons - aligned to bottom of profile info */}
-          <div className="flex flex-col items-end">
+          <div className="flex flex-col items-end ml-auto mr-128">
             {/* Stats - all on one line */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center">
               <div className="text-center px-4">
-                <p className="text-xl font-bold text-black">14,000</p>
+                <p className="text-xl font-bold text-black">{stats.communityMembers.toLocaleString()}</p>
                 <p className="text-xs text-gray-500">חברים בקהילות שלי</p>
               </div>
-              <div className="text-center border-l border-gray-200 px-4">
-                <p className="text-xl font-bold text-black">2,500</p>
+              <div className="text-center border-r border-gray-200 px-4">
+                <p className="text-xl font-bold text-black">{stats.followers.toLocaleString()}</p>
                 <p className="text-xs text-gray-500">עוקבים</p>
               </div>
-              <div className="text-center border-l border-gray-200 px-4">
-                <p className="text-xl font-bold text-black">100</p>
+              <div className="text-center border-r border-gray-200 px-4">
+                <p className="text-xl font-bold text-black">{stats.following.toLocaleString()}</p>
                 <p className="text-xs text-gray-500">עוקב/ת אחרי</p>
               </div>
             </div>
 
-            {/* Buttons - on one line */}
-            <div className="flex items-center gap-3 mt-4">
-              <button
-                disabled
-                className="border border-gray-300 text-gray-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition cursor-not-allowed opacity-60"
-              >
-                הודעה
-              </button>
-              <button
-                disabled
-                className="bg-black text-white px-8 py-2 rounded-lg font-semibold hover:opacity-90 transition cursor-not-allowed opacity-60"
-              >
-                עקוב
-              </button>
-            </div>
+            {/* Buttons - on one line - only show for other users */}
+            {currentUserId && currentUserId !== userId && (
+              <div className="flex items-center gap-3 mt-4">
+                <button
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                  className={`px-8 py-2 rounded-lg font-bold transition ${
+                    isFollowing
+                      ? 'border border-black text-black hover:bg-gray-100'
+                      : 'bg-black text-white hover:bg-gray-900'
+                  } ${followLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  {followLoading ? '...' : isFollowing ? 'עוקב' : 'עקוב'}
+                </button>
+                {isFollowing && (
+                  <button
+                    onClick={handleSendMessage}
+                    className="border border-black text-black px-6 py-2 rounded-lg font-bold hover:bg-gray-100 transition"
+                  >
+                    שלח הודעה
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -468,7 +627,23 @@ export default function MemberProfilePage() {
                           )}
                         </Link>
                         <div className="p-5 text-right" dir="rtl">
-                          <h2 className="font-bold text-xl text-black mb-2">{community.name}</h2>
+                          {/* Logo + Name row */}
+                          <div className="flex items-start gap-3 mb-2">
+                            {community.logo ? (
+                              <img
+                                src={`http://localhost:4000${community.logo}`}
+                                alt={community.name}
+                                className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-gray-400 text-lg font-bold">{community.name.charAt(0)}</span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h2 className="font-bold text-xl text-black">{community.name}</h2>
+                            </div>
+                          </div>
                           <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
                             {community.description}
                           </p>
@@ -477,7 +652,7 @@ export default function MemberProfilePage() {
                           <div className="border-t border-gray-200 my-4"></div>
                           
                           {/* Topic + Member count + Price badges - all on same line */}
-                          <div className="flex flex-wrap items-center justify-start gap-2 mb-4">
+                          <div className="flex flex-wrap items-center justify-start gap-2">
                             {/* Topic badge */}
                             {community.topic && (() => {
                               const colors = getTopicColor(community.topic);
@@ -488,8 +663,11 @@ export default function MemberProfilePage() {
                               );
                             })()}
                             
-                            {/* Member count - Gray badge */}
-                            <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-sm font-medium border border-gray-200">
+                            {/* Member count badge */}
+                            <span 
+                              className="px-3 py-1.5 rounded-full text-sm font-medium"
+                              style={{ backgroundColor: '#F4F4F5', color: '#52525B' }}
+                            >
                               {(community.memberCount ?? 0) === 1 
                                 ? 'משתמש אחד' 
                                 : (community.memberCount ?? 0) < 100
@@ -497,13 +675,19 @@ export default function MemberProfilePage() {
                                   : `${formatMemberCount(community.memberCount ?? 0)}+ משתמשים`}
                             </span>
                             
-                            {/* Free/Paid badge - Green for free, Blue for paid */}
+                            {/* Free/Paid badge */}
                             {(community.price ?? 0) === 0 ? (
-                              <span className="bg-emerald-100 text-emerald-600 px-3 py-1.5 rounded-full text-sm font-medium border border-emerald-200">
+                              <span 
+                                className="px-3 py-1.5 rounded-full text-sm font-medium"
+                                style={{ backgroundColor: '#E9FCC5', color: '#365908' }}
+                              >
                                 חינם
                               </span>
                             ) : (
-                              <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-200">
+                              <span 
+                                className="px-3 py-1.5 rounded-full text-sm font-medium"
+                                style={{ backgroundColor: '#DCF1FE', color: '#02527D' }}
+                              >
                                 ₪{community.price} לחודש
                               </span>
                             )}
@@ -540,7 +724,23 @@ export default function MemberProfilePage() {
                           )}
                         </Link>
                         <div className="p-5 text-right" dir="rtl">
-                          <h2 className="font-bold text-xl text-black mb-2">{community.name}</h2>
+                          {/* Logo + Name row */}
+                          <div className="flex items-start gap-3 mb-2">
+                            {community.logo ? (
+                              <img
+                                src={`http://localhost:4000${community.logo}`}
+                                alt={community.name}
+                                className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-gray-400 text-lg font-bold">{community.name.charAt(0)}</span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h2 className="font-bold text-xl text-black">{community.name}</h2>
+                            </div>
+                          </div>
                           <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
                             {community.description}
                           </p>
@@ -549,7 +749,7 @@ export default function MemberProfilePage() {
                           <div className="border-t border-gray-200 my-4"></div>
                           
                           {/* Topic + Member count + Price badges - all on same line */}
-                          <div className="flex flex-wrap items-center justify-start gap-2 mb-4">
+                          <div className="flex flex-wrap items-center justify-start gap-2">
                             {community.topic && (() => {
                               const colors = getTopicColor(community.topic);
                               return (
@@ -559,8 +759,11 @@ export default function MemberProfilePage() {
                               );
                             })()}
                             
-                            {/* Member count - Gray badge */}
-                            <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-sm font-medium border border-gray-200">
+                            {/* Member count badge */}
+                            <span 
+                              className="px-3 py-1.5 rounded-full text-sm font-medium"
+                              style={{ backgroundColor: '#F4F4F5', color: '#52525B' }}
+                            >
                               {(community.memberCount ?? 0) === 1 
                                 ? 'משתמש אחד' 
                                 : (community.memberCount ?? 0) < 100
@@ -568,13 +771,19 @@ export default function MemberProfilePage() {
                                   : `${formatMemberCount(community.memberCount ?? 0)}+ משתמשים`}
                             </span>
                             
-                            {/* Free/Paid badge - Green for free, Blue for paid */}
+                            {/* Free/Paid badge */}
                             {(community.price ?? 0) === 0 ? (
-                              <span className="bg-emerald-100 text-emerald-600 px-3 py-1.5 rounded-full text-sm font-medium border border-emerald-200">
+                              <span 
+                                className="px-3 py-1.5 rounded-full text-sm font-medium"
+                                style={{ backgroundColor: '#E9FCC5', color: '#365908' }}
+                              >
                                 חינם
                               </span>
                             ) : (
-                              <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-200">
+                              <span 
+                                className="px-3 py-1.5 rounded-full text-sm font-medium"
+                                style={{ backgroundColor: '#DCF1FE', color: '#02527D' }}
+                              >
                                 ₪{community.price} לחודש
                               </span>
                             )}

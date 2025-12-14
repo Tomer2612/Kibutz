@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
-import { FaPlus, FaCog, FaSignOutAlt, FaEnvelope, FaFacebook, FaInstagram, FaTwitter, FaPaperPlane } from 'react-icons/fa';
+import { FaPlus, FaCog, FaSignOutAlt, FaEnvelope, FaFacebook, FaInstagram, FaTwitter, FaPaperPlane, FaUser } from 'react-icons/fa';
 
 interface FAQ {
   question: string;
@@ -52,6 +52,7 @@ const faqs: FAQ[] = [
 export default function SupportPage() {
   const router = useRouter();
   const [openFaqs, setOpenFaqs] = useState<Set<number>>(new Set());
+  const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -70,6 +71,7 @@ export default function SupportPage() {
       try {
         const decoded = jwtDecode<JwtPayload>(token);
         setUserEmail(decoded.email);
+        setUserId(decoded.sub);
         setContactEmail(decoded.email);
         
         // Fetch user profile
@@ -173,7 +175,17 @@ export default function SupportPage() {
               {profileMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
-                  <div className="absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                    <button
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        if (userId) router.push(`/profile/${userId}`);
+                      }}
+                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                    >
+                      <FaUser className="w-4 h-4" />
+                      הפרופיל שלי
+                    </button>
                     <button
                       onClick={() => {
                         setProfileMenuOpen(false);
@@ -184,6 +196,7 @@ export default function SupportPage() {
                       <FaCog className="w-4 h-4" />
                       הגדרות
                     </button>
+                    <div className="border-t border-gray-100 my-1"></div>
                     <button
                       onClick={handleLogout}
                       className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"

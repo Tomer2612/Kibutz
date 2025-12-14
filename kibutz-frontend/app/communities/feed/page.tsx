@@ -32,7 +32,9 @@ import {
   FaCalendarAlt,
   FaVideo,
   FaMapMarkerAlt,
+  FaUser,
 } from 'react-icons/fa';
+import NotificationBell from '../../components/NotificationBell';
 
 interface Community {
   id: string;
@@ -194,6 +196,12 @@ export default function CommunityFeedPage() {
   const [editCommentContent, setEditCommentContent] = useState('');
   const [submittingComment, setSubmittingComment] = useState<Record<string, boolean>>({});
   const [commentMenuOpenId, setCommentMenuOpenId] = useState<string | null>(null);
+  
+  // Mention autocomplete state
+  const [mentionSuggestions, setMentionSuggestions] = useState<{ id: string; name: string; profileImage: string | null }[]>([]);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [showMentionDropdown, setShowMentionDropdown] = useState<string | null>(null); // postId where dropdown is shown
+  const [mentionCursorPos, setMentionCursorPos] = useState(0);
   
   // Delete post modal state
   const [deletePostModalId, setDeletePostModalId] = useState<string | null>(null);
@@ -1109,6 +1117,66 @@ export default function CommunityFeedPage() {
     }
   };
 
+  // Search users for @mention autocomplete
+  const searchUsersForMention = async (query: string) => {
+    if (!query || query.length < 1) {
+      setMentionSuggestions([]);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const res = await fetch(`http://localhost:4000/users/search?q=${encodeURIComponent(query)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const users = await res.json();
+        setMentionSuggestions(users);
+      }
+    } catch (err) {
+      console.error('Error searching users:', err);
+    }
+  };
+
+  // Handle comment input change with @mention detection
+  const handleCommentInputChange = (postId: string, value: string, cursorPosition: number) => {
+    setNewCommentContent((prev) => ({ ...prev, [postId]: value }));
+    
+    // Find if we're typing after an @
+    const textBeforeCursor = value.slice(0, cursorPosition);
+    const mentionMatch = textBeforeCursor.match(/@([\w\u0590-\u05FF]*)$/);
+    
+    if (mentionMatch) {
+      const query = mentionMatch[1];
+      setMentionQuery(query);
+      setMentionCursorPos(cursorPosition);
+      setShowMentionDropdown(postId);
+      searchUsersForMention(query);
+    } else {
+      setShowMentionDropdown(null);
+      setMentionSuggestions([]);
+    }
+  };
+
+  // Insert selected mention into comment
+  const insertMention = (postId: string, userName: string) => {
+    const currentContent = newCommentContent[postId] || '';
+    const textBeforeCursor = currentContent.slice(0, mentionCursorPos);
+    const textAfterCursor = currentContent.slice(mentionCursorPos);
+    
+    // Find and replace the @query with @username
+    const mentionMatch = textBeforeCursor.match(/@([\w\u0590-\u05FF]*)$/);
+    if (mentionMatch) {
+      const newTextBeforeCursor = textBeforeCursor.slice(0, -mentionMatch[0].length) + '@' + userName + ' ';
+      setNewCommentContent((prev) => ({ ...prev, [postId]: newTextBeforeCursor + textAfterCursor }));
+    }
+    
+    setShowMentionDropdown(null);
+    setMentionSuggestions([]);
+  };
+
   // Vote on poll handler
   const handleVotePoll = async (pollId: string, optionId: string, postId: string, currentVotedOptionId: string | null) => {
     const token = localStorage.getItem('token');
@@ -1334,6 +1402,9 @@ export default function CommunityFeedPage() {
             />
           </div>
           
+          {/* Notification Bell */}
+          {userEmail && <NotificationBell />}
+          
           {/* User Avatar with Dropdown */}
           {userEmail && (
             <div className="relative">
@@ -1363,7 +1434,17 @@ export default function CommunityFeedPage() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setProfileMenuOpen(false)}
                   />
-                  <div className="absolute left-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                    <button
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        if (userId) router.push(`/profile/${userId}`);
+                      }}
+                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                    >
+                      <FaUser className="w-4 h-4" />
+                      הפרופיל שלי
+                    </button>
                     <button
                       onClick={() => {
                         setProfileMenuOpen(false);
@@ -1374,6 +1455,7 @@ export default function CommunityFeedPage() {
                       <FaCog className="w-4 h-4" />
                       הגדרות
                     </button>
+                    <div className="border-t border-gray-100 my-1"></div>
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
@@ -2679,7 +2761,7 @@ export default function CommunityFeedPage() {
                         
                         {/* Add Comment Input */}
                         {userEmail && (
-                          <div className="flex gap-2 items-center">
+                          <div className="relative flex gap-2 items-center">
                             <button
                               onClick={() => handleAddComment(post.id)}
                               disabled={!newCommentContent[post.id]?.trim() || submittingComment[post.id]}
@@ -2687,21 +2769,54 @@ export default function CommunityFeedPage() {
                             >
                               {submittingComment[post.id] ? '...' : 'שלח'}
                             </button>
-                            <input
-                              type="text"
-                              value={newCommentContent[post.id] || ''}
-                              onChange={(e) =>
-                                setNewCommentContent((prev) => ({ ...prev, [post.id]: e.target.value }))
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && newCommentContent[post.id]?.trim() && !submittingComment[post.id]) {
-                                  handleAddComment(post.id);
-                                }
-                              }}
-                              disabled={submittingComment[post.id]}
-                              placeholder="כתבו תגובה..."
-                              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
-                            />
+                            <div className="relative flex-1">
+                              <input
+                                type="text"
+                                value={newCommentContent[post.id] || ''}
+                                onChange={(e) => handleCommentInputChange(post.id, e.target.value, e.target.selectionStart || 0)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    setShowMentionDropdown(null);
+                                    setMentionSuggestions([]);
+                                  } else if (e.key === 'Enter' && !showMentionDropdown && newCommentContent[post.id]?.trim() && !submittingComment[post.id]) {
+                                    handleAddComment(post.id);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  // Delay hiding to allow click on suggestion
+                                  setTimeout(() => setShowMentionDropdown(null), 200);
+                                }}
+                                disabled={submittingComment[post.id]}
+                                placeholder="כתבו תגובה... (הקלידו @ לאזכור)"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
+                              />
+                              {/* Mention Autocomplete Dropdown */}
+                              {showMentionDropdown === post.id && mentionSuggestions.length > 0 && (
+                                <div className="absolute bottom-full right-0 mb-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                                  {mentionSuggestions.map((user) => (
+                                    <button
+                                      key={user.id}
+                                      type="button"
+                                      onClick={() => insertMention(post.id, user.name)}
+                                      className="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 text-right"
+                                    >
+                                      {user.profileImage ? (
+                                        <img 
+                                          src={`http://localhost:4000${user.profileImage}`}
+                                          alt={user.name}
+                                          className="w-6 h-6 rounded-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center text-xs font-bold text-teal-600">
+                                          {user.name?.charAt(0)}
+                                        </div>
+                                      )}
+                                      <span className="text-sm text-gray-800">{user.name}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             {userProfile?.profileImage ? (
                               <img 
                                 src={`http://localhost:4000${userProfile.profileImage}`}

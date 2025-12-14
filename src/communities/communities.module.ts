@@ -3,10 +3,11 @@ import { CommunitiesService } from './communities.service';
 import { CommunitiesController } from './communities.controller';
 import { UsersModule } from '../users/users.module';
 import { PrismaService } from '../users/prisma.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   providers: [CommunitiesService, PrismaService],
   controllers: [CommunitiesController],
-  imports: [UsersModule],
+  imports: [UsersModule, NotificationsModule],
 })
 export class CommunitiesModule {}

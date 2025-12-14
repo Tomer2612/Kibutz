@@ -4,6 +4,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { CommunitiesService } from './communities.service';
 import { AuthGuard } from '@nestjs/passport';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Configure multer storage
 const storage = diskStorage({
@@ -19,7 +20,10 @@ const storage = diskStorage({
 
 @Controller('communities')
 export class CommunitiesController {
-  constructor(private readonly communitiesService: CommunitiesService) {}
+  constructor(
+    private readonly communitiesService: CommunitiesService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Post()
@@ -151,9 +155,23 @@ export class CommunitiesController {
 
   @UseGuards(AuthGuard('jwt'))
   @Post(':id/join')
-  join(@Param('id') id: string, @Req() req) {
+  async join(@Param('id') id: string, @Req() req) {
     const userId = req.user.userId;
-    return this.communitiesService.joinCommunity(id, userId);
+    const result = await this.communitiesService.joinCommunity(id, userId);
+    
+    // Notify community owner if this is a new join
+    if (result.message === 'Joined community') {
+      const community = await this.communitiesService.findById(id);
+      if (community) {
+        await this.notificationsService.notifyCommunityJoin(
+          community.ownerId,
+          userId,
+          id,
+        );
+      }
+    }
+    
+    return result;
   }
 
   @UseGuards(AuthGuard('jwt'))

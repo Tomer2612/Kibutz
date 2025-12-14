@@ -6,6 +6,7 @@ import { createReadStream, existsSync } from 'fs';
 import { Response } from 'express';
 import { PostsService } from './posts.service';
 import { AuthGuard } from '@nestjs/passport';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const storage = diskStorage({
   destination: './uploads/posts',
@@ -26,7 +27,10 @@ const getFileType = (mimetype: string): 'image' | 'file' => {
 
 @Controller('posts')
 export class PostsController {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(
+    private readonly postsService: PostsService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // Get posts by community - must come before :postId routes
   @Get('community/:communityId')
@@ -41,7 +45,7 @@ export class PostsController {
   @UseGuards(AuthGuard('jwt'))
   @Post('community/:communityId')
   @UseInterceptors(FilesInterceptor('files', 10, { storage })) // Max 5 images + 5 files = 10
-  createPost(
+  async createPost(
     @Param('communityId') communityId: string,
     @Req() req,
     @Body() body: { content: string; title?: string; links?: string; category?: string },
@@ -80,7 +84,7 @@ export class PostsController {
       }
     }
     
-    return this.postsService.create(
+    const post = await this.postsService.create(
       body.content, 
       userId, 
       communityId, 
@@ -90,6 +94,11 @@ export class PostsController {
       links.length > 0 ? links : undefined,
       body.category
     );
+    
+    // Notify followers about new post
+    await this.notificationsService.notifyNewPost(userId, post.id, communityId);
+    
+    return post;
   }
 
   // Delete a comment - specific route before generic :postId
@@ -187,9 +196,21 @@ export class PostsController {
   // Like/Unlike toggle
   @UseGuards(AuthGuard('jwt'))
   @Post(':postId/like')
-  toggleLike(@Param('postId') postId: string, @Req() req) {
+  async toggleLike(@Param('postId') postId: string, @Req() req) {
     const userId = req.user.userId;
-    return this.postsService.toggleLike(postId, userId);
+    const result = await this.postsService.toggleLike(postId, userId);
+    
+    // Send notification if liked (not unliked)
+    if (result.liked && result.post) {
+      await this.notificationsService.notifyLike(
+        result.post.authorId,
+        userId,
+        postId,
+        result.post.communityId,
+      );
+    }
+    
+    return result;
   }
 
   // Save/Unsave toggle
@@ -217,13 +238,35 @@ export class PostsController {
   // Create a comment
   @UseGuards(AuthGuard('jwt'))
   @Post(':postId/comments')
-  createComment(
+  async createComment(
     @Param('postId') postId: string,
     @Req() req,
     @Body() body: { content: string }
   ) {
     const userId = req.user.userId;
-    return this.postsService.createComment(postId, userId, body.content);
+    const comment = await this.postsService.createComment(postId, userId, body.content);
+    
+    // Send notification to post author
+    if (comment.post) {
+      await this.notificationsService.notifyComment(
+        comment.post.authorId,
+        userId,
+        postId,
+        comment.post.communityId,
+        comment.id,
+      );
+      
+      // Process @mentions in the comment
+      await this.notificationsService.processMentions(
+        body.content,
+        userId,
+        postId,
+        comment.post.communityId,
+        comment.id,
+      );
+    }
+    
+    return comment;
   }
 
   // Get link preview metadata
