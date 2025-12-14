@@ -1,11 +1,12 @@
 'use client';
 
-import { Suspense, useEffect, useState, forwardRef } from 'react';
+import { Suspense, useEffect, useState, forwardRef, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { jwtDecode } from 'jwt-decode';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { he } from 'date-fns/locale';
+import { getMonth, getYear } from 'date-fns';
 import { 
   FaCalendarAlt, 
   FaPlus, 
@@ -27,8 +28,28 @@ import {
   FaChevronDown
 } from 'react-icons/fa';
 
-// Register Hebrew locale for DatePicker
-registerLocale('he', he);
+// Short Hebrew day names for calendar - return single letter based on day name
+const formatWeekDay = (nameOfDay: string) => {
+  // Map by first letter or known patterns
+  const name = nameOfDay.toLowerCase();
+  if (name.startsWith('su') || name.includes('ראשון')) return "א'";
+  if (name.startsWith('mo') || name.includes('שני')) return "ב'";
+  if (name.startsWith('tu') || name.includes('שלישי')) return "ג'";
+  if (name.startsWith('we') || name.includes('רביעי')) return "ד'";
+  if (name.startsWith('th') || name.includes('חמישי')) return "ה'";
+  if (name.startsWith('fr') || name.includes('שישי')) return "ו'";
+  if (name.startsWith('sa') || name.includes('שבת')) return "ש'";
+  return "א'";
+};
+
+// Hebrew month names
+const hebrewMonths = [
+  'ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
+  'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'
+];
+
+// Years range
+const years = Array.from({ length: 20 }, (_, i) => getYear(new Date()) - 5 + i);
 
 // Generate time options with 15-minute intervals
 const generateTimeOptions = () => {
@@ -45,186 +66,241 @@ const generateTimeOptions = () => {
 
 const timeOptions = generateTimeOptions();
 
-// Auto-format date input as user types (e.g., "21124" -> "02/11/2024")
-const formatDateInput = (value: string): string => {
-  // Remove all non-digits
-  const digits = value.replace(/\D/g, '');
+// Validate if a date is real (e.g., Feb 30 is invalid)
+const isValidDate = (day: number, month: number, year: number): boolean => {
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  if (year < 1900 || year > 2100) return false;
   
-  if (digits.length === 0) return '';
-  
-  let day = '';
-  let month = '';
-  let year = '';
-  
-  if (digits.length >= 1) {
-    day = digits.slice(0, Math.min(2, digits.length));
-  }
-  if (digits.length >= 3) {
-    month = digits.slice(2, Math.min(4, digits.length));
-  }
-  if (digits.length >= 5) {
-    year = digits.slice(4, Math.min(8, digits.length));
-  }
-  
-  // Pad with zeros for display
-  if (digits.length >= 2 && day.length === 1) day = '0' + day;
-  if (digits.length >= 4 && month.length === 1) month = '0' + month;
-  
-  let result = day;
-  if (month) result += '/' + month;
-  if (year) result += '/' + year;
-  
-  return result;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  return day <= daysInMonth;
 };
 
-// Parse formatted date to YYYY-MM-DD for state
-const parseDateToISO = (formatted: string): string => {
-  const parts = formatted.split('/');
-  if (parts.length === 3 && parts[2].length === 4) {
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const year = parts[2];
-    return `${year}-${month}-${day}`;
+// Get current time rounded to nearest 15 minutes
+const getCurrentTimeRounded = (): string => {
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = Math.ceil(now.getMinutes() / 15) * 15;
+  
+  if (minutes === 60) {
+    return `${(hours + 1).toString().padStart(2, '0')}:00`;
   }
-  return '';
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
-// Custom Date Input Component with separate icon click
-function DateInput({ 
-  value, 
-  onChange, 
-  onIconClick 
-}: { 
-  value: string; 
+// Custom Date Input Component - simple text input with formatting
+function DateInput({
+  value,
+  onChange,
+  onIconClick,
+}: {
+  value: string;
   onChange: (dateISO: string, formatted: string) => void;
   onIconClick: () => void;
 }) {
-  const [displayValue, setDisplayValue] = useState(() => {
-    if (value) {
-      const d = new Date(value);
-      if (!isNaN(d.getTime())) {
-        const day = d.getDate().toString().padStart(2, '0');
-        const month = (d.getMonth() + 1).toString().padStart(2, '0');
-        const year = d.getFullYear();
-        return `${day}/${month}/${year}`;
-      }
-    }
-    return '';
-  });
-  
+  const [inputValue, setInputValue] = useState('');
+
+  // Initialize from value prop
   useEffect(() => {
     if (value) {
       const d = new Date(value);
       if (!isNaN(d.getTime())) {
         const day = d.getDate().toString().padStart(2, '0');
         const month = (d.getMonth() + 1).toString().padStart(2, '0');
-        const year = d.getFullYear();
-        setDisplayValue(`${day}/${month}/${year}`);
+        const year = d.getFullYear().toString();
+        setInputValue(`${day}/${month}/${year}`);
       }
+    } else {
+      setInputValue('');
     }
   }, [value]);
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const formatted = formatDateInput(raw);
-    setDisplayValue(formatted);
+    let val = e.target.value;
     
-    const isoDate = parseDateToISO(formatted);
-    if (isoDate) {
-      onChange(isoDate, formatted);
-    } else if (formatted === '') {
+    // Remove non-digits except slashes
+    let digitsOnly = val.replace(/[^\d]/g, '');
+    
+    // Validate as we type
+    if (digitsOnly.length >= 1) {
+      const firstDigit = parseInt(digitsOnly[0]);
+      if (firstDigit > 3) digitsOnly = '0' + digitsOnly; // Auto-prefix day
+    }
+    if (digitsOnly.length >= 2) {
+      const day = parseInt(digitsOnly.slice(0, 2));
+      if (day > 31) digitsOnly = '31' + digitsOnly.slice(2);
+      if (day === 0) digitsOnly = '01' + digitsOnly.slice(2);
+    }
+    if (digitsOnly.length >= 3) {
+      const thirdDigit = parseInt(digitsOnly[2]);
+      if (thirdDigit > 1) digitsOnly = digitsOnly.slice(0, 2) + '0' + digitsOnly.slice(2); // Auto-prefix month
+    }
+    if (digitsOnly.length >= 4) {
+      const month = parseInt(digitsOnly.slice(2, 4));
+      if (month > 12) digitsOnly = digitsOnly.slice(0, 2) + '12' + digitsOnly.slice(4);
+      if (month === 0) digitsOnly = digitsOnly.slice(0, 2) + '01' + digitsOnly.slice(4);
+    }
+    if (digitsOnly.length >= 5) {
+      const yearStart = parseInt(digitsOnly[4]);
+      if (yearStart !== 2) digitsOnly = digitsOnly.slice(0, 4) + '2' + digitsOnly.slice(5);
+    }
+    
+    // Format as dd/mm/yyyy
+    let formatted = '';
+    for (let i = 0; i < digitsOnly.length && i < 8; i++) {
+      if (i === 2 || i === 4) formatted += '/';
+      formatted += digitsOnly[i];
+    }
+    
+    setInputValue(formatted);
+    
+    // Parse and validate when complete
+    if (digitsOnly.length === 8) {
+      const day = parseInt(digitsOnly.slice(0, 2));
+      const month = parseInt(digitsOnly.slice(2, 4));
+      const year = parseInt(digitsOnly.slice(4, 8));
+      const currentYear = new Date().getFullYear();
+      
+      if (isValidDate(day, month, year) && year >= currentYear - 5 && year <= currentYear + 14) {
+        const isoDate = `${year}-${digitsOnly.slice(2, 4)}-${digitsOnly.slice(0, 2)}`;
+        onChange(isoDate, formatted);
+      } else {
+        onChange('', '');
+      }
+    } else {
       onChange('', '');
     }
   };
-  
+
   return (
     <div className="relative">
       <input
         type="text"
-        value={displayValue}
+        value={inputValue}
         onChange={handleChange}
         placeholder="dd/mm/yyyy"
-        className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black bg-white"
+        maxLength={10}
+        className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black bg-white text-right"
+        dir="ltr"
       />
-      <FaCalendarAlt 
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600"
+      <FaCalendarAlt
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600"
         onClick={onIconClick}
       />
     </div>
   );
 }
 
-// Auto-format time input as user types (e.g., "930" -> "09:30")
-const formatTimeInput = (value: string): string => {
-  const digits = value.replace(/\D/g, '');
-  
-  if (digits.length === 0) return '';
-  
-  let hours = '';
-  let minutes = '';
-  
-  if (digits.length >= 1) {
-    hours = digits.slice(0, Math.min(2, digits.length));
-  }
-  if (digits.length >= 3) {
-    minutes = digits.slice(2, Math.min(4, digits.length));
-  }
-  
-  // Pad with zeros
-  if (digits.length >= 2 && hours.length === 1) hours = '0' + hours;
-  if (digits.length >= 4 && minutes.length === 1) minutes = '0' + minutes;
-  
-  let result = hours;
-  if (minutes || digits.length > 2) result += ':' + minutes;
-  
-  return result;
-};
-
-// Custom Time Picker Component
-function TimePicker({ 
-  value, 
-  onChange 
-}: { 
-  value: string; 
+// Custom Time Picker Component - simple text input with dropdown
+function TimePicker({
+  value,
+  onChange,
+}: {
+  value: string;
   onChange: (time: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const formatted = formatTimeInput(raw);
-    if (formatted.length <= 5) {
-      onChange(formatted);
+  const [inputValue, setInputValue] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Initialize from value prop
+  useEffect(() => {
+    if (value) {
+      setInputValue(value);
+    } else {
+      setInputValue('');
+    }
+  }, [value]);
+
+  // Scroll to current time when dropdown opens
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const currentTime = value || getCurrentTimeRounded();
+      const index = timeOptions.findIndex((t) => t >= currentTime);
+      if (index > 0) {
+        const scrollPosition = Math.max(0, (index - 2) * 40);
+        dropdownRef.current.scrollTop = scrollPosition;
+      }
+    }
+  }, [isOpen, value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+
+    // Remove non-digits except colon
+    let digitsOnly = val.replace(/[^\d]/g, '');
+
+    // Validate as we type
+    if (digitsOnly.length >= 1) {
+      const firstDigit = parseInt(digitsOnly[0]);
+      if (firstDigit > 2) digitsOnly = '0' + digitsOnly; // Auto-prefix hour
+    }
+    if (digitsOnly.length >= 2) {
+      const hours = parseInt(digitsOnly.slice(0, 2));
+      if (hours > 23) digitsOnly = '23' + digitsOnly.slice(2);
+    }
+    if (digitsOnly.length >= 3) {
+      const thirdDigit = parseInt(digitsOnly[2]);
+      if (thirdDigit > 5) digitsOnly = digitsOnly.slice(0, 2) + '0' + digitsOnly.slice(2); // Auto-prefix minute
+    }
+    if (digitsOnly.length >= 4) {
+      const minutes = parseInt(digitsOnly.slice(2, 4));
+      if (minutes > 59) digitsOnly = digitsOnly.slice(0, 2) + '59';
+    }
+
+    // Limit to 4 digits
+    digitsOnly = digitsOnly.slice(0, 4);
+
+    // Format as HH:MM
+    let formatted = '';
+    for (let i = 0; i < digitsOnly.length; i++) {
+      if (i === 2) formatted += ':';
+      formatted += digitsOnly[i];
+    }
+
+    setInputValue(formatted);
+
+    // Parse and validate when complete
+    if (digitsOnly.length === 4) {
+      const hours = parseInt(digitsOnly.slice(0, 2));
+      const minutes = parseInt(digitsOnly.slice(2, 4));
+
+      if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+        onChange(formatted);
+      }
     }
   };
-  
+
   return (
     <div className="relative">
       <input
         type="text"
-        value={value}
-        onChange={handleInputChange}
-        placeholder="00:00"
-        className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black bg-white"
+        value={inputValue}
+        onChange={handleChange}
+        placeholder="hh:mm"
+        maxLength={5}
+        className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black bg-white text-right"
+        dir="ltr"
       />
-      <FaClock 
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600"
+      <FaClock
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600"
         onClick={() => setIsOpen(!isOpen)}
       />
-      
+
       {isOpen && (
         <>
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div
+            ref={dropdownRef}
+            className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
+          >
             {timeOptions.map((time) => (
               <button
                 key={time}
                 type="button"
                 onClick={() => {
                   onChange(time);
+                  setInputValue(time);
                   setIsOpen(false);
                 }}
                 className={`w-full px-4 py-2 text-right hover:bg-gray-100 transition ${
@@ -1448,7 +1524,7 @@ function AddEventModal({
               {showDatePicker && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
-                  <div className="absolute top-full left-0 mt-1 z-50">
+                  <div className="absolute top-full right-0 mt-1 z-50">
                     <DatePicker
                       selected={date ? new Date(date) : new Date()}
                       onChange={(d: Date | null) => {
@@ -1457,9 +1533,55 @@ function AddEventModal({
                       }}
                       inline
                       locale="he"
-                      showMonthDropdown
-                      showYearDropdown
-                      dropdownMode="select"
+                      formatWeekDay={formatWeekDay}
+                      renderCustomHeader={({
+                        date: headerDate,
+                        changeYear,
+                        changeMonth,
+                        decreaseMonth,
+                        increaseMonth,
+                        prevMonthButtonDisabled,
+                        nextMonthButtonDisabled,
+                      }) => (
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={decreaseMonth}
+                            disabled={prevMonthButtonDisabled}
+                            className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
+                          >
+                            <FaChevronRight className="w-4 h-4" />
+                          </button>
+                          <div className="flex gap-3">
+                            <select
+                              value={getMonth(headerDate)}
+                              onChange={({ target: { value } }) => changeMonth(Number(value))}
+                              className="px-3 py-1.5 border border-gray-200 rounded text-sm font-semibold bg-white cursor-pointer"
+                            >
+                              {hebrewMonths.map((month, i) => (
+                                <option key={month} value={i}>{month}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={getYear(headerDate)}
+                              onChange={({ target: { value } }) => changeYear(Number(value))}
+                              className="px-3 py-1.5 border border-gray-200 rounded text-sm font-semibold bg-white cursor-pointer min-w-[5rem]"
+                            >
+                              {years.map((year) => (
+                                <option key={year} value={year}>{year}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={increaseMonth}
+                            disabled={nextMonthButtonDisabled}
+                            className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
+                          >
+                            <FaChevronLeft className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     />
                   </div>
                 </>
@@ -1850,7 +1972,7 @@ function EditEventModal({
               {showDatePicker && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
-                  <div className="absolute top-full left-0 mt-1 z-50">
+                  <div className="absolute top-full right-0 mt-1 z-50">
                     <DatePicker
                       selected={date ? new Date(date) : new Date()}
                       onChange={(d: Date | null) => {
@@ -1859,9 +1981,55 @@ function EditEventModal({
                       }}
                       inline
                       locale="he"
-                      showMonthDropdown
-                      showYearDropdown
-                      dropdownMode="select"
+                      formatWeekDay={formatWeekDay}
+                      renderCustomHeader={({
+                        date: headerDate,
+                        changeYear,
+                        changeMonth,
+                        decreaseMonth,
+                        increaseMonth,
+                        prevMonthButtonDisabled,
+                        nextMonthButtonDisabled,
+                      }) => (
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={decreaseMonth}
+                            disabled={prevMonthButtonDisabled}
+                            className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
+                          >
+                            <FaChevronRight className="w-4 h-4" />
+                          </button>
+                          <div className="flex gap-3">
+                            <select
+                              value={getMonth(headerDate)}
+                              onChange={({ target: { value } }) => changeMonth(Number(value))}
+                              className="px-3 py-1.5 border border-gray-200 rounded text-sm font-semibold bg-white cursor-pointer"
+                            >
+                              {hebrewMonths.map((month, i) => (
+                                <option key={month} value={i}>{month}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={getYear(headerDate)}
+                              onChange={({ target: { value } }) => changeYear(Number(value))}
+                              className="px-3 py-1.5 border border-gray-200 rounded text-sm font-semibold bg-white cursor-pointer min-w-[5rem]"
+                            >
+                              {years.map((year) => (
+                                <option key={year} value={year}>{year}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={increaseMonth}
+                            disabled={nextMonthButtonDisabled}
+                            className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
+                          >
+                            <FaChevronLeft className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     />
                   </div>
                 </>
