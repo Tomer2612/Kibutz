@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AppService {
-  getHello(): string {
-    return 'Hello World!';
+  getHealth() {
+    return {
+      status: 'ok',
+      name: 'Kibutz API',
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+    };
   }
 }
