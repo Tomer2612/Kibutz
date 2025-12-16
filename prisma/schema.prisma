@@ -32,6 +32,7 @@ model User {
   notifyNewPosts           Boolean           @default(true)
   notifyMentions           Boolean           @default(true)
   notifyCommunityJoins     Boolean           @default(true)
+  notifyMessages           Boolean           @default(true)
   posts                    Post[]
   communities              Community[]
   likes                    Like[]

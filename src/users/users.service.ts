@@ -190,6 +190,7 @@ export class UsersService {
         notifyNewPosts: true,
         notifyMentions: true,
         notifyCommunityJoins: true,
+        notifyMessages: true,
       },
     });
 
@@ -207,6 +208,7 @@ export class UsersService {
     notifyNewPosts?: boolean;
     notifyMentions?: boolean;
     notifyCommunityJoins?: boolean;
+    notifyMessages?: boolean;
   }) {
     const user = await this.findByIdOrEmail(userId);
     if (!user) {
@@ -223,6 +225,7 @@ export class UsersService {
         notifyNewPosts: true,
         notifyMentions: true,
         notifyCommunityJoins: true,
+        notifyMessages: true,
       },
     });
   }

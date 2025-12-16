@@ -295,7 +295,7 @@ export default function ChatWidget() {
           setIsOpen(!isOpen);
           if (!isOpen) fetchConversations();
         }}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-[#8B4513] text-white rounded-full shadow-lg hover:bg-[#723A10] transition-all z-50 flex items-center justify-center"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-[#3B82F6] text-white rounded-full shadow-lg hover:bg-[#2563EB] transition-all z-50 flex items-center justify-center"
       >
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -311,7 +311,7 @@ export default function ChatWidget() {
       {/* Conversations Panel */}
       {isOpen && (
         <div className="fixed bottom-24 right-6 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
-          <div className="bg-[#8B4513] text-white px-4 py-3 flex items-center justify-between">
+          <div className="bg-[#3B82F6] text-white px-4 py-3 flex items-center justify-between">
             <h3 className="font-bold">הודעות</h3>
             <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 rounded p-1">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -323,7 +323,7 @@ export default function ChatWidget() {
           <div className="max-h-96 overflow-y-auto">
             {loading ? (
               <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8B4513]"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#3B82F6]"></div>
               </div>
             ) : conversations.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -345,10 +345,10 @@ export default function ChatWidget() {
                           alt={other.name}
                           width={40}
                           height={40}
-                          className="rounded-full object-cover"
+                          className="w-10 h-10 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-10 h-10 bg-[#8B4513] rounded-full flex items-center justify-center text-white font-bold">
+                        <div className="w-10 h-10 bg-[#3B82F6] rounded-full flex items-center justify-center text-white font-bold">
                           {other.name.charAt(0)}
                         </div>
                       )}
@@ -464,10 +464,10 @@ function ChatWindow({
             alt={chat.recipientName}
             width={24}
             height={24}
-            className="rounded-full object-cover"
+            className="w-6 h-6 rounded-full object-cover"
           />
         ) : (
-          <div className="w-6 h-6 bg-[#8B4513] rounded-full flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-6 h-6 bg-[#3B82F6] rounded-full flex items-center justify-center text-white text-xs font-bold">
             {chat.recipientName.charAt(0)}
           </div>
         )}
@@ -487,10 +487,10 @@ function ChatWindow({
               alt={chat.recipientName}
               width={32}
               height={32}
-              className="rounded-full object-cover"
+              className="w-8 h-8 rounded-full object-cover"
             />
           ) : (
-            <div className="w-8 h-8 bg-[#8B4513] rounded-full flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-8 h-8 bg-[#3B82F6] rounded-full flex items-center justify-center text-white font-bold text-sm">
               {chat.recipientName.charAt(0)}
             </div>
           )}
@@ -514,7 +514,7 @@ function ChatWindow({
       <div className="flex-1 h-72 overflow-y-auto p-3 space-y-2 bg-gray-50">
         {chat.isLoading ? (
           <div className="flex justify-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8B4513]"></div>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#3B82F6]"></div>
           </div>
         ) : chat.messages.length === 0 ? (
           <div className="text-center text-gray-400 text-sm py-8">
@@ -527,7 +527,7 @@ function ChatWindow({
               <div key={msg.id} className={`flex ${isOwn ? 'justify-start' : 'justify-end'}`}>
                 <div className={`max-w-[75%] rounded-2xl px-3 py-2 ${
                   isOwn 
-                    ? 'bg-[#8B4513] text-white rounded-br-sm' 
+                    ? 'bg-[#3B82F6] text-white rounded-br-sm' 
                     : 'bg-white text-gray-900 rounded-bl-sm shadow-sm'
                 }`}>
                   <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
@@ -549,13 +549,13 @@ function ChatWindow({
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="הקלד הודעה..."
-          className="flex-1 border border-gray-300 rounded-full px-3 py-1.5 text-sm focus:outline-none focus:border-[#8B4513]"
+          className="flex-1 border border-gray-300 rounded-full px-3 py-1.5 text-sm focus:outline-none focus:border-[#3B82F6]"
           disabled={sending}
         />
         <button
           type="submit"
           disabled={!message.trim() || sending}
-          className="w-8 h-8 bg-[#8B4513] text-white rounded-full flex items-center justify-center hover:bg-[#723A10] transition-colors disabled:opacity-50"
+          className="w-8 h-8 bg-[#3B82F6] text-white rounded-full flex items-center justify-center hover:bg-[#2563EB] transition-colors disabled:opacity-50"
         >
           {sending ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

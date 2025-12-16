@@ -115,6 +115,7 @@ export class UsersController {
       notifyNewPosts?: boolean;
       notifyMentions?: boolean;
       notifyCommunityJoins?: boolean;
+      notifyMessages?: boolean;
     },
   ) {
     return this.usersService.updateNotificationPreferences(req.user.userId, body);

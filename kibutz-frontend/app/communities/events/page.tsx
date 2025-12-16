@@ -1004,7 +1004,7 @@ function EventsPageContent() {
                     )}
                   </div>
                   
-                  {/* Today Button */}
+                  {/* Today Button - Blue Badge */}
                   <button
                     onClick={() => {
                       const today = new Date();
@@ -1012,9 +1012,14 @@ function EventsPageContent() {
                       setSelectedDate(today);
                       fetchEventsForMonth(today.getFullYear(), today.getMonth() + 1);
                     }}
-                    className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition border border-gray-200"
+                    className={`group w-10 h-10 rounded-xl flex items-center justify-center transition shadow-md ${
+                      currentDate.toDateString() === new Date().toDateString()
+                        ? 'bg-blue-600 hover:bg-blue-700'
+                        : 'bg-blue-300 hover:bg-blue-400'
+                    }`}
+                    title="היום"
                   >
-                    היום
+                    <span className="text-lg font-bold text-white">{new Date().getDate()}</span>
                   </button>
                 </div>
                 

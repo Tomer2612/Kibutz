@@ -107,6 +107,7 @@ export default function SettingsPage() {
   const [notifyNewPosts, setNotifyNewPosts] = useState(true);
   const [notifyMentions, setNotifyMentions] = useState(true);
   const [notifyCommunityJoins, setNotifyCommunityJoins] = useState(true);
+  const [notifyMessages, setNotifyMessages] = useState(true);
   const [savingNotifications, setSavingNotifications] = useState(false);
   
   // Form state
@@ -181,6 +182,7 @@ export default function SettingsPage() {
           setNotifyNewPosts(data.notifyNewPosts ?? true);
           setNotifyMentions(data.notifyMentions ?? true);
           setNotifyCommunityJoins(data.notifyCommunityJoins ?? true);
+          setNotifyMessages(data.notifyMessages ?? true);
         })
         .catch(console.error);
     } catch (e) {
@@ -264,6 +266,7 @@ export default function SettingsPage() {
           notifyNewPosts,
           notifyMentions,
           notifyCommunityJoins,
+          notifyMessages,
         }),
       });
       
@@ -368,6 +371,7 @@ export default function SettingsPage() {
           notifyNewPosts,
           notifyMentions,
           notifyCommunityJoins,
+          notifyMessages,
         }),
       });
 
@@ -1026,6 +1030,25 @@ export default function SettingsPage() {
                       type="checkbox"
                       checked={notifyCommunityJoins}
                       onChange={(e) => setNotifyCommunityJoins(e.target.checked)}
+                      className="w-5 h-5 accent-black"
+                    />
+                  </label>
+
+                  {/* Direct Messages */}
+                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                        <span className="text-lg">✉️</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">הודעות פרטיות</p>
+                        <p className="text-sm text-gray-500">קבל התראה כשמישהו שולח לך הודעה</p>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifyMessages}
+                      onChange={(e) => setNotifyMessages(e.target.checked)}
                       className="w-5 h-5 accent-black"
                     />
                   </label>
