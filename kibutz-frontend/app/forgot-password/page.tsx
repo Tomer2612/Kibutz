@@ -74,16 +74,25 @@ export default function ForgotPasswordPage() {
           הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה
         </p>
 
-        <div className="relative">
-          <FaEnvelope className="absolute right-3 top-3 text-gray-400" />
-          <input
-            type="email"
-            placeholder="כתובת אימייל"
-            className="w-full p-2 pr-10 border border-gray-300 rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+        <div>
+          <div className="relative">
+            <FaEnvelope className="absolute right-3 top-3 text-gray-400" />
+            <input
+              id="forgot-email"
+              type="email"
+              placeholder="כתובת אימייל"
+              className={`w-full p-2 pr-10 border rounded ${
+                error ? 'border-red-400' : 'border-gray-300'
+              }`}
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError('');
+              }}
+              required
+            />
+          </div>
+          {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
         </div>
 
         <button
@@ -93,8 +102,6 @@ export default function ForgotPasswordPage() {
         >
           {loading ? 'שולח...' : 'שלח קישור איפוס'}
         </button>
-
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
 
         <p className="text-center text-sm mt-2">
           <a href="/login" className="text-black underline">

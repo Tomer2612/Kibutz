@@ -125,7 +125,7 @@ export default function SupportPage() {
   return (
     <main className="min-h-screen bg-gray-100" dir="rtl">
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
         <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
           Kibutz
         </Link>

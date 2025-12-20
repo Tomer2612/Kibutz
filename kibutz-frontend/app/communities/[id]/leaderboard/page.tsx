@@ -153,7 +153,7 @@ export default function LeaderboardPage() {
   return (
     <main className="min-h-screen bg-gray-100 text-right" dir="rtl">
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
         {/* Right side: Logo + Community */}
         <div className="flex items-center gap-6">
           <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
@@ -179,7 +179,7 @@ export default function LeaderboardPage() {
         <nav className="flex items-center gap-4">
           {[
             { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
-            { label: 'קורס', href: '#' },
+            { label: 'קורסים', href: `/communities/${communityId}/courses` },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
             { label: 'יומן אירועים', href: `/communities/events?communityId=${communityId}` },
             { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard`, active: true },

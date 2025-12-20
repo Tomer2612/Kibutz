@@ -209,7 +209,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-100 text-right">
       {/* Header */}
-      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
         <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
           Kibutz
         </Link>
@@ -313,7 +313,7 @@ export default function Home() {
       {/* Title + CTA */}
       <section className="text-center mb-8 mt-12">
         <h1 className="text-5xl font-bold text-black mb-3">
-          מאגר קהילות הגדול בארץ
+          מאגר הקהילות הגדול בארץ
         </h1>
         <p className="text-gray-600 text-lg">
           חפשו, הצטרפו או צרו קהילה לפי תחומי עניין.

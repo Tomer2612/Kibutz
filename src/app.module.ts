@@ -9,11 +9,12 @@ import { PostsModule } from './posts/posts.module';
 import { EventsModule } from './events/events.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MessagesModule } from './messages/messages.module';
+import { CoursesModule } from './courses/courses.module';
 import { ActivityMiddleware } from './common/activity.middleware';
 
 
 @Module({
-  imports: [UsersModule, AuthModule, CommunitiesModule, PostsModule, EventsModule, NotificationsModule, MessagesModule],
+  imports: [UsersModule, AuthModule, CommunitiesModule, PostsModule, EventsModule, NotificationsModule, MessagesModule, CoursesModule],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })

@@ -438,11 +438,18 @@ export class PostsService {
 
   async getLinkPreview(url: string) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; Kibutz/1.0; +http://kibutz.com)',
         },
+        redirect: 'follow',
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error('Failed to fetch URL');

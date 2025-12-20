@@ -501,7 +501,7 @@ export default function SettingsPage() {
   return (
     <main className="min-h-screen bg-gray-100 text-right">
       {/* Header */}
-      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
         <div className="flex items-center gap-4">
           <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
             Kibutz

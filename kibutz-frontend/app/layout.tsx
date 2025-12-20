@@ -27,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="he" dir="rtl" className={`${notoSerifHebrew.variable} ${assistant.variable}`}>
-      <body className="bg-gray-100 text-right font-sans antialiased min-h-screen">
+    <html lang="he" dir="rtl" className={`${notoSerifHebrew.variable} ${assistant.variable}`} suppressHydrationWarning>
+      <body className="bg-gray-100 text-right font-sans antialiased min-h-screen" suppressHydrationWarning>
         <ClientProviders>
           {children}
         </ClientProviders>

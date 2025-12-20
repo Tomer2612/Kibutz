@@ -44,6 +44,9 @@ export default function SignupPage() {
   const [emailChecking, setEmailChecking] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nameError, setNameError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
   // Check password strength (based on suggestions met)
   const requirementsMet = passwordRequirements.filter(req => req.test(password)).length;
@@ -103,28 +106,44 @@ export default function SignupPage() {
     return 'חזקה מאוד';
   };
 
+  const scrollToFirstError = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.focus();
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setNameError('');
+    setEmailError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
 
-    // Validate all fields
+    // Validate all fields with inline errors
     if (!name.trim()) {
-      setMessage('יש להזין שם מלא');
+      setNameError('יש להזין שם מלא');
+      scrollToFirstError('signup-name');
       return;
     }
 
     if (!isValidEmail(email)) {
-      setMessage('כתובת אימייל לא תקינה');
+      setEmailError('כתובת אימייל לא תקינה');
+      scrollToFirstError('signup-email');
       return;
     }
 
     if (!isPasswordValid) {
-      setMessage('הסיסמה לא עומדת בדרישות');
+      setPasswordError('הסיסמה לא עומדת בדרישות');
+      scrollToFirstError('signup-password');
       return;
     }
 
     if (!passwordsMatch) {
-      setMessage('הסיסמאות אינן תואמות');
+      setConfirmPasswordError('הסיסמאות אינן תואמות');
+      scrollToFirstError('signup-confirm-password');
       return;
     }
 
@@ -225,7 +244,7 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen flex flex-col" dir="rtl" style={{ backgroundColor: '#F4F4F5' }}>
       {/* Top Navbar */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
         <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
           Kibutz
         </Link>
@@ -299,16 +318,30 @@ export default function SignupPage() {
                 </div>
 
             {/* Name Field */}
-            <div className="relative">
-              <FaUser className="absolute right-3 top-3.5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="שם מלא"
-                className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-[14px]"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+            <div>
+              <div className="relative">
+                <FaUser className="absolute right-3 top-3.5 text-gray-400" />
+                <input
+                  id="signup-name"
+                  type="text"
+                  placeholder="שם מלא *"
+                  className={`w-full p-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
+                    nameError ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-black'
+                  }`}
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (nameError) setNameError('');
+                  }}
+                  required
+                />
+              </div>
+              {nameError && (
+                <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                  <FaTimes className="w-3 h-3" />
+                  {nameError}
+                </p>
+              )}
             </div>
 
             {/* Email Field */}
@@ -316,8 +349,9 @@ export default function SignupPage() {
               <div className="relative">
                 <HiOutlineMail className="absolute right-3 top-3.5 text-gray-400 pointer-events-none w-5 h-5" />
                 <input
+                  id="signup-email"
                   type="email"
-                  placeholder="כתובת אימייל"
+                  placeholder="כתובת אימייל *"
                   className={`w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
                     emailError 
                       ? 'border-red-400 focus:ring-red-400' 
@@ -367,17 +401,23 @@ export default function SignupPage() {
               <div className="relative">
                 <HiOutlineKey className="absolute right-3 top-3.5 text-gray-400 w-5 h-5" />
                 <input
+                  id="signup-password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="סיסמה"
+                  placeholder="סיסמה *"
                   className={`w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
-                    password && isPasswordValid 
+                    passwordError
+                      ? 'border-red-400 focus:ring-red-400'
+                      : password && isPasswordValid 
                       ? 'border-green-400 focus:ring-green-400' 
                       : password && !isPasswordValid
                       ? 'border-orange-400 focus:ring-orange-400'
                       : 'border-gray-300 focus:ring-black'
                   }`}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) setPasswordError('');
+                  }}
                   onFocus={() => setPasswordFocused(true)}
                   onBlur={() => setPasswordFocused(false)}
                   required
@@ -448,24 +488,36 @@ export default function SignupPage() {
                   )}
                 </div>
               )}
+              {passwordError && (
+                <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                  <FaTimes className="w-3 h-3" />
+                  {passwordError}
+                </p>
+              )}
             </div>
 
-            {/* Confirm Password Field */}
+            {/* Confirm Password Field */}}
             <div>
               <div className="relative">
                 <HiOutlineKey className="absolute right-3 top-3.5 text-gray-400 w-5 h-5" />
                 <input
+                  id="signup-confirm-password"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="אימות סיסמה"
+                  placeholder="אימות סיסמה *"
                   className={`w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
-                    confirmPassword && passwordsMatch 
+                    confirmPasswordError
+                      ? 'border-red-400 focus:ring-red-400'
+                      : confirmPassword && passwordsMatch 
                       ? 'border-green-400 focus:ring-green-400' 
                       : confirmPassword && !passwordsMatch
                       ? 'border-red-400 focus:ring-red-400'
                       : 'border-gray-300 focus:ring-black'
                   }`}
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (confirmPasswordError) setConfirmPasswordError('');
+                  }}
                   required
                 />
                 <button

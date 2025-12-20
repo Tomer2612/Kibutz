@@ -269,7 +269,7 @@ export default function MemberProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
       {/* Header/Navbar - same as homepage */}
-      <header className="w-full flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+      <header className="w-full flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
         {/* Right side: Logo */}
         <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
           Kibutz

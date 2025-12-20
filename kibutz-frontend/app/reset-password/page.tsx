@@ -25,6 +25,8 @@ function ResetPasswordContent() {
   const [status, setStatus] = useState<'form' | 'success' | 'error'>('form');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
   // Check password strength
   const passwordStrength = passwordRequirements.filter(req => req.test(password)).length;
@@ -47,17 +49,29 @@ function ResetPasswordContent() {
     return 'חזקה';
   };
 
+  const scrollToField = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.focus();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
 
     if (!isPasswordValid) {
-      setError('הסיסמה לא עומדת בדרישות');
+      setPasswordError('הסיסמה לא עומדת בדרישות');
+      scrollToField('reset-password');
       return;
     }
 
     if (!passwordsMatch) {
-      setError('הסיסמאות אינן תואמות');
+      setConfirmPasswordError('הסיסמאות אינן תואמות');
+      scrollToField('reset-confirm-password');
       return;
     }
 
@@ -176,17 +190,23 @@ function ResetPasswordContent() {
           <div className="relative">
             <FaLock className="absolute right-3 top-3 text-gray-400" />
             <input
+              id="reset-password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="סיסמה חדשה"
+              placeholder="סיסמה חדשה *"
               className={`w-full p-2 pr-10 pl-10 border rounded focus:outline-none focus:ring-2 ${
-                password && isPasswordValid 
+                passwordError
+                  ? 'border-red-400 focus:ring-red-400'
+                  : password && isPasswordValid 
                   ? 'border-green-400 focus:ring-green-400' 
                   : password && !isPasswordValid
                   ? 'border-orange-400 focus:ring-orange-400'
                   : 'border-gray-300 focus:ring-black'
               }`}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (passwordError) setPasswordError('');
+              }}
               onFocus={() => setPasswordFocused(true)}
               onBlur={() => setPasswordFocused(false)}
               required
@@ -237,24 +257,36 @@ function ResetPasswordContent() {
               )}
             </div>
           )}
+          {passwordError && (
+            <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+              <FaTimes className="w-3 h-3" />
+              {passwordError}
+            </p>
+          )}
         </div>
 
-        {/* Confirm Password Field */}
+        {/* Confirm Password Field */}}
         <div>
           <div className="relative">
             <FaLock className="absolute right-3 top-3 text-gray-400" />
             <input
+              id="reset-confirm-password"
               type={showConfirmPassword ? 'text' : 'password'}
-              placeholder="אימות סיסמה"
+              placeholder="אימות סיסמה *"
               className={`w-full p-2 pr-10 pl-10 border rounded focus:outline-none focus:ring-2 ${
-                confirmPassword && passwordsMatch 
+                confirmPasswordError
+                  ? 'border-red-400 focus:ring-red-400'
+                  : confirmPassword && passwordsMatch 
                   ? 'border-green-400 focus:ring-green-400' 
                   : confirmPassword && !passwordsMatch
                   ? 'border-red-400 focus:ring-red-400'
                   : 'border-gray-300 focus:ring-black'
               }`}
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (confirmPasswordError) setConfirmPasswordError('');
+              }}
               required
             />
             <button
@@ -275,6 +307,12 @@ function ResetPasswordContent() {
             <p className="mt-1 text-sm text-green-500 flex items-center gap-1">
               <FaCheck className="w-3 h-3" />
               הסיסמאות תואמות
+            </p>
+          )}
+          {confirmPasswordError && (
+            <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+              <FaTimes className="w-3 h-3" />
+              {confirmPasswordError}
             </p>
           )}
         </div>

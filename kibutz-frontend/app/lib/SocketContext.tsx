@@ -80,7 +80,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     socket.on('connect_error', (err) => {
-      console.error('WebSocket connection error:', err.message);
+      // Only log in development, and only if it's not a transient error
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('WebSocket connection error:', err.message);
+      }
     });
 
     // Handle new notifications

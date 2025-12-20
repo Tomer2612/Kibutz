@@ -1322,10 +1322,19 @@ export default function CommunityFeedPage() {
     );
   }
 
+  // Show loading while selectedCommunityId is being determined
+  if (!selectedCommunityId) {
+    return (
+      <main className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gray-100 text-right">
       {/* Header with community picker */}
-      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
         {/* Right side of screen (RTL first): Kibutz Logo + Community picker */}
         <div className="flex items-center gap-6">
           <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
@@ -1368,7 +1377,7 @@ export default function CommunityFeedPage() {
         <nav className="flex items-center gap-4">
           {[
             { label: 'עמוד בית', href: `/communities/feed?communityId=${selectedCommunityId}`, active: true },
-            { label: 'קורס', href: '#' },
+            { label: 'קורסים', href: `/communities/${selectedCommunityId}/courses` },
             { label: 'חברי קהילה', href: `/communities/${selectedCommunityId}/members` },
             { label: 'יומן אירועים', href: `/communities/events?communityId=${selectedCommunityId}` },
             { label: 'לוח תוצאות', href: `/communities/${selectedCommunityId}/leaderboard` },
@@ -1557,7 +1566,7 @@ export default function CommunityFeedPage() {
           )}
 
           {/* Category filter pills */}
-          <div className="px-4 py-3 border-b border-gray-100">
+          <div className="px-4 py-3 border-t border-b border-gray-200">
             <h3 className="font-semibold text-gray-900 text-xs mb-2">סינון לפי קטגוריה</h3>
             <div className="flex flex-wrap gap-1.5">
               <button
@@ -1587,7 +1596,7 @@ export default function CommunityFeedPage() {
           </div>
 
           {/* Sorting options */}
-          <div className="px-4 py-3 border-b border-gray-100">
+          <div className="px-4 py-3 border-b border-gray-200">
             <h3 className="font-semibold text-gray-900 text-xs mb-2">מיון לפי</h3>
             <div className="flex flex-wrap gap-1.5">
               <button
@@ -1634,7 +1643,7 @@ export default function CommunityFeedPage() {
           </div>
 
           {/* אזור מצטרפים חדשים */}
-          <div className="px-4 py-3 border-b border-gray-100">
+          <div className="px-4 py-3 border-b border-gray-200">
             <h3 className="font-semibold text-gray-900 text-sm mb-2">אזור מצטרפים חדשים</h3>
             <div className="space-y-1.5 text-sm text-gray-600">
               <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">
@@ -1654,7 +1663,7 @@ export default function CommunityFeedPage() {
           </div>
 
           {/* קהילה */}
-          <div className="px-4 py-3 border-b border-gray-100">
+          <div className="px-4 py-3 border-b border-gray-200">
             <h3 className="font-semibold text-gray-900 text-sm mb-2">קהילה</h3>
             <div className="space-y-1.5 text-sm text-gray-600">
               <a href="#" className="flex items-center gap-2 hover:text-gray-900 py-1">

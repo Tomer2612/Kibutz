@@ -1,0 +1,904 @@
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { PrismaService } from '../users/prisma.service';
+
+@Injectable()
+export class CoursesService {
+  constructor(private prisma: PrismaService) {}
+
+  // Create a new course
+  async createCourse(data: {
+    title: string;
+    description: string;
+    image?: string;
+    communityId: string;
+    authorId: string;
+  }) {
+    // Verify user is owner/manager of community
+    const membership = await this.prisma.communityMember.findUnique({
+      where: {
+        userId_communityId: {
+          userId: data.authorId,
+          communityId: data.communityId,
+        },
+      },
+    });
+
+    const community = await this.prisma.community.findUnique({
+      where: { id: data.communityId },
+    });
+
+    if (!community) {
+      throw new NotFoundException('קהילה לא נמצאה');
+    }
+
+    const isOwner = community.ownerId === data.authorId;
+    const isManager = membership?.role === 'MANAGER';
+
+    if (!isOwner && !isManager) {
+      throw new ForbiddenException('אין לך הרשאה ליצור קורסים בקהילה זו');
+    }
+
+    return this.prisma.course.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        image: data.image,
+        communityId: data.communityId,
+        authorId: data.authorId,
+        isPublished: true, // Publish by default
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, profileImage: true },
+        },
+        _count: {
+          select: { chapters: true, enrollments: true },
+        },
+      },
+    });
+  }
+
+  // Get all courses for a community
+  async getCoursesByCommunity(communityId: string, userId?: string) {
+    // Build where clause - if user is logged in, show their unpublished courses too
+    const whereClause: any = {
+      communityId,
+    };
+
+    if (userId) {
+      whereClause.OR = [
+        { isPublished: true },
+        { authorId: userId }, // Author can see their unpublished courses
+      ];
+    } else {
+      whereClause.isPublished = true;
+    }
+
+    const courses = await this.prisma.course.findMany({
+      where: whereClause,
+      include: {
+        author: {
+          select: { id: true, name: true, profileImage: true },
+        },
+        chapters: {
+          include: {
+            lessons: true,
+          },
+          orderBy: { order: 'asc' },
+        },
+        enrollments: userId ? {
+          where: { userId },
+          take: 1,
+        } : false,
+        _count: {
+          select: { enrollments: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Calculate total lessons and duration for each course
+    return courses.map(course => {
+      const totalLessons = course.chapters.reduce(
+        (sum, chapter) => sum + chapter.lessons.length, 0
+      );
+      const totalDuration = course.chapters.reduce(
+        (sum, chapter) => sum + chapter.lessons.reduce(
+          (lessonSum, lesson) => lessonSum + lesson.duration, 0
+        ), 0
+      );
+      const enrollment = course.enrollments?.[0] || null;
+      
+      return {
+        ...course,
+        totalLessons,
+        totalDuration,
+        enrollment,
+        chapters: undefined, // Don't send full chapter data in list
+      };
+    });
+  }
+
+  // Get user's enrolled courses (in progress and completed)
+  async getUserCourses(userId: string) {
+    const enrollments = await this.prisma.courseEnrollment.findMany({
+      where: { userId },
+      include: {
+        course: {
+          include: {
+            author: {
+              select: { id: true, name: true, profileImage: true },
+            },
+            community: {
+              select: { id: true, name: true },
+            },
+            chapters: {
+              include: {
+                lessons: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { enrolledAt: 'desc' },
+    });
+
+    return enrollments.map(enrollment => {
+      const totalLessons = enrollment.course.chapters.reduce(
+        (sum, chapter) => sum + chapter.lessons.length, 0
+      );
+      const totalDuration = enrollment.course.chapters.reduce(
+        (sum, chapter) => sum + chapter.lessons.reduce(
+          (lessonSum, lesson) => lessonSum + lesson.duration, 0
+        ), 0
+      );
+
+      return {
+        ...enrollment,
+        course: {
+          ...enrollment.course,
+          totalLessons,
+          totalDuration,
+          chapters: undefined,
+        },
+      };
+    });
+  }
+
+  // Get course details with chapters and lessons
+  async getCourseById(courseId: string, userId?: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        author: {
+          select: { id: true, name: true, profileImage: true },
+        },
+        community: {
+          select: { id: true, name: true, ownerId: true },
+        },
+        chapters: {
+          include: {
+            lessons: {
+              include: {
+                quiz: {
+                  include: {
+                    questions: {
+                      include: {
+                        options: {
+                          orderBy: { order: 'asc' },
+                        },
+                      },
+                      orderBy: { order: 'asc' },
+                    },
+                  },
+                },
+              },
+              orderBy: { order: 'asc' },
+            },
+          },
+          orderBy: { order: 'asc' },
+        },
+        _count: {
+          select: { enrollments: true },
+        },
+      },
+    });
+
+    if (!course) {
+      throw new NotFoundException('קורס לא נמצא');
+    }
+
+    // Get user's enrollment and lesson progress if logged in
+    let enrollment: {
+      id: string;
+      userId: string;
+      courseId: string;
+      progress: number;
+      enrolledAt: Date;
+      completedAt: Date | null;
+    } | null = null;
+    let lessonProgress: Record<string, boolean> = {};
+
+    if (userId) {
+      enrollment = await this.prisma.courseEnrollment.findUnique({
+        where: {
+          userId_courseId: { userId, courseId },
+        },
+      });
+
+      const progress = await this.prisma.lessonProgress.findMany({
+        where: {
+          userId,
+          lesson: {
+            chapter: {
+              courseId,
+            },
+          },
+        },
+      });
+
+      lessonProgress = progress.reduce((acc, p) => {
+        acc[p.lessonId] = p.completed;
+        return acc;
+      }, {} as Record<string, boolean>);
+    }
+
+    const totalLessons = course.chapters.reduce(
+      (sum, chapter) => sum + chapter.lessons.length, 0
+    );
+    const totalDuration = course.chapters.reduce(
+      (sum, chapter) => sum + chapter.lessons.reduce(
+        (lessonSum, lesson) => lessonSum + lesson.duration, 0
+      ), 0
+    );
+
+    return {
+      ...course,
+      totalLessons,
+      totalDuration,
+      enrollment,
+      lessonProgress,
+    };
+  }
+
+  // Enroll in a course
+  async enrollInCourse(courseId: string, userId: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new NotFoundException('קורס לא נמצא');
+    }
+
+    // Use upsert to handle race conditions
+    return this.prisma.courseEnrollment.upsert({
+      where: {
+        userId_courseId: { userId, courseId },
+      },
+      update: {}, // No update needed, just return existing
+      create: {
+        userId,
+        courseId,
+      },
+    });
+  }
+
+  // Unenroll from a course
+  async unenrollFromCourse(courseId: string, userId: string) {
+    const enrollment = await this.prisma.courseEnrollment.findUnique({
+      where: {
+        userId_courseId: { userId, courseId },
+      },
+    });
+
+    if (!enrollment) {
+      throw new NotFoundException('לא רשום לקורס זה');
+    }
+
+    // Delete lesson progress for this user and course
+    await this.prisma.lessonProgress.deleteMany({
+      where: {
+        userId,
+        lesson: {
+          chapter: {
+            courseId,
+          },
+        },
+      },
+    });
+
+    // Delete enrollment
+    return this.prisma.courseEnrollment.delete({
+      where: {
+        userId_courseId: { userId, courseId },
+      },
+    });
+  }
+
+  // Mark lesson as complete
+  async completeLesson(lessonId: string, userId: string) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        chapter: {
+          include: {
+            course: true,
+          },
+        },
+      },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('שיעור לא נמצא');
+    }
+
+    // Create or update lesson progress
+    const progress = await this.prisma.lessonProgress.upsert({
+      where: {
+        userId_lessonId: { userId, lessonId },
+      },
+      create: {
+        userId,
+        lessonId,
+        completed: true,
+        completedAt: new Date(),
+      },
+      update: {
+        completed: true,
+        completedAt: new Date(),
+      },
+    });
+
+    // Update course enrollment progress
+    await this.updateCourseProgress(lesson.chapter.courseId, userId);
+
+    return progress;
+  }
+
+  // Mark lesson as incomplete (toggle off)
+  async uncompleteLesson(lessonId: string, userId: string) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        chapter: {
+          include: {
+            course: true,
+          },
+        },
+      },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('שיעור לא נמצא');
+    }
+
+    // Update lesson progress to incomplete
+    const progress = await this.prisma.lessonProgress.upsert({
+      where: {
+        userId_lessonId: { userId, lessonId },
+      },
+      create: {
+        userId,
+        lessonId,
+        completed: false,
+        completedAt: null,
+      },
+      update: {
+        completed: false,
+        completedAt: null,
+      },
+    });
+
+    // Update course enrollment progress
+    await this.updateCourseProgress(lesson.chapter.courseId, userId);
+
+    return progress;
+  }
+
+  // Update overall course progress
+  private async updateCourseProgress(courseId: string, userId: string) {
+    // Get total lessons in course
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        chapters: {
+          include: {
+            lessons: true,
+          },
+        },
+      },
+    });
+
+    if (!course) return;
+
+    const totalLessons = course.chapters.reduce(
+      (sum, chapter) => sum + chapter.lessons.length, 0
+    );
+
+    if (totalLessons === 0) return;
+
+    // Get completed lessons count
+    const completedCount = await this.prisma.lessonProgress.count({
+      where: {
+        userId,
+        completed: true,
+        lesson: {
+          chapter: {
+            courseId,
+          },
+        },
+      },
+    });
+
+    const progress = Math.round((completedCount / totalLessons) * 100);
+    const isComplete = progress === 100;
+
+    await this.prisma.courseEnrollment.update({
+      where: {
+        userId_courseId: { userId, courseId },
+      },
+      data: {
+        progress,
+        completedAt: isComplete ? new Date() : null,
+      },
+    });
+  }
+
+  // Add chapter to course
+  async addChapter(courseId: string, title: string, userId: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new NotFoundException('קורס לא נמצא');
+    }
+
+    if (course.authorId !== userId) {
+      throw new ForbiddenException('אין לך הרשאה לערוך קורס זה');
+    }
+
+    // Get max order
+    const lastChapter = await this.prisma.chapter.findFirst({
+      where: { courseId },
+      orderBy: { order: 'desc' },
+    });
+
+    const order = (lastChapter?.order ?? -1) + 1;
+
+    return this.prisma.chapter.create({
+      data: {
+        title,
+        order,
+        courseId,
+      },
+      include: {
+        lessons: true,
+      },
+    });
+  }
+
+  // Add lesson to chapter
+  async addLesson(chapterId: string, data: {
+    title: string;
+    content?: string;
+    videoUrl?: string;
+    duration?: number;
+    lessonType?: string;
+    images?: string[];
+    files?: any[];
+    links?: string[];
+    contentOrder?: string[];
+    quiz?: {
+      questions: {
+        question: string;
+        questionType: string;
+        order: number;
+        options: {
+          text: string;
+          isCorrect: boolean;
+          order: number;
+        }[];
+      }[];
+    };
+  }, userId: string) {
+    const chapter = await this.prisma.chapter.findUnique({
+      where: { id: chapterId },
+      include: { course: true },
+    });
+
+    if (!chapter) {
+      throw new NotFoundException('פרק לא נמצא');
+    }
+
+    if (chapter.course.authorId !== userId) {
+      throw new ForbiddenException('אין לך הרשאה לערוך קורס זה');
+    }
+
+    // Get max order
+    const lastLesson = await this.prisma.lesson.findFirst({
+      where: { chapterId },
+      orderBy: { order: 'desc' },
+    });
+
+    const order = (lastLesson?.order ?? -1) + 1;
+
+    const lesson = await this.prisma.lesson.create({
+      data: {
+        title: data.title,
+        content: data.content,
+        videoUrl: data.videoUrl,
+        duration: data.duration || 0,
+        order,
+        chapterId,
+        lessonType: data.lessonType || 'content',
+        images: data.images || [],
+        files: data.files || [],
+        links: data.links || [],
+        contentOrder: data.contentOrder || ['video', 'text', 'links', 'images'],
+        ...(data.quiz && data.lessonType === 'quiz' ? {
+          quiz: {
+            create: {
+              questions: {
+                create: data.quiz.questions.map((q, qIndex) => ({
+                  question: q.question,
+                  questionType: q.questionType,
+                  order: q.order ?? qIndex,
+                  options: {
+                    create: q.options.map((o, oIndex) => ({
+                      text: o.text,
+                      isCorrect: o.isCorrect,
+                      order: o.order ?? oIndex,
+                    })),
+                  },
+                })),
+              },
+            },
+          },
+        } : {}),
+      },
+      include: {
+        quiz: {
+          include: {
+            questions: {
+              include: {
+                options: {
+                  orderBy: { order: 'asc' },
+                },
+              },
+              orderBy: { order: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    // Update course total duration
+    await this.updateCourseDuration(chapter.courseId);
+
+    return lesson;
+  }
+
+  // Update course total duration
+  private async updateCourseDuration(courseId: string) {
+    const chapters = await this.prisma.chapter.findMany({
+      where: { courseId },
+      include: { lessons: true },
+    });
+
+    const totalDuration = chapters.reduce(
+      (sum, chapter) => sum + chapter.lessons.reduce(
+        (lessonSum, lesson) => lessonSum + lesson.duration, 0
+      ), 0
+    );
+
+    await this.prisma.course.update({
+      where: { id: courseId },
+      data: { duration: totalDuration },
+    });
+  }
+
+  // Update course
+  async updateCourse(courseId: string, data: {
+    title?: string;
+    description?: string;
+    image?: string;
+    isPublished?: boolean;
+  }, userId: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new NotFoundException('קורס לא נמצא');
+    }
+
+    // Only the course author can edit
+    if (course.authorId !== userId) {
+      throw new ForbiddenException('אין לך הרשאה לערוך קורס זה');
+    }
+
+    return this.prisma.course.update({
+      where: { id: courseId },
+      data,
+      include: {
+        author: {
+          select: { id: true, name: true, profileImage: true },
+        },
+        chapters: {
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+            },
+          },
+          orderBy: { order: 'asc' },
+        },
+      },
+    });
+  }
+
+  // Update chapter
+  async updateChapter(chapterId: string, data: {
+    title?: string;
+    order?: number;
+  }, userId: string) {
+    const chapter = await this.prisma.chapter.findUnique({
+      where: { id: chapterId },
+      include: { course: true },
+    });
+
+    if (!chapter) {
+      throw new NotFoundException('פרק לא נמצא');
+    }
+
+    if (chapter.course.authorId !== userId) {
+      throw new ForbiddenException('אין לך הרשאה לערוך קורס זה');
+    }
+
+    return this.prisma.chapter.update({
+      where: { id: chapterId },
+      data,
+      include: {
+        lessons: {
+          orderBy: { order: 'asc' },
+        },
+      },
+    });
+  }
+
+  // Update lesson
+  async updateLesson(lessonId: string, data: {
+    title?: string;
+    content?: string;
+    videoUrl?: string;
+    duration?: number;
+    order?: number;
+    lessonType?: string;
+    images?: string[];
+    files?: any[];
+    links?: string[];
+    contentOrder?: string[];
+    quiz?: {
+      questions: {
+        id?: string;
+        question: string;
+        questionType: string;
+        order: number;
+        options: {
+          id?: string;
+          text: string;
+          isCorrect: boolean;
+          order: number;
+        }[];
+      }[];
+    };
+  }, userId: string) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        chapter: {
+          include: { course: true },
+        },
+        quiz: true,
+      },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('שיעור לא נמצא');
+    }
+
+    if (lesson.chapter.course.authorId !== userId) {
+      throw new ForbiddenException('אין לך הרשאה לערוך קורס זה');
+    }
+
+    // Handle quiz update separately
+    if (data.quiz && data.lessonType === 'quiz') {
+      // Delete existing quiz if exists
+      if (lesson.quiz) {
+        await this.prisma.lessonQuiz.delete({
+          where: { id: lesson.quiz.id },
+        });
+      }
+      
+      // Create new quiz
+      await this.prisma.lessonQuiz.create({
+        data: {
+          lessonId,
+          questions: {
+            create: data.quiz.questions.map((q, qIndex) => ({
+              question: q.question,
+              questionType: q.questionType,
+              order: q.order ?? qIndex,
+              options: {
+                create: q.options.map((o, oIndex) => ({
+                  text: o.text,
+                  isCorrect: o.isCorrect,
+                  order: o.order ?? oIndex,
+                })),
+              },
+            })),
+          },
+        },
+      });
+    } else if (data.lessonType === 'content' && lesson.quiz) {
+      // If changing from quiz to content, delete the quiz
+      await this.prisma.lessonQuiz.delete({
+        where: { id: lesson.quiz.id },
+      });
+    }
+
+    const updated = await this.prisma.lesson.update({
+      where: { id: lessonId },
+      data: {
+        title: data.title,
+        content: data.content,
+        videoUrl: data.videoUrl,
+        duration: data.duration,
+        order: data.order,
+        lessonType: data.lessonType,
+        images: data.images,
+        files: data.files,
+        links: data.links,
+        contentOrder: data.contentOrder,
+      },
+      include: {
+        quiz: {
+          include: {
+            questions: {
+              include: {
+                options: {
+                  orderBy: { order: 'asc' },
+                },
+              },
+              orderBy: { order: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    // Update course duration if lesson duration changed
+    if (data.duration !== undefined) {
+      await this.updateCourseDuration(lesson.chapter.courseId);
+    }
+
+    return updated;
+  }
+
+  // Delete course
+  async deleteCourse(courseId: string, userId: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      include: { community: true },
+    });
+
+    if (!course) {
+      throw new NotFoundException('קורס לא נמצא');
+    }
+
+    const isOwner = course.community.ownerId === userId;
+    const isAuthor = course.authorId === userId;
+
+    if (!isOwner && !isAuthor) {
+      throw new ForbiddenException('אין לך הרשאה למחוק קורס זה');
+    }
+
+    await this.prisma.course.delete({
+      where: { id: courseId },
+    });
+
+    return { message: 'הקורס נמחק בהצלחה' };
+  }
+
+  // Delete chapter
+  async deleteChapter(chapterId: string, userId: string) {
+    const chapter = await this.prisma.chapter.findUnique({
+      where: { id: chapterId },
+      include: { course: true },
+    });
+
+    if (!chapter) {
+      throw new NotFoundException('פרק לא נמצא');
+    }
+
+    if (chapter.course.authorId !== userId) {
+      throw new ForbiddenException('אין לך הרשאה לערוך קורס זה');
+    }
+
+    await this.prisma.chapter.delete({
+      where: { id: chapterId },
+    });
+
+    return { message: 'הפרק נמחק בהצלחה' };
+  }
+
+  // Delete lesson
+  async deleteLesson(lessonId: string, userId: string) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        chapter: {
+          include: { course: true },
+        },
+      },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('שיעור לא נמצא');
+    }
+
+    if (lesson.chapter.course.authorId !== userId) {
+      throw new ForbiddenException('אין לך הרשאה לערוך קורס זה');
+    }
+
+    await this.prisma.lesson.delete({
+      where: { id: lessonId },
+    });
+
+    // Update course duration
+    await this.updateCourseDuration(lesson.chapter.courseId);
+
+    return { message: 'השיעור נמחק בהצלחה' };
+  }
+
+  // Get lesson by ID
+  async getLessonById(lessonId: string, userId?: string) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        chapter: {
+          include: {
+            course: {
+              select: { id: true, title: true, authorId: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('שיעור לא נמצא');
+    }
+
+    let progress: {
+      id: string;
+      lessonId: string;
+      userId: string;
+      completed: boolean;
+      completedAt: Date | null;
+    } | null = null;
+    if (userId) {
+      progress = await this.prisma.lessonProgress.findUnique({
+        where: {
+          userId_lessonId: { userId, lessonId },
+        },
+      });
+    }
+
+    return {
+      ...lesson,
+      isCompleted: progress?.completed || false,
+    };
+  }
+}

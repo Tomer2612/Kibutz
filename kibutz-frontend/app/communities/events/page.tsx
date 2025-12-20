@@ -774,7 +774,7 @@ function EventsPageContent() {
   return (
     <div className="min-h-screen bg-gray-100" dir="rtl">
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
         {/* Right side of screen (RTL first): Kibutz Logo + Community name */}
         <div className="flex items-center gap-6">
           <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
@@ -800,11 +800,12 @@ function EventsPageContent() {
         <nav className="flex items-center gap-4">
           {[
             { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}`, active: false },
-            { label: 'קורס', href: '#' },
+            { label: 'קורסים', href: `/communities/${communityId}/courses` },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
             { label: 'יומן אירועים', href: `/communities/events?communityId=${communityId}`, active: true },
             { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${communityId}/about` },
+            ...(isManager ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] : []),
           ].map((link) => (
             <Link
               key={link.label}

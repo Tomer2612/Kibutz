@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import { HiOutlineMail, HiOutlineKey } from 'react-icons/hi';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,10 +15,22 @@ export default function LoginPage() {
   const [messageType, setMessageType] = useState<'error' | 'info'>('error');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const scrollToField = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.focus();
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setEmailError('');
+    setPasswordError('');
     setIsSubmitting(true);
 
     try {
@@ -34,14 +46,14 @@ export default function LoginPage() {
         localStorage.setItem('token', data.access_token);
         router.push('/');
       } else {
-        // Parse specific error messages
+        // Parse specific error messages and show inline
         const errorMsg = data.message || '';
         if (errorMsg.includes('User not found') || errorMsg.includes('not found')) {
-          setMessage('לא נמצא חשבון עם כתובת אימייל זו');
-          setMessageType('error');
+          setEmailError('לא נמצא חשבון עם כתובת אימייל זו');
+          scrollToField('login-email');
         } else if (errorMsg.includes('Incorrect password') || errorMsg.includes('password')) {
-          setMessage('הסיסמה שגויה');
-          setMessageType('error');
+          setPasswordError('הסיסמה שגויה');
+          scrollToField('login-password');
         } else {
           setMessage('ההתחברות נכשלה. אנא בדוק את הפרטים ונסה שוב');
           setMessageType('error');
@@ -59,7 +71,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex flex-col" dir="rtl" style={{ backgroundColor: '#F4F4F5' }}>
       {/* Top Navbar */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
         <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
           Kibutz
         </Link>
@@ -94,36 +106,64 @@ export default function LoginPage() {
                 </div>
 
                 {/* Email Field */}
-                <div className="relative">
-                  <HiOutlineMail className="absolute right-3 top-3.5 text-gray-400 pointer-events-none w-5 h-5" />
-                  <input
-                    type="email"
-                    placeholder="כתובת אימייל"
-                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-[14px]"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
+                <div>
+                  <div className="relative">
+                    <HiOutlineMail className="absolute right-3 top-3.5 text-gray-400 pointer-events-none w-5 h-5" />
+                    <input
+                      id="login-email"
+                      type="email"
+                      placeholder="כתובת אימייל"
+                      className={`w-full p-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
+                        emailError ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-black'
+                      }`}
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (emailError) setEmailError('');
+                      }}
+                      required
+                    />
+                  </div>
+                  {emailError && (
+                    <div className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                      <FaTimes className="w-3 h-3" />
+                      <p>{emailError}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Password Field */}
-                <div className="relative">
-                  <HiOutlineKey className="absolute right-3 top-3.5 text-gray-400 w-5 h-5" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="סיסמה"
-                    className="w-full p-3 pr-10 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-[14px]"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-3.5 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                  </button>
+                <div>
+                  <div className="relative">
+                    <HiOutlineKey className="absolute right-3 top-3.5 text-gray-400 w-5 h-5" />
+                    <input
+                      id="login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="סיסמה"
+                      className={`w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
+                        passwordError ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-black'
+                      }`}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (passwordError) setPasswordError('');
+                      }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute left-3 top-3.5 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
+                  {passwordError && (
+                    <div className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                      <FaTimes className="w-3 h-3" />
+                      <p>{passwordError}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-left">

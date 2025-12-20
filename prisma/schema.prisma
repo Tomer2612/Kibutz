@@ -48,6 +48,10 @@ model User {
   conversationsAsP1        Conversation[]    @relation("ConversationParticipant1")
   conversationsAsP2        Conversation[]    @relation("ConversationParticipant2")
   messagesSent             Message[]
+  // Courses
+  coursesCreated           Course[]
+  courseEnrollments        CourseEnrollment[]
+  lessonProgress           LessonProgress[]
 }
 
 model UserFollow {
@@ -109,6 +113,7 @@ model Community {
   rules         String[]
   posts         Post[]
   events        Event[]
+  courses       Course[]
   owner         User              @relation(fields: [ownerId], references: [id])
   members       CommunityMember[]
   bans          CommunityBan[]
@@ -328,4 +333,138 @@ model Message {
   @@index([conversationId])
   @@index([senderId])
   @@map("messages")
+}
+
+// Courses System
+model Course {
+  id          String             @id @default(cuid())
+  title       String
+  description String
+  image       String?
+  duration    Int                @default(0) // Total duration in minutes
+  isPublished Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  
+  communityId String
+  community   Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  
+  authorId    String
+  author      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  chapters    Chapter[]
+  enrollments CourseEnrollment[]
+  
+  @@index([communityId])
+  @@map("courses")
+}
+
+model Chapter {
+  id       String   @id @default(cuid())
+  title    String
+  order    Int      @default(0)
+  
+  courseId String
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  lessons  Lesson[]
+  
+  @@index([courseId])
+  @@map("chapters")
+}
+
+model Lesson {
+  id          String           @id @default(cuid())
+  title       String
+  content     String?          // Rich text content
+  videoUrl    String?
+  duration    Int              @default(0) // Duration in minutes
+  order       Int              @default(0)
+  
+  // Lesson type: 'content' (mixed content), 'quiz' (quiz only)
+  lessonType  String           @default("content")
+  
+  // Content display order for combined lessons (e.g., ["video", "text", "images", "links"])
+  contentOrder String[]        @default(["video", "text", "links", "images"])
+  
+  // Attachments (like posts)
+  images      String[]
+  files       Json[]           // Array of {name, url, size}
+  links       String[]
+  
+  chapterId   String
+  chapter     Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  
+  progress    LessonProgress[]
+  quiz        LessonQuiz?
+  
+  @@index([chapterId])
+  @@map("lessons")
+}
+
+model LessonQuiz {
+  id          String              @id @default(cuid())
+  lessonId    String              @unique
+  lesson      Lesson              @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions   LessonQuizQuestion[]
+  
+  @@map("lesson_quizzes")
+}
+
+model LessonQuizQuestion {
+  id            String              @id @default(cuid())
+  question      String
+  questionType  String              @default("radio") // 'radio' or 'checkbox'
+  order         Int                 @default(0)
+  quizId        String
+  quiz          LessonQuiz          @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options       LessonQuizOption[]
+  
+  @@index([quizId])
+  @@map("lesson_quiz_questions")
+}
+
+model LessonQuizOption {
+  id          String              @id @default(cuid())
+  text        String
+  isCorrect   Boolean             @default(false)
+  order       Int                 @default(0)
+  questionId  String
+  question    LessonQuizQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@index([questionId])
+  @@map("lesson_quiz_options")
+}
+
+model CourseEnrollment {
+  id          String    @id @default(cuid())
+  userId      String
+  courseId    String
+  progress    Float     @default(0) // Percentage 0-100
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("course_enrollments")
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  lessonId    String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+  @@map("lesson_progress")
 }
