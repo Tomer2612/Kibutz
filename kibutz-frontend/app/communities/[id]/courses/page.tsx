@@ -339,35 +339,47 @@ export default function CoursesPage() {
           <div className="flex gap-4">
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-4 py-3 font-medium border-b-2 transition ${
+              className={`px-4 py-3 font-medium relative transition ${
                 activeTab === 'all'
-                  ? 'border-gray-800 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               כל הקורסים
+              {activeTab === 'all' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-800"></span>}
             </button>
             <button
               onClick={() => setActiveTab('in-progress')}
-              className={`px-4 py-3 font-medium border-b-2 transition ${
+              className={`px-4 py-3 font-medium relative transition ${
                 activeTab === 'in-progress'
-                  ? 'border-gray-800 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               קורסים בתהליך
+              {activeTab === 'in-progress' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-800"></span>}
             </button>
             <button
               onClick={() => setActiveTab('completed')}
-              className={`px-4 py-3 font-medium border-b-2 transition ${
+              className={`px-4 py-3 font-medium relative transition ${
                 activeTab === 'completed'
-                  ? 'border-gray-800 text-gray-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               קורסים שהושלמו
+              {activeTab === 'completed' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-800"></span>}
             </button>
           </div>
+          {isOwnerOrManager && (
+            <Link
+              href={`/communities/${communityId}/courses/create`}
+              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium text-sm"
+            >
+              יצירת קורס חדש
+              <FaPlus className="w-3 h-3" />
+            </Link>
+          )}
         </div>
       </div>
 

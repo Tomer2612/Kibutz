@@ -378,7 +378,18 @@ export default function CommunityFeedPage() {
           fetch(`http://localhost:4000/posts/community/${selectedCommunityId}${userId ? `?userId=${userId}` : ''}`),
         ]);
 
-        if (!communityRes.ok) throw new Error('Failed to fetch community');
+        if (!communityRes.ok) {
+          // Community not found - reset to first available community or show empty state
+          console.warn(`Community ${selectedCommunityId} not found`);
+          setCommunity(null);
+          setPosts([]);
+          // Try to select first available community
+          if (communities.length > 0) {
+            setSelectedCommunityId(communities[0].id);
+          }
+          setLoading(false);
+          return;
+        }
         const communityData = await communityRes.json();
         setCommunity(communityData);
 
@@ -441,7 +452,7 @@ export default function CommunityFeedPage() {
     };
 
     fetchCommunityDetails();
-  }, [selectedCommunityId, userId]);
+  }, [selectedCommunityId, userId, communities]);
 
   // Refresh online count every 30 seconds
   useEffect(() => {

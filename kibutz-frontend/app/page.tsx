@@ -185,8 +185,8 @@ export default function Home() {
 
   const handleCardClick = (community: Community) => {
     if (!userEmail) {
-      // Not logged in - go to login
-      router.push('/login');
+      // Not logged in - go to preview page (will redirect to login if needed)
+      router.push(`/communities/${community.id}/preview`);
       return;
     }
     
@@ -196,13 +196,14 @@ export default function Home() {
       // Member/Owner - go to feed
       router.push(`/communities/feed?communityId=${community.id}`);
     } else {
-      // Logged in but not a member - leave for now (will implement join flow later)
-      // For now, just show they need to join
+      // Logged in but not a member - go to preview page to join
+      router.push(`/communities/${community.id}/preview`);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    router.push('/');
     location.reload();
   };
 
@@ -323,7 +324,7 @@ export default function Home() {
       <div className="flex justify-center mb-10">
         {userEmail ? (
           <Link
-            href="/communities/create"
+            href="/pricing"
             className="bg-black text-white px-8 py-3 rounded-full font-semibold hover:opacity-90 transition text-lg flex flex-row-reverse items-center gap-2"
           >
             <span className="inline-flex items-center justify-center text-xl leading-none">+</span>
@@ -331,7 +332,7 @@ export default function Home() {
           </Link>
         ) : (
           <Link
-            href="/signup"
+            href="/signup?createCommunity=true"
             className="bg-black text-white px-8 py-3 rounded-full font-semibold hover:opacity-90 transition text-lg flex flex-row-reverse items-center gap-2"
           >
             <span className="inline-flex items-center justify-center text-xl leading-none">+</span>

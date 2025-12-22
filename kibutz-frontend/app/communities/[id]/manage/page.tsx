@@ -850,30 +850,6 @@ export default function ManageCommunityPage() {
 
             {/* Right Sidebar */}
             <div className="w-full lg:w-80 lg:self-start lg:flex-none space-y-4">
-              {/* Create Course Panel */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <FaFileAlt className="w-4 h-4 text-gray-500" />
-                  ניהול קורסים
-                </h3>
-                <p className="text-xs text-gray-500 mb-4">
-                  צרו קורסים חדשים לחברי הקהילה
-                </p>
-                <Link
-                  href={`/communities/${communityId}/courses/create`}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium"
-                >
-                  <FaPlus className="w-4 h-4" />
-                  יצירת קורס חדש
-                </Link>
-                <Link
-                  href={`/communities/${communityId}/courses`}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 mt-2 text-gray-600 hover:text-gray-900 transition text-sm"
-                >
-                  צפייה בכל הקורסים
-                </Link>
-              </div>
-
               {/* Community Rules Panel */}
               <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                 <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">

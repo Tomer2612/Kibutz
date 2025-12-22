@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FaUser, FaCheckCircle, FaCheck, FaTimes, FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
 import { HiOutlineMail, HiOutlineKey } from 'react-icons/hi';
 import Image from 'next/image';
@@ -30,6 +30,7 @@ const isValidEmail = (email: string) => {
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,6 +48,21 @@ export default function SignupPage() {
   const [nameError, setNameError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check URL param first, then localStorage
+    const returnParam = searchParams.get('returnUrl');
+    if (returnParam) {
+      setReturnUrl(returnParam);
+    } else {
+      // Check localStorage (set by pricing page etc.)
+      const storedReturnUrl = localStorage.getItem('returnUrl');
+      if (storedReturnUrl) {
+        setReturnUrl(storedReturnUrl);
+      }
+    }
+  }, [searchParams]);
 
   // Check password strength (based on suggestions met)
   const requirementsMet = passwordRequirements.filter(req => req.test(password)).length;
@@ -168,6 +184,47 @@ export default function SignupPage() {
       }
 
       localStorage.setItem('token', data.access_token);
+      
+      // Check if user was creating a community - skip email verification and go straight to pricing
+      const isCreatingCommunity = searchParams.get('createCommunity') === 'true';
+      if (isCreatingCommunity) {
+        router.push('/pricing?step=create');
+        return;
+      }
+      
+      // Check if user was joining a community from preview page
+      const pendingJoinCommunity = localStorage.getItem('pendingJoinCommunity');
+      if (pendingJoinCommunity) {
+        const pendingPayment = localStorage.getItem('pendingPayment');
+        localStorage.removeItem('pendingJoinCommunity');
+        localStorage.removeItem('pendingPayment');
+        
+        if (pendingPayment) {
+          // Paid community - redirect back to preview to show payment modal
+          router.push(`/communities/${pendingJoinCommunity}/preview?showPayment=true`);
+        } else {
+          // Free community - join directly then redirect to community
+          try {
+            const joinRes = await fetch(`http://localhost:4000/communities/${pendingJoinCommunity}/join`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${data.access_token}` },
+            });
+            if (joinRes.ok) {
+              router.push(`/communities/feed?communityId=${pendingJoinCommunity}`);
+            } else {
+              router.push(`/communities/${pendingJoinCommunity}/preview`);
+            }
+          } catch {
+            router.push(`/communities/${pendingJoinCommunity}/preview`);
+          }
+        }
+        return;
+      }
+      
+      // Save returnUrl for after email verification
+      if (returnUrl) {
+        localStorage.setItem('returnUrl', returnUrl);
+      }
       setShowVerificationMessage(true);
     } catch (error) {
       console.error('Signup error:', error);
@@ -496,7 +553,7 @@ export default function SignupPage() {
               )}
             </div>
 
-            {/* Confirm Password Field */}}
+            {/* Confirm Password Field */}
             <div>
               <div className="relative">
                 <HiOutlineKey className="absolute right-3 top-3.5 text-gray-400 w-5 h-5" />
@@ -556,7 +613,7 @@ export default function SignupPage() {
             {/* Login Redirect */}
             <p className="text-center text-[14px] mt-2">
              יש לך כבר חשבון?{' '}
-              <a href="/login" className="text-black font-medium hover:underline">
+              <a href={`/login${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} className="text-black font-medium hover:underline">
                 התחברו כאן
               </a>
             </p>

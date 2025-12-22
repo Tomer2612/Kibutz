@@ -106,9 +106,7 @@ export default function SupportPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    setUserEmail(null);
-    setUserProfile(null);
-    setProfileMenuOpen(false);
+    router.push('/');
   };
 
   const handleSubmitContact = async (e: React.FormEvent) => {

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
-import { FaCheck, FaPlus, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa';
+import { FaCheck, FaPlus, FaCog, FaSignOutAlt, FaUser, FaTimes, FaCreditCard, FaCalendarAlt, FaLock } from 'react-icons/fa';
 
 interface FAQ {
   question: string;
@@ -38,6 +38,26 @@ const plan: PricingPlan = {
   ],
 };
 
+const COMMUNITY_TOPICS = [
+  'אנימציה',
+  'אוכל, בישול ותזונה',
+  'עזרה ותמיכה',
+  'עיצוב גרפי',
+  'עיצוב מותגים',
+  'עריכת וידאו',
+  'בריאות הנפש ופיתוח אישי',
+  'גיימינג',
+  'טיולים ולייףסטייל',
+  'לימודים ואקדמיה',
+  'מדיה, קולנוע וסדרות',
+  'מדיה חברתית ותוכן ויזואלי',
+  'ניהול פיננסי והשקעות',
+  'ספרים וכתיבה',
+  'ספורט ואורח חיים פעיל',
+  'תחביבים',
+  'יזמות ועסקים עצמאיים',
+];
+
 const faqs: FAQ[] = [
   {
     question: 'האם אפשר לפתוח יותר מקהילה אחת?',
@@ -63,11 +83,29 @@ const faqs: FAQ[] = [
 
 export default function PricingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [openFaqs, setOpenFaqs] = useState<Set<number>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  
+  // Flow states - 'create' is first popup (name+category), then 'payment'
+  const [currentStep, setCurrentStep] = useState<'pricing' | 'create' | 'payment'>('pricing');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [communityName, setCommunityName] = useState('');
+  const [communityTopic, setCommunityTopic] = useState('');
+  const [creatingCommunity, setCreatingCommunity] = useState(false);
+
+  // Check for step parameter on mount (from signup redirect)
+  useEffect(() => {
+    const stepParam = searchParams.get('step');
+    if (stepParam === 'create') {
+      setCurrentStep('create');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -106,18 +144,225 @@ export default function PricingPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    setUserEmail(null);
-    setUserProfile(null);
-    setProfileMenuOpen(false);
+    router.push('/');
   };
 
-  const handleCreateCommunity = () => {
-    if (userEmail) {
-      router.push('/communities/create');
+  const handleSelectPlan = () => {
+    if (!userEmail) {
+      // Not logged in - redirect to signup with createCommunity flag
+      router.push('/signup?createCommunity=true');
     } else {
-      router.push('/signup');
+      // Logged in - go to create step first (community details)
+      setCurrentStep('create');
     }
   };
+
+  const handleContinueToPayment = () => {
+    // After entering community details, go to payment
+    if (!communityName.trim()) return;
+    setCurrentStep('payment');
+  };
+
+  const handlePaymentAndCreate = async () => {
+    // Simulate payment processing then create community
+    if (!communityName.trim()) return;
+    
+    setCreatingCommunity(true);
+    const token = localStorage.getItem('token');
+    
+    try {
+      const formData = new FormData();
+      formData.append('name', communityName);
+      formData.append('description', `קהילת ${communityName}`);
+      if (communityTopic) formData.append('topic', communityTopic);
+      
+      const res = await fetch('http://localhost:4000/communities', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      
+      if (res.ok) {
+        const newCommunity = await res.json();
+        router.push(`/communities/feed?communityId=${newCommunity.id}`);
+      }
+    } catch (err) {
+      console.error('Failed to create community:', err);
+    } finally {
+      setCreatingCommunity(false);
+    }
+  };
+
+  // Step 1: Create Community Details Modal (name + category)
+  if (currentStep === 'create') {
+    return (
+      <main className="min-h-screen bg-gray-100 flex items-center justify-center" dir="rtl">
+        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+          <h2 className="text-2xl font-bold text-center mb-2">פרטי הקהילה</h2>
+          <p className="text-center text-gray-500 mb-8">אפשר לערוך ולשנות את הכל גם אחרי ההקמה.</p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 text-right">שם הקהילה</label>
+              <input
+                type="text"
+                value={communityName}
+                onChange={(e) => setCommunityName(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 text-right">קטגוריה</label>
+              <select
+                value={communityTopic}
+                onChange={(e) => setCommunityTopic(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black bg-white"
+              >
+                <option value="">בחר קטגוריה</option>
+                {COMMUNITY_TOPICS.map(topic => (
+                  <option key={topic} value={topic}>{topic}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleContinueToPayment}
+            disabled={!communityName.trim()}
+            className="w-full mt-8 bg-black text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition disabled:opacity-50"
+          >
+            המשך
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // Card validation helpers
+  const getCardNumberError = () => {
+    if (cardNumber.length === 0) return null;
+    if (cardNumber.length < 16) return `חסרות ${16 - cardNumber.length} ספרות`;
+    return null;
+  };
+
+  const getExpiryError = () => {
+    if (cardExpiry.length === 0) return null;
+    if (cardExpiry.length < 5) return 'פורמט: MM/YY';
+    
+    // Parse and validate expiry date
+    const [monthStr, yearStr] = cardExpiry.split('/');
+    const month = parseInt(monthStr, 10);
+    const year = parseInt('20' + yearStr, 10);
+    
+    if (month < 1 || month > 12) return 'חודש לא תקין';
+    
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    
+    if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      return 'כרטיס פג תוקף';
+    }
+    
+    return null;
+  };
+
+  const getCvvError = () => {
+    if (cardCvv.length === 0) return null;
+    if (cardCvv.length < 3) return `חסרות ${3 - cardCvv.length} ספרות`;
+    return null;
+  };
+
+  const isPaymentValid = cardNumber.length === 16 && 
+                         cardExpiry.length === 5 && 
+                         !getExpiryError() && 
+                         cardCvv.length === 3;
+
+  // Step 2: Payment Modal
+  if (currentStep === 'payment') {
+    return (
+      <main className="min-h-screen bg-gray-100 flex items-center justify-center" dir="rtl">
+        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+          <h2 className="text-2xl font-bold text-center mb-8">מתחילים 14 ימי ניסיון חינם</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 text-right">מספר כרטיס</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
+                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                    getCardNumberError() ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                />
+                <FaCreditCard className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              </div>
+              {getCardNumberError() && (
+                <p className="text-red-500 text-sm mt-1">{getCardNumberError()}</p>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">תוקף</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={cardExpiry}
+                    onChange={(e) => {
+                      let val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                      if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2);
+                      setCardExpiry(val);
+                    }}
+                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                      getExpiryError() ? 'border-red-400' : 'border-gray-300'
+                    }`}
+                  />
+                  <FaCalendarAlt className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                </div>
+                {getExpiryError() && (
+                  <p className="text-red-500 text-sm mt-1">{getExpiryError()}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">CVV</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={cardCvv}
+                    onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                      getCvvError() ? 'border-red-400' : 'border-gray-300'
+                    }`}
+                  />
+                  <FaLock className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                </div>
+                {getCvvError() && (
+                  <p className="text-red-500 text-sm mt-1">{getCvvError()}</p>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <button
+            onClick={handlePaymentAndCreate}
+            disabled={!isPaymentValid || creatingCommunity}
+            className="w-full mt-8 bg-black text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition disabled:opacity-50"
+          >
+            {creatingCommunity ? 'מקים קהילה...' : 'הקמת קהילה'}
+          </button>
+          
+          <p className="text-center text-sm text-gray-500 mt-4">
+            תזכורת תשלח במייל 3 ימים לפני סיום הניסיון. אפשר<br />
+            לבטל בקליק דרך הגדרות הקהילה.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gray-100" dir="rtl">
@@ -259,7 +504,7 @@ export default function PricingPage() {
 
           {/* CTA Button */}
           <button
-            onClick={handleCreateCommunity}
+            onClick={handleSelectPlan}
             className="block w-full bg-black text-white py-3 rounded-lg font-semibold hover:opacity-90 transition"
           >
             יצירת קהילה

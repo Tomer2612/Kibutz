@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FaEye, FaEyeSlash, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import { HiOutlineMail, HiOutlineKey } from 'react-icons/hi';
 import Image from 'next/image';
@@ -9,6 +9,7 @@ import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -17,6 +18,22 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check URL param first, then localStorage
+    const returnParam = searchParams.get('returnUrl');
+    if (returnParam) {
+      setReturnUrl(returnParam);
+    } else {
+      // Check localStorage (set by signup page before email verification)
+      const storedReturnUrl = localStorage.getItem('returnUrl');
+      if (storedReturnUrl) {
+        setReturnUrl(storedReturnUrl);
+        localStorage.removeItem('returnUrl');
+      }
+    }
+  }, [searchParams]);
 
   const scrollToField = (elementId: string) => {
     const element = document.getElementById(elementId);
@@ -44,7 +61,7 @@ export default function LoginPage() {
 
       if (res.ok && data.access_token) {
         localStorage.setItem('token', data.access_token);
-        router.push('/');
+        router.push(returnUrl || '/');
       } else {
         // Parse specific error messages and show inline
         const errorMsg = data.message || '';
@@ -191,7 +208,7 @@ export default function LoginPage() {
 
                 <p className="text-center text-[14px] mt-2">
                   עדיין לא הצטרפת?{' '}
-                  <a href="/signup" className="text-black font-medium hover:underline">
+                  <a href={`/signup${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} className="text-black font-medium hover:underline">
                     הירשמו כאן
                   </a>
                 </p>

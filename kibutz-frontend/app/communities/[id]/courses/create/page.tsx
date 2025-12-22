@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaPlus, FaTrash, FaGripVertical, FaImage, FaSave, FaPlay, FaChevronDown, FaChevronUp, FaCog, FaSignOutAlt, FaUser, FaVideo, FaFileAlt, FaLink, FaQuestionCircle, FaCheckCircle, FaFile, FaTimes, FaLayerGroup } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaGripVertical, FaImage, FaSave, FaPlay, FaChevronDown, FaChevronUp, FaCog, FaSignOutAlt, FaUser, FaVideo, FaFileAlt, FaLink, FaQuestionCircle, FaCheckCircle, FaFile, FaTimes, FaLayerGroup, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 
 interface QuizOptionForm {
   id?: string;
@@ -36,6 +36,7 @@ interface LessonForm {
   files: { name: string; url: string; size: number; file?: File }[];
   links: string[];
   quiz: QuizQuestionForm[];
+  contentOrder: ('video' | 'text' | 'images' | 'links')[];
 }
 
 interface ChapterForm {
@@ -168,6 +169,7 @@ export default function CreateCoursePage() {
                   files: [],
                   links: [],
                   quiz: [],
+                  contentOrder: ['video', 'text', 'images', 'links'],
                 },
               ],
             }
@@ -459,7 +461,8 @@ export default function CreateCoursePage() {
               lessonType: lesson.lessonType,
               images: uploadedImageUrls,
               files: lesson.files,
-              links: lesson.links,
+              links: lesson.links.filter(link => link.trim() !== ''),
+              contentOrder: lesson.contentOrder,
               quiz: quizData,
             }),
           });
@@ -662,7 +665,6 @@ export default function CreateCoursePage() {
                     <div key={chapterIndex} id={`chapter-${chapterIndex}`} className="border border-gray-200 rounded-lg overflow-hidden">
                       {/* Chapter Header */}
                       <div className="bg-gray-50 p-4 flex items-center gap-3">
-                        <FaGripVertical className="text-gray-400 cursor-grab" />
                         <div className="flex-1">
                           <input
                             type="text"
@@ -729,11 +731,11 @@ export default function CreateCoursePage() {
                             
                             // Determine lesson type icon and label
                             const getLessonIcon = () => {
-                              if (lesson.lessonType === 'quiz') return <FaQuestionCircle className="w-4 h-4 text-gray-600" />;
-                              if (hasMultipleContent) return <FaLayerGroup className="w-4 h-4 text-gray-600" />;
-                              if (lesson.videoUrl) return <FaVideo className="w-4 h-4 text-blue-500" />;
-                              if (lesson.links?.length > 0) return <FaLink className="w-4 h-4 text-orange-500" />;
-                              if (lesson.images?.length > 0 || lesson.imageFiles?.length > 0) return <FaImage className="w-4 h-4 text-green-500" />;
+                              if (lesson.lessonType === 'quiz') return <FaQuestionCircle className="w-4 h-4 text-gray-500" />;
+                              if (hasMultipleContent) return <FaLayerGroup className="w-4 h-4 text-gray-500" />;
+                              if (lesson.videoUrl) return <FaVideo className="w-4 h-4 text-gray-500" />;
+                              if (lesson.links?.length > 0) return <FaLink className="w-4 h-4 text-gray-500" />;
+                              if (lesson.images?.length > 0 || lesson.imageFiles?.length > 0) return <FaImage className="w-4 h-4 text-gray-500" />;
                               return <FaFileAlt className="w-4 h-4 text-gray-500" />;
                             };
                             
@@ -749,10 +751,9 @@ export default function CreateCoursePage() {
                             return (
                             <div key={lessonIndex} id={`lesson-${chapterIndex}-${lessonIndex}`} className="bg-gray-50 rounded-lg p-4">
                               <div className="flex items-center gap-3 mb-3">
-                                <FaGripVertical className="text-gray-400 cursor-grab" />
                                 <div className="flex items-center gap-2">
-                                  {getLessonIcon()}
                                   <span className="text-sm text-gray-600 font-medium">{getLessonTypeLabel()} {lessonIndex + 1}</span>
+                                  {getLessonIcon()}
                                 </div>
                                 <button
                                   onClick={() => removeLesson(chapterIndex, lessonIndex)}
@@ -775,8 +776,8 @@ export default function CreateCoursePage() {
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                                   >
-                                    <FaFileAlt className="inline w-3 h-3 mr-1" />
                                     תוכן
+                                    <FaFileAlt className="inline w-3 h-3 mr-2" />
                                   </button>
                                   <button
                                     type="button"
@@ -787,8 +788,8 @@ export default function CreateCoursePage() {
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                                   >
-                                    <FaQuestionCircle className="inline w-3 h-3 mr-1" />
                                     בוחן
+                                    <FaQuestionCircle className="inline w-3 h-3 mr-2" />
                                   </button>
                                 </div>
                               </div>
@@ -846,10 +847,96 @@ export default function CreateCoursePage() {
                               {/* Content Type Lesson */}
                               {lesson.lessonType === 'content' && (
                                 <div className="mt-3 space-y-3">
+                                  {/* Content Order Section - Option B: Vertical List with Drag */}
+                                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <label className="block text-xs text-gray-500 mb-2">
+                                      סדר תצוגת התוכן
+                                    </label>
+                                    <div className="space-y-1">
+                                      {(lesson.contentOrder || ['video', 'text', 'images', 'links']).map((item, orderIndex) => {
+                                        const labels: Record<string, string> = { video: 'סרטון', text: 'טקסט', images: 'תמונות', links: 'קישורים' };
+                                        const icons: Record<string, React.ReactNode> = { 
+                                          video: <FaVideo className="w-3 h-3" />, 
+                                          text: <FaFileAlt className="w-3 h-3" />, 
+                                          images: <FaImage className="w-3 h-3" />, 
+                                          links: <FaLink className="w-3 h-3" /> 
+                                        };
+                                        return (
+                                          <div 
+                                            key={item} 
+                                            draggable
+                                            onDragStart={(e) => {
+                                              e.dataTransfer.setData('text/plain', orderIndex.toString());
+                                              e.currentTarget.classList.add('opacity-50');
+                                            }}
+                                            onDragEnd={(e) => {
+                                              e.currentTarget.classList.remove('opacity-50');
+                                            }}
+                                            onDragOver={(e) => {
+                                              e.preventDefault();
+                                              e.currentTarget.classList.add('bg-blue-50', 'border-blue-300');
+                                            }}
+                                            onDragLeave={(e) => {
+                                              e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300');
+                                            }}
+                                            onDrop={(e) => {
+                                              e.preventDefault();
+                                              e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300');
+                                              const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                                              const toIndex = orderIndex;
+                                              if (fromIndex !== toIndex) {
+                                                const currentOrder = lesson.contentOrder || ['video', 'text', 'images', 'links'];
+                                                const newOrder = [...currentOrder];
+                                                const [removed] = newOrder.splice(fromIndex, 1);
+                                                newOrder.splice(toIndex, 0, removed);
+                                                updateLesson(chapterIndex, lessonIndex, { contentOrder: newOrder });
+                                              }
+                                            }}
+                                            className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition cursor-grab active:cursor-grabbing"
+                                          >
+                                            <span className="text-gray-400">
+                                              <FaGripVertical className="w-3 h-3" />
+                                            </span>
+                                            <span className="text-sm text-gray-700">{orderIndex + 1}. {labels[item]}</span>
+                                            <span className="text-gray-400 mr-1">{icons[item]}</span>
+                                            <div className="flex gap-1 mr-auto">
+                                              <button
+                                                type="button"
+                                                disabled={orderIndex === 0}
+                                                onClick={() => {
+                                                  const currentOrder = lesson.contentOrder || ['video', 'text', 'images', 'links'];
+                                                  const newOrder = [...currentOrder];
+                                                  [newOrder[orderIndex - 1], newOrder[orderIndex]] = [newOrder[orderIndex], newOrder[orderIndex - 1]];
+                                                  updateLesson(chapterIndex, lessonIndex, { contentOrder: newOrder });
+                                                }}
+                                                className={`p-1 rounded ${orderIndex === 0 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-200'}`}
+                                              >
+                                                <FaArrowUp className="w-3 h-3" />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                disabled={orderIndex === (lesson.contentOrder || ['video', 'text', 'images', 'links']).length - 1}
+                                                onClick={() => {
+                                                  const currentOrder = lesson.contentOrder || ['video', 'text', 'images', 'links'];
+                                                  const newOrder = [...currentOrder];
+                                                  [newOrder[orderIndex], newOrder[orderIndex + 1]] = [newOrder[orderIndex + 1], newOrder[orderIndex]];
+                                                  updateLesson(chapterIndex, lessonIndex, { contentOrder: newOrder });
+                                                }}
+                                                className={`p-1 rounded ${orderIndex === (lesson.contentOrder || ['video', 'text', 'images', 'links']).length - 1 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-200'}`}
+                                              >
+                                                <FaArrowDown className="w-3 h-3" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
                                   <div>
                                     <label className="block text-xs text-gray-500 mb-1">
-                                      <FaVideo className="inline w-3 h-3 mr-1" />
                                       קישור לסרטון (YouTube) <span className="text-gray-400">(אופציונלי)</span>
+                                      <FaVideo className="inline w-3 h-3 mr-2" />
                                     </label>
                                     <input
                                       type="text"
@@ -861,8 +948,8 @@ export default function CreateCoursePage() {
                                   </div>
                                   <div>
                                     <label className="block text-xs text-gray-500 mb-1">
-                                      <FaFileAlt className="inline w-3 h-3 mr-1" />
                                       תוכן השיעור <span className="text-gray-400">(אופציונלי)</span>
+                                      <FaFileAlt className="inline w-3 h-3 mr-2" />
                                     </label>
                                     <textarea
                                       value={lesson.content}
@@ -876,7 +963,6 @@ export default function CreateCoursePage() {
                                   {/* Images */}
                                   <div>
                                     <label className="block text-xs text-gray-500 mb-1">
-                                      <FaImage className="inline w-3 h-3 mr-1" />
                                       תמונות <span className="text-gray-400">(אופציונלי)</span>
                                     </label>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -923,8 +1009,8 @@ export default function CreateCoursePage() {
                                   {/* Links */}
                                   <div>
                                     <label className="block text-xs text-gray-500 mb-1">
-                                      <FaLink className="inline w-3 h-3 mr-1" />
                                       קישורים <span className="text-gray-400">(אופציונלי)</span>
+                                      <FaLink className="inline w-3 h-3 mr-2" />
                                     </label>
                                     <div className="space-y-2">
                                       {(lesson.links || []).map((link, linkIndex) => (
@@ -961,8 +1047,8 @@ export default function CreateCoursePage() {
                                         }}
                                         className="text-sm text-blue-500 hover:text-blue-600"
                                       >
-                                        <FaPlus className="inline w-3 h-3 mr-1" />
                                         הוסף קישור
+                                        <FaPlus className="inline w-3 h-3 mr-2" />
                                       </button>
                                     </div>
                                   </div>
@@ -975,8 +1061,8 @@ export default function CreateCoursePage() {
                                   <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
                                     <div className="flex items-center justify-between mb-3">
                                       <label className="block text-sm font-medium text-gray-700">
-                                        <FaQuestionCircle className="inline w-4 h-4 mr-1" />
                                         שאלות הבוחן
+                                        <FaQuestionCircle className="inline w-4 h-4 mr-2" />
                                       </label>
                                       <button
                                         type="button"
@@ -994,8 +1080,8 @@ export default function CreateCoursePage() {
                                         }}
                                         className="text-sm bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-900"
                                       >
-                                        <FaPlus className="inline w-3 h-3 mr-1" />
                                         הוסף שאלה
+                                        <FaPlus className="inline w-3 h-3 mr-2" />
                                       </button>
                                     </div>
 
@@ -1050,7 +1136,7 @@ export default function CreateCoursePage() {
                                                 onClick={() => {
                                                   const newQuiz = [...(lesson.quiz || [])];
                                                   const currentOptions = newQuiz[qIndex].options || [];
-                                                  // Trim to 2 options when switching to radio
+                                                  // Trim to 2 options when switching to radio (keep first 2)
                                                   let newOptions = currentOptions.slice(0, 2);
                                                   // Ensure we have at least 2 options
                                                   while (newOptions.length < 2) {
@@ -1082,11 +1168,11 @@ export default function CreateCoursePage() {
                                                 onClick={() => {
                                                   const newQuiz = [...(lesson.quiz || [])];
                                                   const currentOptions = newQuiz[qIndex].options || [];
-                                                  // Add options to reach 4 if less than 4
-                                                  const optionsNeeded = Math.max(0, 4 - currentOptions.length);
+                                                  // Keep existing options and add to reach 4 if needed
                                                   const newOptions = [...currentOptions];
-                                                  for (let i = 0; i < optionsNeeded; i++) {
-                                                    newOptions.push({ text: '', isCorrect: false, order: currentOptions.length + i });
+                                                  // Add options to reach 4 if less than 4
+                                                  while (newOptions.length < 4) {
+                                                    newOptions.push({ text: '', isCorrect: false, order: newOptions.length });
                                                   }
                                                   newQuiz[qIndex] = { ...newQuiz[qIndex], questionType: 'checkbox', options: newOptions };
                                                   updateLesson(chapterIndex, lessonIndex, { quiz: newQuiz });
@@ -1172,7 +1258,8 @@ export default function CreateCoursePage() {
                                                       }`}
                                                       placeholder={`אפשרות ${oIndex + 1}`}
                                                     />
-                                                    {question.options.length > 2 && (
+                                                    {((question.questionType === 'radio' && question.options.length > 2) || 
+                                                      (question.questionType === 'checkbox' && question.options.length > 4)) && (
                                                       <button
                                                         type="button"
                                                         onClick={() => {
@@ -1203,8 +1290,8 @@ export default function CreateCoursePage() {
                                                 }}
                                                 className="text-xs text-gray-700 hover:text-gray-900"
                                               >
-                                                <FaPlus className="inline w-2 h-2 mr-1" />
                                                 הוסף אפשרות
+                                                <FaPlus className="inline w-2 h-2 mr-2" />
                                               </button>
                                             </div>
                                           </div>

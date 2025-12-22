@@ -3,16 +3,20 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaPlus, FaTrash, FaGripVertical, FaImage, FaSave, FaPlay, FaChevronDown, FaChevronUp, FaCog, FaSignOutAlt, FaUser, FaVideo, FaFileAlt, FaLink, FaQuestionCircle, FaCheckCircle, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaGripVertical, FaImage, FaSave, FaPlay, FaChevronDown, FaChevronUp, FaCog, FaSignOutAlt, FaUser, FaVideo, FaFileAlt, FaLink, FaQuestionCircle, FaCheckCircle, FaTimes, FaLayerGroup, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 
 interface QuizOptionForm {
+  id?: string;
   text: string;
   isCorrect: boolean;
+  order: number;
 }
 
 interface QuizQuestionForm {
+  id?: string;
   question: string;
   questionType: 'radio' | 'checkbox';
+  order: number;
   options: QuizOptionForm[];
 }
 
@@ -31,6 +35,7 @@ interface LessonForm {
   quiz: {
     questions: QuizQuestionForm[];
   } | null;
+  contentOrder: ('video' | 'text' | 'images' | 'links')[];
   isNew?: boolean;
   isDeleted?: boolean;
 }
@@ -144,12 +149,16 @@ export default function EditCoursePage() {
               files: l.files || [],
               links: l.links || [],
               quiz: l.quiz ? {
-                questions: l.quiz.questions.map((q: any) => ({
+                questions: l.quiz.questions.map((q: any, qIndex: number) => ({
+                  id: q.id,
                   question: q.question,
                   questionType: q.questionType,
-                  options: q.options.map((opt: any) => ({
+                  order: q.order ?? qIndex,
+                  options: q.options.map((opt: any, optIndex: number) => ({
+                    id: opt.id,
                     text: opt.text,
                     isCorrect: opt.isCorrect,
+                    order: opt.order ?? optIndex,
                   })),
                 })),
               } : null,
@@ -242,6 +251,7 @@ export default function EditCoursePage() {
                     files: [],
                     links: [],
                     quiz: null,
+                    contentOrder: ['video', 'text', 'images', 'links'],
                     isNew: true,
                   },
                 ],
@@ -557,7 +567,8 @@ export default function EditCoursePage() {
                   lessonType: lesson.lessonType,
                   images: uploadedImages,
                   files: lesson.files,
-                  links: lesson.links,
+                  links: lesson.links.filter(link => link.trim() !== ''),
+                  contentOrder: lesson.contentOrder,
                   quiz: quizData,
                 }),
               });
@@ -617,7 +628,8 @@ export default function EditCoursePage() {
                   lessonType: lesson.lessonType,
                   images: uploadedImages,
                   files: lesson.files,
-                  links: lesson.links,
+                  links: lesson.links.filter(link => link.trim() !== ''),
+                  contentOrder: lesson.contentOrder,
                   quiz: quizData,
                 }),
               });
@@ -654,7 +666,8 @@ export default function EditCoursePage() {
                   lessonType: lesson.lessonType,
                   images: uploadedImages,
                   files: lesson.files,
-                  links: lesson.links,
+                  links: lesson.links.filter(link => link.trim() !== ''),
+                  contentOrder: lesson.contentOrder,
                   quiz: quizData,
                 }),
               });
@@ -874,21 +887,23 @@ export default function EditCoursePage() {
                       <div key={chapter.id || chapterIndex} id={`chapter-${chapterIndex}`} className="border border-gray-200 rounded-lg overflow-hidden">
                         {/* Chapter Header */}
                         <div className="bg-gray-50 p-4 flex items-center gap-3">
-                          <FaGripVertical className="text-gray-400 cursor-grab" />
                           <div className="flex-1">
                             <input
                               type="text"
                               value={chapter.title}
                               onChange={(e) => {
-                                updateChapter(chapterIndex, { title: e.target.value });
-                                if (errors[`chapter_${chapterIndex}_title`]) {
-                                  setErrors(prev => ({ ...prev, [`chapter_${chapterIndex}_title`]: '' }));
+                                if (e.target.value.length <= MAX_CHAPTER_TITLE_LENGTH) {
+                                  updateChapter(chapterIndex, { title: e.target.value });
+                                  if (errors[`chapter_${chapterIndex}_title`]) {
+                                    setErrors(prev => ({ ...prev, [`chapter_${chapterIndex}_title`]: '' }));
+                                  }
                                 }
                               }}
                               className={`w-full bg-transparent font-medium text-gray-800 focus:outline-none border-b ${
                                 errors[`chapter_${chapterIndex}_title`] ? 'border-red-500' : 'border-transparent focus:border-blue-500'
                               }`}
                               placeholder="שם הפרק *"
+                              maxLength={MAX_CHAPTER_TITLE_LENGTH}
                             />
                             {errors[`chapter_${chapterIndex}_title`] && (
                               <span className="text-xs text-red-500">{errors[`chapter_${chapterIndex}_title`]}</span>
@@ -934,9 +949,11 @@ export default function EditCoursePage() {
                               
                               // Determine lesson type icon and label
                               const getLessonIcon = () => {
-                                if (isQuiz) return <FaQuestionCircle className="w-4 h-4 text-purple-500" />;
-                                if (hasVideo) return <FaVideo className="w-4 h-4 text-blue-500" />;
-                                if (hasLinks) return <FaLink className="w-4 h-4 text-orange-500" />;
+                                if (isQuiz) return <FaQuestionCircle className="w-4 h-4 text-gray-500" />;
+                                if (contentTypes > 1) return <FaLayerGroup className="w-4 h-4 text-gray-500" />;
+                                if (hasVideo) return <FaVideo className="w-4 h-4 text-gray-500" />;
+                                if (hasLinks) return <FaLink className="w-4 h-4 text-gray-500" />;
+                                if (hasImages) return <FaImage className="w-4 h-4 text-gray-500" />;
                                 return <FaFileAlt className="w-4 h-4 text-gray-500" />;
                               };
                               
@@ -945,13 +962,13 @@ export default function EditCoursePage() {
                                 if (contentTypes > 1) return 'שיעור משולב';
                                 if (hasVideo) return 'סרטון';
                                 if (hasLinks) return 'קישורים';
+                                if (hasImages) return 'תמונות';
                                 return 'שיעור';
                               };
                               
                               return (
                                 <div key={lesson.id || lessonIndex} id={`lesson-${chapterIndex}-${lessonIndex}`} className="bg-gray-50 rounded-lg p-4">
                                   <div className="flex items-center gap-3 mb-3">
-                                    <FaGripVertical className="text-gray-400 cursor-grab" />
                                     <div className="flex items-center gap-2">
                                       {getLessonIcon()}
                                       <span className="text-sm text-gray-600 font-medium">{getLessonTypeLabel()} {lessonIndex + 1}</span>
@@ -965,35 +982,35 @@ export default function EditCoursePage() {
                                   </div>
 
                                   {/* Lesson Type Selector */}
-                                  <div className="mb-4">
-                                    <label className="block text-xs text-gray-500 mb-2">סוג השיעור</label>
+                                  <div className="mb-3">
+                                    <label className="block text-xs text-gray-500 mb-1">סוג שיעור</label>
                                     <div className="flex gap-2">
                                       <button
                                         type="button"
                                         onClick={() => updateLesson(chapterIndex, lessonIndex, { lessonType: 'content', quiz: null })}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition ${
+                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${
                                           lesson.lessonType === 'content'
-                                            ? 'bg-blue-500 text-white border-blue-500'
-                                            : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+                                            ? 'bg-blue-500 text-white'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                       >
-                                        <FaFileAlt className="w-4 h-4" />
                                         תוכן
+                                        <FaFileAlt className="inline w-3 h-3 mr-2" />
                                       </button>
                                       <button
                                         type="button"
                                         onClick={() => updateLesson(chapterIndex, lessonIndex, { 
                                           lessonType: 'quiz', 
-                                          quiz: lesson.quiz || { questions: [{ question: '', questionType: 'radio', options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }] }] }
+                                          quiz: lesson.quiz || { questions: [{ question: '', questionType: 'radio' as const, order: 0, options: [{ text: '', isCorrect: false, order: 0 }, { text: '', isCorrect: false, order: 1 }] }] }
                                         })}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition ${
+                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${
                                           lesson.lessonType === 'quiz'
-                                            ? 'bg-gray-800 text-white border-gray-800'
-                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                                            ? 'bg-gray-800 text-white'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                       >
-                                        <FaQuestionCircle className="w-4 h-4" />
                                         בוחן
+                                        <FaQuestionCircle className="inline w-3 h-3 mr-2" />
                                       </button>
                                     </div>
                                   </div>
@@ -1025,15 +1042,19 @@ export default function EditCoursePage() {
                                         type="number"
                                         value={lesson.duration}
                                         onChange={(e) => {
-                                          updateLesson(chapterIndex, lessonIndex, { duration: parseInt(e.target.value) || 0 });
-                                          if (errors[`lesson_${chapterIndex}_${lessonIndex}_duration`]) {
-                                            setErrors(prev => ({ ...prev, [`lesson_${chapterIndex}_${lessonIndex}_duration`]: '' }));
+                                          const val = parseInt(e.target.value) || 0;
+                                          if (val >= 0 && val <= MAX_LESSON_DURATION) {
+                                            updateLesson(chapterIndex, lessonIndex, { duration: val });
+                                            if (errors[`lesson_${chapterIndex}_${lessonIndex}_duration`]) {
+                                              setErrors(prev => ({ ...prev, [`lesson_${chapterIndex}_${lessonIndex}_duration`]: '' }));
+                                            }
                                           }
                                         }}
                                         className={`w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 ${
                                           errors[`lesson_${chapterIndex}_${lessonIndex}_duration`] ? 'border-red-500' : 'border-gray-200'
                                         }`}
-                                        min={1}
+                                        min={MIN_LESSON_DURATION}
+                                        max={MAX_LESSON_DURATION}
                                       />
                                       {errors[`lesson_${chapterIndex}_${lessonIndex}_duration`] && (
                                         <span className="text-xs text-red-500">{errors[`lesson_${chapterIndex}_${lessonIndex}_duration`]}</span>
@@ -1043,8 +1064,97 @@ export default function EditCoursePage() {
                                     {/* Content type fields */}
                                     {lesson.lessonType === 'content' && (
                                       <>
+                                        {/* Content Order Section - Option B: Vertical List with Drag */}
+                                        <div className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                          <label className="block text-xs text-gray-500 mb-2">
+                                            סדר תצוגת התוכן
+                                          </label>
+                                          <div className="space-y-1">
+                                            {(lesson.contentOrder || ['video', 'text', 'images', 'links']).map((item, orderIndex) => {
+                                              const labels: Record<string, string> = { video: 'סרטון', text: 'טקסט', images: 'תמונות', links: 'קישורים' };
+                                              const icons: Record<string, React.ReactNode> = { 
+                                                video: <FaVideo className="w-3 h-3" />, 
+                                                text: <FaFileAlt className="w-3 h-3" />, 
+                                                images: <FaImage className="w-3 h-3" />, 
+                                                links: <FaLink className="w-3 h-3" /> 
+                                              };
+                                              return (
+                                                <div 
+                                                  key={item} 
+                                                  draggable
+                                                  onDragStart={(e) => {
+                                                    e.dataTransfer.setData('text/plain', orderIndex.toString());
+                                                    e.currentTarget.classList.add('opacity-50');
+                                                  }}
+                                                  onDragEnd={(e) => {
+                                                    e.currentTarget.classList.remove('opacity-50');
+                                                  }}
+                                                  onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    e.currentTarget.classList.add('bg-blue-50', 'border-blue-300');
+                                                  }}
+                                                  onDragLeave={(e) => {
+                                                    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300');
+                                                  }}
+                                                  onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300');
+                                                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                                                    const toIndex = orderIndex;
+                                                    if (fromIndex !== toIndex) {
+                                                      const currentOrder = lesson.contentOrder || ['video', 'text', 'images', 'links'];
+                                                      const newOrder = [...currentOrder];
+                                                      const [removed] = newOrder.splice(fromIndex, 1);
+                                                      newOrder.splice(toIndex, 0, removed);
+                                                      updateLesson(chapterIndex, lessonIndex, { contentOrder: newOrder });
+                                                    }
+                                                  }}
+                                                  className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition cursor-grab active:cursor-grabbing"
+                                                >
+                                                  <span className="text-gray-400">
+                                                    <FaGripVertical className="w-3 h-3" />
+                                                  </span>
+                                                  <span className="text-sm text-gray-700">{orderIndex + 1}. {labels[item]}</span>
+                                                  <span className="text-gray-400 mr-1">{icons[item]}</span>
+                                                  <div className="flex gap-1 mr-auto">
+                                                    <button
+                                                      type="button"
+                                                      disabled={orderIndex === 0}
+                                                      onClick={() => {
+                                                        const currentOrder = lesson.contentOrder || ['video', 'text', 'images', 'links'];
+                                                        const newOrder = [...currentOrder];
+                                                        [newOrder[orderIndex - 1], newOrder[orderIndex]] = [newOrder[orderIndex], newOrder[orderIndex - 1]];
+                                                        updateLesson(chapterIndex, lessonIndex, { contentOrder: newOrder });
+                                                      }}
+                                                      className={`p-1 rounded ${orderIndex === 0 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-200'}`}
+                                                    >
+                                                      <FaArrowUp className="w-3 h-3" />
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      disabled={orderIndex === (lesson.contentOrder || ['video', 'text', 'images', 'links']).length - 1}
+                                                      onClick={() => {
+                                                        const currentOrder = lesson.contentOrder || ['video', 'text', 'images', 'links'];
+                                                        const newOrder = [...currentOrder];
+                                                        [newOrder[orderIndex], newOrder[orderIndex + 1]] = [newOrder[orderIndex + 1], newOrder[orderIndex]];
+                                                        updateLesson(chapterIndex, lessonIndex, { contentOrder: newOrder });
+                                                      }}
+                                                      className={`p-1 rounded ${orderIndex === (lesson.contentOrder || ['video', 'text', 'images', 'links']).length - 1 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-200'}`}
+                                                    >
+                                                      <FaArrowDown className="w-3 h-3" />
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+
                                         <div className="md:col-span-2">
-                                          <label className="block text-xs text-gray-500 mb-1">קישור לסרטון (YouTube)</label>
+                                          <label className="block text-xs text-gray-500 mb-1">
+                                            קישור לסרטון (YouTube) <span className="text-gray-400">(אופציונלי)</span>
+                                            <FaVideo className="inline w-3 h-3 mr-2" />
+                                          </label>
                                           <input
                                             type="text"
                                             value={lesson.videoUrl}
@@ -1054,7 +1164,10 @@ export default function EditCoursePage() {
                                           />
                                         </div>
                                         <div className="md:col-span-2">
-                                          <label className="block text-xs text-gray-500 mb-1">תוכן השיעור (HTML)</label>
+                                          <label className="block text-xs text-gray-500 mb-1">
+                                            תוכן השיעור <span className="text-gray-400">(אופציונלי)</span>
+                                            <FaFileAlt className="inline w-3 h-3 mr-2" />
+                                          </label>
                                           <textarea
                                             value={lesson.content}
                                             onChange={(e) => updateLesson(chapterIndex, lessonIndex, { content: e.target.value })}
@@ -1067,8 +1180,8 @@ export default function EditCoursePage() {
                                         {/* Images Section */}
                                         <div className="md:col-span-2">
                                           <label className="block text-xs text-gray-500 mb-1">
-                                            <FaImage className="inline w-3 h-3 mr-1" />
                                             תמונות <span className="text-gray-400">(אופציונלי)</span>
+                                            <FaImage className="inline w-3 h-3 mr-2" />
                                           </label>
                                           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                             {(lesson.images || []).map((imageUrl, imgIndex) => (
@@ -1132,7 +1245,10 @@ export default function EditCoursePage() {
                                         
                                         {/* Links Section */}
                                         <div className="md:col-span-2">
-                                          <label className="block text-xs text-gray-500 mb-1">קישורים</label>
+                                          <label className="block text-xs text-gray-500 mb-1">
+                                            קישורים <span className="text-gray-400">(אופציונלי)</span>
+                                            <FaLink className="inline w-3 h-3 mr-2" />
+                                          </label>
                                           <div className="space-y-2">
                                             {lesson.links.map((link, linkIndex) => (
                                               <div key={linkIndex} className="flex gap-2">
@@ -1144,7 +1260,7 @@ export default function EditCoursePage() {
                                                     newLinks[linkIndex] = e.target.value;
                                                     updateLesson(chapterIndex, lessonIndex, { links: newLinks });
                                                   }}
-                                                  className="flex-1 p-2 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500"
+                                                  className="flex-1 p-2 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 text-sm"
                                                   dir="ltr"
                                                   placeholder="https://example.com"
                                                 />
@@ -1156,17 +1272,17 @@ export default function EditCoursePage() {
                                                   }}
                                                   className="p-2 text-red-500 hover:bg-red-50 rounded"
                                                 >
-                                                  <FaTimes className="w-4 h-4" />
+                                                  <FaTimes className="w-3 h-3" />
                                                 </button>
                                               </div>
                                             ))}
                                             <button
                                               type="button"
                                               onClick={() => updateLesson(chapterIndex, lessonIndex, { links: [...lesson.links, ''] })}
-                                              className="flex items-center gap-2 text-blue-500 hover:text-blue-600 text-sm"
+                                              className="text-sm text-blue-500 hover:text-blue-600"
                                             >
-                                              <FaPlus className="w-3 h-3" />
                                               הוסף קישור
+                                              <FaPlus className="inline w-3 h-3 mr-2" />
                                             </button>
                                           </div>
                                         </div>
@@ -1175,140 +1291,156 @@ export default function EditCoursePage() {
                                     
                                     {/* Quiz type fields */}
                                     {lesson.lessonType === 'quiz' && lesson.quiz && (
-                                      <div className="md:col-span-2 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                          <label className="text-sm font-medium text-gray-700">שאלות הבוחן</label>
-                                          <button
-                                            type="button"
+                                      <div className="md:col-span-2">
+                                        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                          <div className="flex items-center justify-between mb-3">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                              שאלות הבוחן
+                                              <FaQuestionCircle className="inline w-4 h-4 mr-2" />
+                                            </label>
+                                            <button
+                                              type="button"
                                             onClick={() => {
                                               const newQuestions = [...lesson.quiz!.questions, { 
                                                 question: '', 
                                                 questionType: 'radio' as const, 
-                                                options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }] 
+                                                order: lesson.quiz!.questions.length,
+                                                options: [{ text: '', isCorrect: false, order: 0 }, { text: '', isCorrect: false, order: 1 }] 
                                               }];
                                               updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                             }}
-                                            className="flex items-center gap-1 text-gray-700 hover:text-gray-900 text-sm"
-                                          >
-                                            <FaPlus className="w-3 h-3" />
-                                            הוסף שאלה
-                                          </button>
-                                        </div>
-                                        
-                                        {lesson.quiz.questions.map((question, qIndex) => (
-                                          <div key={qIndex} className="bg-white border border-gray-200 rounded-lg p-4">
-                                            <div className="flex items-center justify-between mb-3">
-                                              <span className="text-sm font-medium text-gray-600">שאלה {qIndex + 1}</span>
-                                              {lesson.quiz!.questions.length > 1 && (
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const newQuestions = lesson.quiz!.questions.filter((_, i) => i !== qIndex);
+                                              className="text-sm bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-900"
+                                            >
+                                              הוסף שאלה
+                                              <FaPlus className="inline w-3 h-3 mr-2" />
+                                            </button>
+                                          </div>
+
+                                          {lesson.quiz.questions.length === 0 ? (
+                                            <p className="text-sm text-gray-600 text-center py-4">
+                                              לחץ על "הוסף שאלה" כדי להתחיל לבנות את הבוחן
+                                            </p>
+                                          ) : (
+                                            <div className="space-y-4">
+                                              {lesson.quiz.questions.map((question, qIndex) => (
+                                          <div key={qIndex} className="bg-white rounded-lg p-3 border border-gray-200">
+                                            <div className="flex items-start gap-2 mb-2">
+                                              <span className="text-sm font-medium text-gray-700 mt-2">
+                                                {qIndex + 1}.
+                                              </span>
+                                              <div className="flex-1">
+                                                <input
+                                                  type="text"
+                                                  value={question.question}
+                                                  onChange={(e) => {
+                                                    const newQuestions = [...lesson.quiz!.questions];
+                                                    newQuestions[qIndex] = { ...newQuestions[qIndex], question: e.target.value };
                                                     updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                   }}
-                                                  className="p-1 text-red-500 hover:bg-red-50 rounded"
-                                                >
-                                                  <FaTrash className="w-3 h-3" />
-                                                </button>
-                                              )}
+                                                  className={`w-full p-2 border rounded focus:ring-1 focus:ring-gray-400 text-sm ${
+                                                    errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_question`]
+                                                      ? 'border-red-500'
+                                                      : 'border-gray-200'
+                                                  }`}
+                                                  placeholder="הקלד את השאלה..."
+                                                />
+                                                {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_question`] && (
+                                                  <span className="text-xs text-red-500">חובה למלא שאלה</span>
+                                                )}
+                                              </div>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const newQuestions = lesson.quiz!.questions.filter((_, i) => i !== qIndex);
+                                                  updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
+                                                }}
+                                                className="p-1 text-red-500 hover:bg-red-50 rounded"
+                                              >
+                                                <FaTrash className="w-3 h-3" />
+                                              </button>
                                             </div>
                                             
-                                            <input
-                                              type="text"
-                                              value={question.question}
-                                              onChange={(e) => {
-                                                const newQuestions = [...lesson.quiz!.questions];
-                                                newQuestions[qIndex] = { ...newQuestions[qIndex], question: e.target.value };
-                                                updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
-                                              }}
-                                              className={`w-full p-2 border rounded mb-1 focus:ring-1 focus:ring-gray-400 ${
-                                                errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_question`]
-                                                  ? 'border-red-500'
-                                                  : 'border-gray-200'
-                                              }`}
-                                              placeholder="הקלד את השאלה..."
-                                            />
-                                            {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_question`] && (
-                                              <span className="text-xs text-red-500 block mb-2">חובה למלא שאלה</span>
-                                            )}
-                                            
-                                            <div className="flex gap-4 mb-3">
-                                              <label className="flex items-center gap-2 text-sm">
-                                                <input
-                                                  type="radio"
-                                                  name={`qtype-${chapterIndex}-${lessonIndex}-${qIndex}`}
-                                                  checked={question.questionType === 'radio'}
-                                                  onChange={() => {
-                                                    const newQuestions = [...lesson.quiz!.questions];
-                                                    const currentOptions = newQuestions[qIndex].options || [];
-                                                    // Trim to 2 options when switching to radio
-                                                    let newOptions = currentOptions.slice(0, 2);
-                                                    // Ensure we have at least 2 options
-                                                    while (newOptions.length < 2) {
-                                                      newOptions.push({ text: '', isCorrect: false });
+                                            {/* Question Type */}
+                                            <div className="flex gap-2 mb-2 mr-5">
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const newQuestions = [...lesson.quiz!.questions];
+                                                  const currentOptions = newQuestions[qIndex].options || [];
+                                                  // Trim to 2 options when switching to radio (keep first 2)
+                                                  let newOptions = currentOptions.slice(0, 2);
+                                                  // Ensure we have at least 2 options
+                                                  while (newOptions.length < 2) {
+                                                    newOptions.push({ text: '', isCorrect: false, order: newOptions.length });
+                                                  }
+                                                  // Make sure only one is correct (keep the first correct one)
+                                                  let foundCorrect = false;
+                                                  newOptions = newOptions.map((o, idx) => {
+                                                    if (o.isCorrect && !foundCorrect) {
+                                                      foundCorrect = true;
+                                                      return { ...o, order: idx };
                                                     }
-                                                    // Make sure only one is correct
-                                                    let foundCorrect = false;
-                                                    newOptions = newOptions.map(o => {
-                                                      if (o.isCorrect && !foundCorrect) {
-                                                        foundCorrect = true;
-                                                        return o;
-                                                      }
-                                                      return { ...o, isCorrect: false };
-                                                    });
-                                                    // Don't auto-select first option - let user choose
-                                                    newQuestions[qIndex] = { ...newQuestions[qIndex], questionType: 'radio', options: newOptions };
-                                                    updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
-                                                  }}
-                                                  className="text-gray-700"
-                                                />
+                                                    return { ...o, isCorrect: false, order: idx };
+                                                  });
+                                                  // Don't auto-select first option - let user choose
+                                                  newQuestions[qIndex] = { ...newQuestions[qIndex], questionType: 'radio', options: newOptions };
+                                                  updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
+                                                }}
+                                                className={`text-xs px-2 py-1 rounded ${
+                                                  question.questionType === 'radio'
+                                                    ? 'bg-gray-800 text-white'
+                                                    : 'bg-gray-100 text-gray-600'
+                                                }`}
+                                              >
                                                 בחירה יחידה
-                                              </label>
-                                              <label className="flex items-center gap-2 text-sm">
-                                                <input
-                                                  type="radio"
-                                                  name={`qtype-${chapterIndex}-${lessonIndex}-${qIndex}`}
-                                                  checked={question.questionType === 'checkbox'}
-                                                  onChange={() => {
-                                                    const newQuestions = [...lesson.quiz!.questions];
-                                                    const currentOptions = newQuestions[qIndex].options || [];
-                                                    // Add options to reach 4 if less than 4
-                                                    const optionsNeeded = Math.max(0, 4 - currentOptions.length);
-                                                    const newOptions = [...currentOptions];
-                                                    for (let i = 0; i < optionsNeeded; i++) {
-                                                      newOptions.push({ text: '', isCorrect: false });
-                                                    }
-                                                    newQuestions[qIndex] = { ...newQuestions[qIndex], questionType: 'checkbox', options: newOptions };
-                                                    updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
-                                                  }}
-                                                  className="text-gray-700"
-                                                />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const newQuestions = [...lesson.quiz!.questions];
+                                                  const currentOptions = newQuestions[qIndex].options || [];
+                                                  // Keep existing options and add to reach 4 if needed
+                                                  const newOptions = [...currentOptions].map((o, idx) => ({ ...o, order: idx }));
+                                                  // Add options to reach 4 if less than 4
+                                                  while (newOptions.length < 4) {
+                                                    newOptions.push({ text: '', isCorrect: false, order: newOptions.length });
+                                                  }
+                                                  newQuestions[qIndex] = { ...newQuestions[qIndex], questionType: 'checkbox', options: newOptions };
+                                                  updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
+                                                }}
+                                                className={`text-xs px-2 py-1 rounded ${
+                                                  question.questionType === 'checkbox'
+                                                    ? 'bg-gray-800 text-white'
+                                                    : 'bg-gray-100 text-gray-600'
+                                                }`}
+                                              >
                                                 בחירה מרובה
-                                              </label>
+                                              </button>
                                             </div>
                                             
                                             {/* Validation hints */}
-                                            <div className="text-xs text-gray-500 mb-2">
+                                            <div className="text-xs text-gray-500 mb-2 mr-5">
                                               {question.questionType === 'radio' ? (
                                                 <span>💡 נדרשות לפחות 2 אפשרויות ותשובה נכונה אחת</span>
                                               ) : (
                                                 <span>💡 נדרשות לפחות 4 אפשרויות ולפחות 2 תשובות נכונות</span>
                                               )}
                                             </div>
-                                            
-                                            {/* Validation errors */}
+
+                                            {/* Show validation errors for this question */}
                                             {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_options`] && (
-                                              <div className="text-xs text-red-500 mb-2">
+                                              <div className="text-xs text-red-500 mb-2 mr-5">
                                                 {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_options`]}
                                               </div>
                                             )}
                                             {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_correct`] && (
-                                              <div className="text-xs text-red-500 mb-2">
+                                              <div className="text-xs text-red-500 mb-2 mr-5">
                                                 {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_correct`]}
                                               </div>
                                             )}
                                             
-                                            <div className="space-y-2">
+                                            {/* Options */}
+                                            <div className="space-y-2 mr-5">
                                               {question.options.map((option, optIndex) => (
                                                 <div key={optIndex}>
                                                   <div className="flex items-center gap-2">
@@ -1326,13 +1458,13 @@ export default function EditCoursePage() {
                                                         }
                                                         updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                       }}
-                                                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
+                                                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                                                         option.isCorrect 
                                                           ? 'border-gray-900 bg-gray-900 text-white' 
-                                                          : 'border-gray-300 hover:border-gray-500'
+                                                          : 'border-gray-300'
                                                       }`}
                                                     >
-                                                      {option.isCorrect && <FaCheckCircle className="w-4 h-4" />}
+                                                      {option.isCorrect && <FaCheckCircle className="w-3 h-3" />}
                                                     </button>
                                                     <input
                                                       type="text"
@@ -1342,14 +1474,15 @@ export default function EditCoursePage() {
                                                         newQuestions[qIndex].options[optIndex].text = e.target.value;
                                                         updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                       }}
-                                                      className={`flex-1 p-2 border rounded focus:ring-1 focus:ring-gray-400 ${
+                                                      className={`flex-1 p-1.5 border rounded text-sm focus:ring-1 focus:ring-gray-400 ${
                                                         errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_opt_${optIndex}`]
                                                           ? 'border-red-500'
                                                           : 'border-gray-200'
                                                       }`}
-                                                      placeholder={`תשובה ${optIndex + 1}`}
+                                                      placeholder={`אפשרות ${optIndex + 1}`}
                                                     />
-                                                    {question.options.length > 2 && (
+                                                    {((question.questionType === 'radio' && question.options.length > 2) || 
+                                                      (question.questionType === 'checkbox' && question.options.length > 4)) && (
                                                       <button
                                                         type="button"
                                                         onClick={() => {
@@ -1364,7 +1497,7 @@ export default function EditCoursePage() {
                                                   )}
                                                   </div>
                                                   {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_opt_${optIndex}`] && (
-                                                    <span className="text-xs text-red-500 mr-8">חובה למלא טקסט</span>
+                                                    <span className="text-xs text-red-500 mr-7">חובה למלא טקסט</span>
                                                   )}
                                                 </div>
                                               ))}
@@ -1372,17 +1505,20 @@ export default function EditCoursePage() {
                                                 type="button"
                                                 onClick={() => {
                                                   const newQuestions = [...lesson.quiz!.questions];
-                                                  newQuestions[qIndex].options.push({ text: '', isCorrect: false });
+                                                  newQuestions[qIndex].options.push({ text: '', isCorrect: false, order: newQuestions[qIndex].options.length });
                                                   updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                 }}
-                                                className="flex items-center gap-1 text-gray-700 hover:text-gray-900 text-sm mt-2"
+                                                className="text-xs text-gray-700 hover:text-gray-900"
                                               >
-                                                <FaPlus className="w-3 h-3" />
-                                                הוסף תשובה
+                                                הוסף אפשרות
+                                                <FaPlus className="inline w-2 h-2 mr-2" />
                                               </button>
                                             </div>
                                           </div>
                                         ))}
+                                      </div>
+                                    )}
+                                        </div>
                                       </div>
                                     )}
                                   </div>
@@ -1410,8 +1546,8 @@ export default function EditCoursePage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Course Image */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="font-bold text-lg text-gray-800 mb-4">תמונת הקורס</h2>
+            <div id="course-image-section" className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="font-bold text-lg text-gray-800 mb-4">תמונת הקורס <span className="text-red-500">*</span></h2>
               
               <input
                 type="file"

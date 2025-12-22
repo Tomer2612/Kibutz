@@ -370,23 +370,48 @@ export default function ChatWidget() {
         </div>
       )}
 
-      {/* Open Chat Windows */}
-      <div className="fixed bottom-0 right-24 flex gap-2 z-40">
-        {openChats.map((chat, index) => (
-          <ChatWindow
-            key={chat.conversationId}
-            chat={chat}
-            currentUserId={currentUserId}
-            onClose={() => closeChat(chat.conversationId)}
-            onMinimize={() => toggleMinimize(chat.conversationId)}
-            onNewMessage={(msg) => {
-              setOpenChats(prev => prev.map(c => 
-                c.conversationId === chat.conversationId 
-                  ? { ...c, messages: [...c.messages, msg] }
-                  : c
-              ));
-            }}
-          />
+      {/* Chat windows container - fixed at bottom right */}
+      <div className="fixed bottom-0 right-24 flex flex-row-reverse items-end gap-2 z-40">
+        {/* All chats in order - each maintains its position */}
+        {openChats.map((chat) => (
+          chat.isMinimized ? (
+            <button
+              key={chat.conversationId}
+              onClick={() => toggleMinimize(chat.conversationId)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-t-lg shadow-lg hover:bg-gray-50 transition"
+              title={chat.recipientName}
+            >
+              {chat.recipientImage ? (
+                <Image
+                  src={chat.recipientImage.startsWith('http') ? chat.recipientImage : `http://localhost:4000${chat.recipientImage}`}
+                  alt={chat.recipientName}
+                  width={24}
+                  height={24}
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-6 h-6 bg-[#3B82F6] rounded-full flex items-center justify-center text-white text-xs font-bold">
+                  {chat.recipientName.charAt(0)}
+                </div>
+              )}
+              <span className="text-sm font-medium text-gray-700">{chat.recipientName}</span>
+            </button>
+          ) : (
+            <ChatWindow
+              key={chat.conversationId}
+              chat={chat}
+              currentUserId={currentUserId}
+              onClose={() => closeChat(chat.conversationId)}
+              onMinimize={() => toggleMinimize(chat.conversationId)}
+              onNewMessage={(msg) => {
+                setOpenChats(prev => prev.map(c => 
+                  c.conversationId === chat.conversationId 
+                    ? { ...c, messages: [...c.messages, msg] }
+                    : c
+                ));
+              }}
+            />
+          )
         ))}
       </div>
     </>
@@ -452,34 +477,15 @@ function ChatWindow({
     return new Date(date).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Minimized chats are now rendered in the parent component's bar
   if (chat.isMinimized) {
-    return (
-      <button
-        onClick={onMinimize}
-        className="flex items-center gap-2 bg-white border border-gray-200 rounded-t-lg px-3 py-2 shadow-lg hover:bg-gray-50"
-      >
-        {chat.recipientImage ? (
-          <Image
-            src={chat.recipientImage.startsWith('http') ? chat.recipientImage : `http://localhost:4000${chat.recipientImage}`}
-            alt={chat.recipientName}
-            width={24}
-            height={24}
-            className="w-6 h-6 rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-6 h-6 bg-[#3B82F6] rounded-full flex items-center justify-center text-white text-xs font-bold">
-            {chat.recipientName.charAt(0)}
-          </div>
-        )}
-        <span className="text-sm font-medium">{chat.recipientName}</span>
-      </button>
-    );
+    return null;
   }
 
   return (
-    <div className="w-80 bg-white rounded-t-xl shadow-2xl border border-gray-200 flex flex-col">
+    <div className="w-80 max-h-[350px] bg-white rounded-t-xl shadow-2xl border border-gray-200 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between rounded-t-xl">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between rounded-t-xl">
         <div className="flex items-center gap-2">
           {chat.recipientImage ? (
             <Image
@@ -511,7 +517,8 @@ function ChatWindow({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 h-72 overflow-y-auto p-3 space-y-2 bg-gray-50">
+      <div dir="ltr" className="flex-1 max-h-[250px] overflow-y-auto p-3 bg-gray-50">
+        <div dir="rtl" className="space-y-3">
         {chat.isLoading ? (
           <div className="flex justify-center py-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#3B82F6]"></div>
@@ -524,14 +531,14 @@ function ChatWindow({
           chat.messages.map(msg => {
             const isOwn = msg.senderId === currentUserId;
             return (
-              <div key={msg.id} className={`flex ${isOwn ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[75%] rounded-2xl px-3 py-2 ${
+              <div key={msg.id} className={`flex mb-3 ${isOwn ? 'justify-start' : 'justify-end'}`}>
+                <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
                   isOwn 
-                    ? 'bg-[#3B82F6] text-white rounded-br-sm' 
-                    : 'bg-white text-gray-900 rounded-bl-sm shadow-sm'
+                    ? 'bg-[#3B82F6] text-white rounded-bl-sm' 
+                    : 'bg-white text-gray-900 rounded-br-sm shadow-sm border border-gray-100'
                 }`}>
-                  <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                  <p className={`text-[10px] mt-1 ${isOwn ? 'text-white/70' : 'text-gray-400'}`}>
+                  <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
+                  <p className={`text-[10px] mt-1.5 ${isOwn ? 'text-white/70' : 'text-gray-400'}`}>
                     {formatTime(msg.createdAt)}
                   </p>
                 </div>
@@ -540,10 +547,11 @@ function ChatWindow({
           })
         )}
         <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="border-t border-gray-200 p-2 flex gap-2">
+      <form onSubmit={handleSend} className="flex-shrink-0 border-t border-gray-200 p-2 flex gap-2">
         <input
           type="text"
           value={message}

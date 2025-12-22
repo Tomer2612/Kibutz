@@ -43,22 +43,8 @@ export class MessagesService {
     return conversation;
   }
 
-  // Send a message (only allowed if sender follows recipient)
+  // Send a message
   async sendMessage(senderId: string, recipientId: string, content: string) {
-    // Check if sender follows recipient
-    const follows = await this.prisma.userFollow.findUnique({
-      where: {
-        followerId_followingId: {
-          followerId: senderId,
-          followingId: recipientId,
-        },
-      },
-    });
-
-    if (!follows) {
-      throw new Error('ניתן לשלוח הודעות רק למשתמשים שאתה עוקב אחריהם');
-    }
-
     // Get or create conversation
     const conversation = await this.getOrCreateConversation(senderId, recipientId);
 
@@ -116,30 +102,29 @@ export class MessagesService {
       orderBy: { lastMessageAt: 'desc' },
     });
 
-    // Count unread messages for each conversation
-    const conversationsWithUnread = await Promise.all(
-      conversations.map(async (conv) => {
-        const unreadCount = await this.prisma.message.count({
-          where: {
-            conversationId: conv.id,
-            senderId: { not: userId },
-            isRead: false,
-          },
-        });
+    // Get all unread counts in a single query using groupBy
+    const unreadCounts = await this.prisma.message.groupBy({
+      by: ['conversationId'],
+      where: {
+        conversationId: { in: conversations.map(c => c.id) },
+        senderId: { not: userId },
+        isRead: false,
+      },
+      _count: { id: true },
+    });
 
-        return {
-          id: conv.id,
-          participant1: conv.participant1,
-          participant2: conv.participant2,
-          lastMessage: conv.messages[0] || null,
-          lastMessageAt: conv.lastMessageAt,
-          lastMessageText: conv.lastMessageText,
-          unreadCount,
-        };
-      })
-    );
+    // Create a map for quick lookup
+    const unreadMap = new Map(unreadCounts.map(u => [u.conversationId, u._count.id]));
 
-    return conversationsWithUnread;
+    return conversations.map(conv => ({
+      id: conv.id,
+      participant1: conv.participant1,
+      participant2: conv.participant2,
+      lastMessage: conv.messages[0] || null,
+      lastMessageAt: conv.lastMessageAt,
+      lastMessageText: conv.lastMessageText,
+      unreadCount: unreadMap.get(conv.id) || 0,
+    }));
   }
 
   // Get messages in a conversation

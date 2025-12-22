@@ -271,17 +271,29 @@ export class CoursesService {
       throw new NotFoundException('קורס לא נמצא');
     }
 
-    // Use upsert to handle race conditions
-    return this.prisma.courseEnrollment.upsert({
-      where: {
-        userId_courseId: { userId, courseId },
-      },
-      update: {}, // No update needed, just return existing
-      create: {
-        userId,
-        courseId,
-      },
-    });
+    // Use upsert with try-catch to handle race conditions
+    try {
+      return await this.prisma.courseEnrollment.upsert({
+        where: {
+          userId_courseId: { userId, courseId },
+        },
+        update: {}, // No update needed, just return existing
+        create: {
+          userId,
+          courseId,
+        },
+      });
+    } catch (error: any) {
+      // Handle unique constraint violation (P2002) - enrollment already exists
+      if (error.code === 'P2002') {
+        return await this.prisma.courseEnrollment.findUnique({
+          where: {
+            userId_courseId: { userId, courseId },
+          },
+        });
+      }
+      throw error;
+    }
   }
 
   // Unenroll from a course

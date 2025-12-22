@@ -16,6 +16,7 @@ interface Community {
   createdAt: string;
   topic?: string | null;
   memberCount?: number | null;
+  price?: number | null;
   youtubeUrl?: string | null;
   whatsappUrl?: string | null;
   facebookUrl?: string | null;
@@ -25,6 +26,7 @@ interface Community {
     id: string;
     name: string;
     email: string;
+    profileImage?: string | null;
   };
 }
 
@@ -123,6 +125,7 @@ export default function CommunityAboutPage() {
   const communityId = params.id as string;
 
   const [community, setCommunity] = useState<Community | null>(null);
+  const [ownerData, setOwnerData] = useState<{ id: string; name: string; profileImage?: string | null; coverImage?: string | null; bio?: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -164,21 +167,39 @@ export default function CommunityAboutPage() {
       try {
         setLoading(true);
         
-        // Check membership and role
+        // Check membership and role - redirect non-members to preview page
         if (token) {
           const membershipRes = await fetch(`http://localhost:4000/communities/${communityId}/membership`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (membershipRes.ok) {
             const membershipData = await membershipRes.json();
+            if (!membershipData.role) {
+              // Not a member, redirect to preview page
+              router.push(`/communities/${communityId}/preview`);
+              return;
+            }
             setUserRole(membershipData.role);
           }
+        } else {
+          // Not logged in, redirect to preview page
+          router.push(`/communities/${communityId}/preview`);
+          return;
         }
 
         const res = await fetch(`http://localhost:4000/communities/${communityId}`);
         if (!res.ok) throw new Error('Failed to fetch community');
         const data = await res.json();
         setCommunity(data);
+
+        // Fetch owner data separately
+        if (data.ownerId) {
+          const ownerRes = await fetch(`http://localhost:4000/users/${data.ownerId}`);
+          if (ownerRes.ok) {
+            const owner = await ownerRes.json();
+            setOwnerData(owner);
+          }
+        }
 
         // Fetch members to count managers (OWNER + MANAGER roles)
         if (token) {
@@ -199,7 +220,7 @@ export default function CommunityAboutPage() {
     };
 
     fetchCommunity();
-  }, [communityId]);
+  }, [communityId, router]);
 
   if (loading) {
     return (
@@ -348,85 +369,86 @@ export default function CommunityAboutPage() {
 
       {/* Content - 2 column layout */}
       <div className="max-w-6xl mx-auto py-8 px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-          {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+          {/* Left Sidebar - Owner & Community Info */}
           <div className="space-y-6">
-            {/* About Section - moved above image */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-black mb-4">{community.name}</h2>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {community.description}
-              </p>
+            {/* Owner Card */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              {/* Cover Photo */}
+              {ownerData?.coverImage ? (
+                <img
+                  src={`http://localhost:4000${ownerData.coverImage}`}
+                  alt=""
+                  className="w-full h-28 object-cover"
+                />
+              ) : (
+                <div className="w-full h-28 bg-gradient-to-r from-pink-100 to-purple-100" />
+              )}
+              
+              <div className="px-5 pb-5 -mt-12 text-center">
+                {/* Centered Profile Photo */}
+                <div className="flex justify-center mb-3">
+                  {ownerData?.profileImage ? (
+                    <img
+                      src={`http://localhost:4000${ownerData.profileImage}`}
+                      alt={ownerData.name}
+                      className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-pink-100 flex items-center justify-center text-2xl font-bold text-pink-600 border-4 border-white shadow-md">
+                      {ownerData?.name?.charAt(0) || 'U'}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Centered Name */}
+                <h3 className="font-bold text-black text-xl mb-2">{ownerData?.name || 'מנהל הקהילה'}</h3>
+                
+                {/* Centered Bio */}
+                {ownerData?.bio && (
+                  <p className="text-sm text-gray-600 leading-relaxed">{ownerData.bio}</p>
+                )}
+              </div>
             </div>
 
-            {/* Community Image Slideshow */}
-            {(community.image || (community.galleryImages && community.galleryImages.length > 0)) && (
-              <CommunityGallery 
-                primaryImage={community.image} 
-                galleryImages={community.galleryImages || []} 
-                communityName={community.name}
-              />
-            )}
-          </div>
-
-          {/* Right Sidebar - Combined Info Card */}
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            {/* Community Identity */}
-            <div className="p-5 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                {community.logo ? (
-                  <img
-                    src={`http://localhost:4000${community.logo}`}
-                    alt={community.name}
-                    className="w-12 h-12 rounded-xl object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
-                    <FaUsers className="w-6 h-6 text-gray-400" />
-                  </div>
-                )}
+            {/* Community Details Card */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <div className="p-5 border-b border-gray-100">
+                <h4 className="text-sm font-medium text-gray-500 mb-2">פרטים נוספים על הקהילה</h4>
+              </div>
+            
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-4 text-center p-5 border-b border-gray-100">
                 <div>
-                  <h3 className="font-bold text-black text-lg">{community.name}</h3>
-                  <div className="flex items-center gap-1 text-sm text-gray-500">
-                    <FaCalendarAlt className="w-3 h-3" />
-                    <span>נוצרה ב־{new Date(community.createdAt).toLocaleDateString('he-IL')}</span>
-                  </div>
+                  <p className="text-xl font-bold text-black">{managerCount}</p>
+                  <p className="text-xs text-gray-500">מנהלים</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-black">
+                    {userEmail ? 1 : 0}
+                  </p>
+                  <p className="text-xs text-gray-500">מחוברים</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-black">
+                    {(() => {
+                      const count = community.memberCount || 1;
+                      if (count >= 10000) return `${Math.floor(count / 10000) * 10000}+`;
+                      if (count >= 1000) return `${Math.floor(count / 1000) * 1000}+`;
+                      if (count >= 100) return `${Math.floor(count / 100) * 100}+`;
+                      return count;
+                    })()}
+                  </p>
+                  <p className="text-xs text-gray-500">משתמשים</p>
                 </div>
               </div>
-            </div>
-            
-            {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-4 text-center p-5 border-b border-gray-100">
-              <div>
-                <p className="text-xl font-bold text-black">{managerCount}</p>
-                <p className="text-xs text-gray-500">מנהלים</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-black">
-                  {userEmail ? 1 : 0}
-                </p>
-                <p className="text-xs text-gray-500">מחוברים</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-black">
-                  {(() => {
-                    const count = community.memberCount || 1;
-                    if (count >= 10000) return `${Math.floor(count / 10000) * 10000}+`;
-                    if (count >= 1000) return `${Math.floor(count / 1000) * 1000}+`;
-                    if (count >= 100) return `${Math.floor(count / 100) * 100}+`;
-                    return count;
-                  })()}
-                </p>
-                <p className="text-xs text-gray-500">משתמשים</p>
-              </div>
-            </div>
 
-            {/* Social Links */}
-            {(community.youtubeUrl || community.whatsappUrl || community.facebookUrl || community.instagramUrl) && (
-              <div className="p-5">
-                <h4 className="text-sm font-medium text-gray-500 mb-3 text-center">עקבו אחרינו</h4>
-                <div className="flex justify-center gap-3">
-                  {community.youtubeUrl && (
+              {/* Social Links */}
+              {(community.youtubeUrl || community.whatsappUrl || community.facebookUrl || community.instagramUrl) && (
+                <div className="p-5">
+                  <h4 className="text-sm font-medium text-gray-500 mb-3 text-center">עקבו אחרינו</h4>
+                  <div className="flex justify-center gap-3">
+                    {community.youtubeUrl && (
                     <a 
                       href={community.youtubeUrl} 
                       target="_blank" 
@@ -470,8 +492,29 @@ export default function CommunityAboutPage() {
                       <FaInstagram className="w-5 h-5" />
                     </a>
                   )}
+                  </div>
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="space-y-6">
+            {/* About Section - moved above image */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6">
+              <h2 className="text-xl font-bold text-black mb-4">{community.name}</h2>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {community.description}
+              </p>
+            </div>
+
+            {/* Community Image Slideshow */}
+            {(community.image || (community.galleryImages && community.galleryImages.length > 0)) && (
+              <CommunityGallery 
+                primaryImage={community.image} 
+                galleryImages={community.galleryImages || []} 
+                communityName={community.name}
+              />
             )}
           </div>
         </div>

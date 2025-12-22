@@ -113,6 +113,8 @@ export default function CourseViewerPage() {
   // Quiz state
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string[]>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<Record<string, boolean>>({});
+  // Video facade - load iframe only when clicked
+  const [videoActivated, setVideoActivated] = useState(false);
   const videoRef = useRef<HTMLIFrameElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<{ destroy: () => void } | null>(null);
@@ -437,13 +439,24 @@ export default function CourseViewerPage() {
     const canAccess = course?.enrollment || (course && userId && (course.authorId === userId || course.community.ownerId === userId));
     if (!canAccess) return;
     setCurrentLesson(lesson);
+    setVideoActivated(false); // Reset video facade when changing lessons
     router.push(`/communities/${communityId}/courses/${courseId}?lesson=${lesson.id}`, { scroll: false });
   };
 
-  const getYouTubeEmbedUrl = (url: string) => {
+  const getYouTubeVideoId = (url: string): string | null => {
     const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
-    if (match && match[2].length === 11) return `https://www.youtube.com/embed/${match[2]}?enablejsapi=1`;
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  const getYouTubeEmbedUrl = (url: string) => {
+    const videoId = getYouTubeVideoId(url);
+    if (videoId) return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0&modestbranding=1&autoplay=1`;
     return url;
+  };
+
+  const getYouTubeThumbnail = (url: string): string | null => {
+    const videoId = getYouTubeVideoId(url);
+    return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
   };
 
   const getChapterCompletion = (chapter: Chapter) => {
@@ -687,13 +700,47 @@ export default function CourseViewerPage() {
               {currentLesson.lessonType === 'content' && (() => {
                 const contentOrder = currentLesson.contentOrder || ['video', 'text', 'links', 'images'];
                 
-                const renderVideo = () => currentLesson.videoUrl ? (
-                  <div key="video" className="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
-                    <div className="aspect-video">
-                      <iframe id="youtube-player" ref={videoRef} src={getYouTubeEmbedUrl(currentLesson.videoUrl)} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                const renderVideo = () => {
+                  if (!currentLesson.videoUrl) return null;
+                  const thumbnail = getYouTubeThumbnail(currentLesson.videoUrl);
+                  
+                  return (
+                    <div key="video" className="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
+                      <div className="aspect-video relative">
+                        {videoActivated ? (
+                          <iframe 
+                            id="youtube-player" 
+                            ref={videoRef} 
+                            src={getYouTubeEmbedUrl(currentLesson.videoUrl)} 
+                            className="w-full h-full" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowFullScreen 
+                          />
+                        ) : (
+                          <button
+                            onClick={() => setVideoActivated(true)}
+                            className="w-full h-full relative group cursor-pointer"
+                          >
+                            {thumbnail && (
+                              <img 
+                                src={thumbnail} 
+                                alt="Video thumbnail"
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                              <div className="w-16 h-16 md:w-20 md:h-20 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                                <svg className="w-8 h-8 md:w-10 md:h-10 text-white mr-[-4px]" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              </div>
+                            </div>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ) : null;
+                  );
+                };
                 
                 const renderText = () => currentLesson.content ? (
                   <div key="text" className="bg-white rounded-xl shadow-sm p-6 mb-4">

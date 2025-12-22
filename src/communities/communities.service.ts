@@ -85,6 +85,16 @@ export class CommunitiesService {
     try {
       const community = await this.prisma.community.findUnique({
         where: { id },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              profileImage: true,
+            },
+          },
+        },
       });
 
       if (!community) {
