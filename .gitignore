@@ -69,6 +69,13 @@ credentials.json
 *.p12
 
 # -----------------------------
+# Server / Deployment secrets
+# -----------------------------
+server-access.txt
+*.pem
+ssh-config.txt
+
+# -----------------------------
 # OS / Editor junk
 # -----------------------------
 .DS_Store
