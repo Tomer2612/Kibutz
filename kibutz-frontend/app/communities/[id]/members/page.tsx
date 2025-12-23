@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaCog, FaSignOutAlt, FaCrown, FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo, FaUsers } from 'react-icons/fa';
+import { FaCog, FaSignOutAlt, FaCrown, FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo, FaUsers, FaSearch } from 'react-icons/fa';
 import NotificationBell from '../../../components/NotificationBell';
 
 interface JwtPayload {
