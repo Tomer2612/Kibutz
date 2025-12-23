@@ -225,18 +225,18 @@ export default function Home() {
           
           {!userEmail ? (
             <>
-              <a
+              <Link
                 href="/login"
                 className="border border-black text-black px-6 py-2.5 rounded-lg font-semibold hover:bg-black hover:text-white transition"
               >
                 כניסה
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/signup"
                 className="bg-black text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition"
               >
                 הרשמה
-              </a>
+              </Link>
             </>
           ) : (
             <div className="flex items-center gap-3">

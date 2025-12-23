@@ -574,6 +574,7 @@ export default function ManageCommunityPage() {
                       onClick={() => {
                         localStorage.removeItem('token');
                         router.push('/');
+                        location.reload();
                       }}
                       className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
                     >

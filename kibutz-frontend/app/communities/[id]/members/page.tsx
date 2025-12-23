@@ -302,14 +302,6 @@ export default function CommunityMembersPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-600">טוען חברי קהילה...</p>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-gray-100 text-right" dir="rtl">
       {/* Header */}
@@ -417,6 +409,7 @@ export default function CommunityMembersPage() {
                       onClick={() => {
                         localStorage.removeItem('token');
                         router.push('/');
+                        location.reload();
                       }}
                       className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
                     >

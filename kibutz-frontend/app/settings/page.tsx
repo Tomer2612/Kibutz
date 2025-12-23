@@ -473,95 +473,89 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-gray-100">
-        <p className="text-gray-600">טוען...</p>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-gray-100 text-right" dir="rtl">
-      {/* Header */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-            Kibutz
-          </Link>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <Link
-            href="/pricing"
-            className="text-gray-600 hover:text-black transition px-3 py-1.5 rounded-full hover:bg-gray-50"
-          >
-            מחירון
-          </Link>
-          <Link
-            href="/support"
-            className="text-gray-600 hover:text-black transition px-3 py-1.5 rounded-full hover:bg-gray-50"
-          >
-            תמיכה ושאלות
-          </Link>
-          <NotificationBell />
-          <div className="relative">
-          <button
-            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-            className="relative focus:outline-none"
-          >
-            {imagePreview ? (
-              <img 
-                src={imagePreview}
-                alt={name || 'User'}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                {name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <span className={`absolute bottom-0 left-0 w-3 h-3 border-2 border-white rounded-full ${showOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-          </button>
-          
-          {profileMenuOpen && (
-            <>
-              <div 
-                className="fixed inset-0 z-40" 
-                onClick={() => setProfileMenuOpen(false)}
-              />
-              <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                <button
-                  onClick={() => {
-                    setProfileMenuOpen(false);
-                    if (userId) router.push(`/profile/${userId}`);
-                  }}
-                  className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                >
-                  <FaUser className="w-4 h-4" />
-                  הפרופיל שלי
-                </button>
-                <button
-                  onClick={() => setProfileMenuOpen(false)}
-                  className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                >
-                  <FaCog className="w-4 h-4" />
-                  הגדרות
-                </button>
-                <div className="border-t border-gray-100 my-1"></div>
-                <button
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    router.push('/');
-                  }}
-                  className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
-                >
-                  <FaSignOutAlt className="w-4 h-4" />
-                  התנתקות
-                </button>
-              </div>
-            </>
-          )}
+      {/* Header - same as profile page */}
+      <header className="w-full flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
+        {/* Right side: Logo */}
+        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
+          Kibutz
+        </Link>
+
+        {/* Left side: Nav + Auth */}
+        <div className="flex items-center gap-6">
+          <nav className="flex items-center gap-6">
+            <Link href="/pricing" className="text-gray-600 hover:text-black transition text-sm font-medium">
+              מחירון
+            </Link>
+            <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
+              תמיכה ושאלות
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            {/* Notification Bell */}
+            <NotificationBell />
+            
+            <div className="relative">
+              <button
+                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                className="relative focus:outline-none"
+              >
+                {imagePreview ? (
+                  <img 
+                    src={imagePreview}
+                    alt={name || 'User'}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
+                    {name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className={`absolute bottom-0 left-0 w-3 h-3 border-2 border-white rounded-full ${showOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+              </button>
+              
+              {profileMenuOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setProfileMenuOpen(false)}
+                  />
+                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                    <button
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        if (userId) router.push(`/profile/${userId}`);
+                      }}
+                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                    >
+                      <FaUser className="w-4 h-4" />
+                      הפרופיל שלי
+                    </button>
+                    <button
+                      onClick={() => setProfileMenuOpen(false)}
+                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                    >
+                      <FaCog className="w-4 h-4" />
+                      הגדרות
+                    </button>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('token');
+                        router.push('/');
+                        window.location.reload();
+                      }}
+                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
+                    >
+                      <FaSignOutAlt className="w-4 h-4" />
+                      התנתקות
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>

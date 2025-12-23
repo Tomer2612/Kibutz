@@ -361,7 +361,7 @@ export default function MemberProfilePage() {
                     className="fixed inset-0 z-40"
                     onClick={() => setProfileMenuOpen(false)}
                   />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
                     <button
                       onClick={() => {
                         setProfileMenuOpen(false);
