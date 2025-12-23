@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import { FaUsers, FaCalendarAlt, FaSearch, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaUser } from 'react-icons/fa';
+import NotificationBell from '../../../components/NotificationBell';
 
 interface Community {
   id: string;
@@ -301,6 +302,7 @@ export default function CommunityAboutPage() {
             />
           </div>
 
+          {userEmail && <NotificationBell />}
           {userEmail && (
             <div className="relative">
               <button

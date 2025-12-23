@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
+import NotificationBell from '../components/NotificationBell';
 import { HiOutlineUser, HiOutlineCamera, HiOutlineCog6Tooth, HiOutlineArrowRightOnRectangle, HiOutlineLink, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeSlash, HiOutlineBell, HiOutlineShieldCheck, HiOutlineHeart, HiOutlineChatBubbleLeft, HiOutlineChatBubbleOvalLeft, HiOutlineUserPlus, HiOutlineUsers, HiOutlineEnvelope, HiOutlineMapPin, HiOutlineDocumentText, HiOutlineAtSymbol } from 'react-icons/hi2';
 import { FaPowerOff, FaTrash, FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
@@ -489,8 +490,26 @@ export default function SettingsPage() {
             Kibutz
           </Link>
         </div>
+
+        {/* Center: Nav links */}
+        <nav className="flex items-center gap-2">
+          <Link
+            href="/pricing"
+            className="text-gray-600 hover:text-black transition px-3 py-1.5 rounded-full hover:bg-gray-50"
+          >
+            מחירון
+          </Link>
+          <Link
+            href="/support"
+            className="text-gray-600 hover:text-black transition px-3 py-1.5 rounded-full hover:bg-gray-50"
+          >
+            תמיכה ושאלות
+          </Link>
+        </nav>
         
-        <div className="relative">
+        <div className="flex items-center gap-3">
+          <NotificationBell />
+          <div className="relative">
           <button
             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
             className="relative focus:outline-none"
@@ -547,6 +566,7 @@ export default function SettingsPage() {
               </div>
             </>
           )}
+          </div>
         </div>
       </header>
 

@@ -7,6 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { he } from 'date-fns/locale';
 import { getMonth, getYear } from 'date-fns';
+import NotificationBell from '../../components/NotificationBell';
 import { 
   FaCalendarAlt, 
   FaPlus, 
@@ -855,6 +856,9 @@ function EventsPageContent() {
               <FaPlus className="w-4 h-4" />
             </button>
           )}
+          
+          {/* Notification Bell */}
+          {userId && <NotificationBell />}
           
           {/* User Avatar with Dropdown */}
           {userId && (

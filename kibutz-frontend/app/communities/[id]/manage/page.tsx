@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import { FaUsers, FaImage, FaCog, FaSignOutAlt, FaTrash, FaSearch, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar, FaPlus, FaUser, FaCreditCard, FaChevronDown, FaCalendarAlt, FaLock } from 'react-icons/fa';
+import NotificationBell from '../../../components/NotificationBell';
 
 interface JwtPayload {
   email: string;
@@ -529,6 +530,7 @@ export default function ManageCommunityPage() {
             />
           </div>
 
+          {userEmail && <NotificationBell />}
           {userEmail && (
             <div className="relative">
               <button

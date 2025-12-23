@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaPlus, FaTrash, FaGripVertical, FaImage, FaSave, FaPlay, FaChevronDown, FaChevronUp, FaCog, FaSignOutAlt, FaUser, FaVideo, FaFileAlt, FaLink, FaQuestionCircle, FaCheckCircle, FaTimes, FaLayerGroup, FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import NotificationBell from '../../../../../components/NotificationBell';
 
 interface QuizOptionForm {
   id?: string;
@@ -711,17 +712,19 @@ export default function EditCoursePage() {
         <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
           Kibutz
         </Link>
-        <div className="relative">
-          <button
-            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-            className="relative focus:outline-none"
-          >
-            {userProfile?.profileImage ? (
-              <img 
-                src={`http://localhost:4000${userProfile.profileImage}`}
-                alt={userProfile.name || 'User'}
-                className="w-10 h-10 rounded-full object-cover"
-              />
+        <div className="flex items-center gap-3">
+          <NotificationBell />
+          <div className="relative">
+            <button
+              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+              className="relative focus:outline-none"
+            >
+              {userProfile?.profileImage ? (
+                <img 
+                  src={`http://localhost:4000${userProfile.profileImage}`}
+                  alt={userProfile.name || 'User'}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
             ) : (
               <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
                 {userProfile?.name?.charAt(0) || userEmail?.charAt(0)?.toUpperCase()}
@@ -771,6 +774,7 @@ export default function EditCoursePage() {
               </div>
             </>
           )}
+          </div>
         </div>
       </header>
 

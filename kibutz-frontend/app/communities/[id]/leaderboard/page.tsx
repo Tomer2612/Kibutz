@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import { FaTrophy, FaMedal, FaUsers, FaCog, FaSignOutAlt, FaSearch, FaStar, FaHeart, FaComment, FaFileAlt, FaUser } from 'react-icons/fa';
+import NotificationBell from '../../../components/NotificationBell';
 
 interface JwtPayload {
   email: string;
@@ -211,6 +212,7 @@ export default function LeaderboardPage() {
             />
           </div>
 
+          {userEmail && <NotificationBell />}
           {userEmail && (
             <div className="relative">
               <button

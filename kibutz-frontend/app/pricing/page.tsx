@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
+import NotificationBell from '../components/NotificationBell';
 import { FaCheck, FaPlus, FaCog, FaSignOutAlt, FaUser, FaTimes, FaCreditCard, FaCalendarAlt, FaLock } from 'react-icons/fa';
 
 interface FAQ {
@@ -423,6 +424,8 @@ export default function PricingPage() {
               </Link>
             </>
           ) : (
+            <div className="flex items-center gap-3">
+            <NotificationBell />
             <div className="relative">
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
@@ -477,6 +480,7 @@ export default function PricingPage() {
                   </div>
                 </>
               )}
+            </div>
             </div>
           )}
         </div>

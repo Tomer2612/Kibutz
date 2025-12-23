@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
+import NotificationBell from '../components/NotificationBell';
 import { FaPlus, FaCog, FaSignOutAlt, FaEnvelope, FaFacebook, FaInstagram, FaTwitter, FaPaperPlane, FaUser } from 'react-icons/fa';
 
 interface FAQ {
@@ -151,7 +152,9 @@ export default function SupportPage() {
               </Link>
             </>
           ) : (
-            <div className="relative">
+            <div className="flex items-center gap-3">
+              <NotificationBell />
+              <div className="relative">
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                 className="relative focus:outline-none"
@@ -205,6 +208,7 @@ export default function SupportPage() {
                   </div>
                 </>
               )}
+              </div>
             </div>
           )}
         </div>
