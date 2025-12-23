@@ -490,9 +490,8 @@ export default function SettingsPage() {
             Kibutz
           </Link>
         </div>
-
-        {/* Center: Nav links */}
-        <nav className="flex items-center gap-2">
+        
+        <div className="flex items-center gap-3">
           <Link
             href="/pricing"
             className="text-gray-600 hover:text-black transition px-3 py-1.5 rounded-full hover:bg-gray-50"
@@ -505,9 +504,6 @@ export default function SettingsPage() {
           >
             תמיכה ושאלות
           </Link>
-        </nav>
-        
-        <div className="flex items-center gap-3">
           <NotificationBell />
           <div className="relative">
           <button

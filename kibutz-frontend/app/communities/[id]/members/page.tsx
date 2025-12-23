@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaSearch, FaCog, FaSignOutAlt, FaCrown, FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo, FaUsers } from 'react-icons/fa';
+import { FaCog, FaSignOutAlt, FaCrown, FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo, FaUsers } from 'react-icons/fa';
 import NotificationBell from '../../../components/NotificationBell';
 
 interface JwtPayload {
@@ -362,17 +362,8 @@ export default function CommunityMembersPage() {
           ))}
         </nav>
 
-        {/* Left side: Search + Notifications + Profile */}
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="חיפוש"
-              className="pl-4 pr-10 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:border-gray-400 w-32"
-            />
-          </div>
-
+        {/* Left side: Notifications + Profile */}
+        <div className="flex items-center gap-3">
           {userEmail && <NotificationBell />}
           {userEmail && (
             <div className="relative">

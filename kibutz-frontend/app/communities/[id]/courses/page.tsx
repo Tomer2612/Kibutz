@@ -218,11 +218,24 @@ export default function CoursesPage() {
   const completedCourses = courses.filter(c => c.enrollment?.completedAt);
   const allCourses = courses.filter(c => c.isPublished || c.author.id === userId);
 
-  const displayedCourses = activeTab === 'all'
-    ? allCourses
-    : activeTab === 'in-progress' 
-      ? inProgressCourses
-      : completedCourses;
+  // Filter by search query
+  const filterBySearch = (courseList: Course[]) => {
+    if (!searchQuery.trim()) return courseList;
+    const query = searchQuery.toLowerCase();
+    return courseList.filter(c => 
+      c.title.toLowerCase().includes(query) || 
+      c.description?.toLowerCase().includes(query) ||
+      c.author.name?.toLowerCase().includes(query)
+    );
+  };
+
+  const displayedCourses = filterBySearch(
+    activeTab === 'all'
+      ? allCourses
+      : activeTab === 'in-progress' 
+        ? inProgressCourses
+        : completedCourses
+  );
 
   if (loading) {
     return (
