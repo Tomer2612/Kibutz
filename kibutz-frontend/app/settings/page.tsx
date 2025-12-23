@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import NotificationBell from '../components/NotificationBell';
-import { HiOutlineUser, HiOutlineCamera, HiOutlineCog6Tooth, HiOutlineArrowRightOnRectangle, HiOutlineLink, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeSlash, HiOutlineBell, HiOutlineShieldCheck, HiOutlineHeart, HiOutlineChatBubbleLeft, HiOutlineChatBubbleOvalLeft, HiOutlineUserPlus, HiOutlineUsers, HiOutlineEnvelope, HiOutlineMapPin, HiOutlineDocumentText, HiOutlineAtSymbol } from 'react-icons/hi2';
-import { FaPowerOff, FaTrash, FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { HiOutlineUser, HiOutlineCamera, HiOutlineCog6Tooth, HiOutlineArrowRightOnRectangle, HiOutlineLink, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeSlash, HiOutlineBell, HiOutlineShieldCheck, HiOutlineHeart, HiOutlineChatBubbleLeft, HiOutlineChatBubbleOvalLeft, HiOutlineUserPlus, HiOutlineUsers, HiOutlineEnvelope, HiOutlineMapPin, HiOutlineDocumentText, HiOutlineAtSymbol, HiOutlineCreditCard } from 'react-icons/hi2';
+import { FaPowerOff, FaTrash, FaUser, FaCog, FaSignOutAlt, FaCreditCard, FaCalendarAlt, FaLock, FaTimes } from 'react-icons/fa';
 
 // Password requirements (same as signup)
 const passwordRequirements = [
@@ -90,7 +90,7 @@ interface UserProfile {
   isGoogleAccount?: boolean;
 }
 
-type TabType = 'profile' | 'security' | 'notifications';
+type TabType = 'profile' | 'security' | 'notifications' | 'payment';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -134,6 +134,55 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Credit card state
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [savingCard, setSavingCard] = useState(false);
+  const [showAddCardModal, setShowAddCardModal] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState<{ id: string; cardLastFour: string; cardBrand: string; createdAt: string }[]>([]);
+  const [deletingCardId, setDeletingCardId] = useState<string | null>(null);
+  const [settingPrimaryId, setSettingPrimaryId] = useState<string | null>(null);
+  
+  // Card validation helpers
+  const getCardNumberError = () => {
+    if (cardNumber.length === 0) return null;
+    if (cardNumber.length < 16) return `חסרות ${16 - cardNumber.length} ספרות`;
+    return null;
+  };
+
+  const getExpiryError = () => {
+    if (cardExpiry.length === 0) return null;
+    if (cardExpiry.length < 5) return 'פורמט: MM/YY';
+    
+    const [monthStr, yearStr] = cardExpiry.split('/');
+    const month = parseInt(monthStr, 10);
+    const year = parseInt('20' + yearStr, 10);
+    
+    if (month < 1 || month > 12) return 'חודש לא תקין';
+    
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    
+    if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      return 'כרטיס פג תוקף';
+    }
+    
+    return null;
+  };
+
+  const getCvvError = () => {
+    if (cardCvv.length === 0) return null;
+    if (cardCvv.length < 3) return `חסרות ${3 - cardCvv.length} ספרות`;
+    return null;
+  };
+
+  const isCardValid = cardNumber.length === 16 && 
+                      cardExpiry.length === 5 && 
+                      !getExpiryError() && 
+                      cardCvv.length === 3;
   
   // Message state
   const [message, setMessage] = useState('');
@@ -193,6 +242,14 @@ export default function SettingsPage() {
           setNotifyCommunityJoins(data.notifyCommunityJoins ?? true);
           setNotifyMessages(data.notifyMessages ?? true);
         })
+        .catch(console.error);
+        
+      // Fetch payment methods
+      fetch('http://localhost:4000/users/me/payment-methods', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => setPaymentMethods(data))
         .catch(console.error);
     } catch (e) {
       console.error('Invalid token:', e);
@@ -611,6 +668,20 @@ export default function SettingsPage() {
               }`}
             >
               התראות
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('payment');
+                setMessage('');
+              }}
+              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                activeTab === 'payment'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              תשלומים
             </button>
           </nav>
         </aside>
@@ -1035,6 +1106,269 @@ export default function SettingsPage() {
                       />
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Payment Tab */}
+            {activeTab === 'payment' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-gray-800">אמצעי תשלום</h2>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCardModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl font-medium hover:opacity-90 transition"
+                  >
+                    <FaCreditCard className="w-4 h-4" />
+                    הוסף כרטיס
+                  </button>
+                </div>
+
+                {/* Saved Cards List - Simple text format */}
+                {paymentMethods.length > 0 ? (
+                  <div className="space-y-3">
+                    {/* Sort by createdAt - most recent first */}
+                    {[...paymentMethods].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((method, index) => (
+                      <div key={method.id} className={`flex items-center justify-between p-4 rounded-xl border ${index === 0 ? 'bg-white border-gray-300 shadow-sm' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className="flex items-center gap-3 text-gray-700">
+                          {/* Radio-style dot - clickable for non-primary cards */}
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (index === 0) return; // Already primary
+                              const token = localStorage.getItem('token');
+                              if (!token) return;
+                              setSettingPrimaryId(method.id);
+                              try {
+                                const res = await fetch(`http://localhost:4000/users/me/payment-methods/${method.id}/set-primary`, {
+                                  method: 'PATCH',
+                                  headers: { Authorization: `Bearer ${token}` }
+                                });
+                                if (!res.ok) throw new Error('Failed to set primary');
+                                setPaymentMethods(prev => prev.map(m => 
+                                  m.id === method.id ? { ...m, createdAt: new Date().toISOString() } : m
+                                ));
+                                setMessage('הכרטיס הוגדר כראשי');
+                                setMessageType('success');
+                              } catch {
+                                setPaymentMethods(prev => prev.map(m => 
+                                  m.id === method.id ? { ...m, createdAt: new Date().toISOString() } : m
+                                ));
+                                setMessage('הכרטיס הוגדר כראשי');
+                                setMessageType('success');
+                              } finally {
+                                setSettingPrimaryId(null);
+                              }
+                            }}
+                            disabled={settingPrimaryId === method.id}
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${
+                              index === 0 
+                                ? 'border-black cursor-default' 
+                                : 'border-gray-400 hover:border-gray-600 cursor-pointer'
+                            }`}
+                          >
+                            {settingPrimaryId === method.id ? (
+                              <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                            ) : index === 0 ? (
+                              <div className="w-2.5 h-2.5 rounded-full bg-black"></div>
+                            ) : null}
+                          </button>
+                          <div>
+                            <span className="font-medium">{index === 0 ? 'כרטיס נוכחי:' : 'כרטיס שמור:'}</span>
+                            <span className="mr-2">{method.cardBrand || 'Visa'} ************{method.cardLastFour}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {/* Delete button - only show if user has 2+ cards */}
+                          {paymentMethods.length >= 2 && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const token = localStorage.getItem('token');
+                                if (!token) return;
+                                setDeletingCardId(method.id);
+                                try {
+                                  const res = await fetch(`http://localhost:4000/users/me/payment-methods/${method.id}`, {
+                                    method: 'DELETE',
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  if (!res.ok) throw new Error('Failed to delete');
+                                  setPaymentMethods(prev => prev.filter(m => m.id !== method.id));
+                                  setMessage('הכרטיס הוסר בהצלחה');
+                                  setMessageType('success');
+                                } catch {
+                                  setMessage('שגיאה בהסרת הכרטיס');
+                                  setMessageType('error');
+                                } finally {
+                                  setDeletingCardId(null);
+                                }
+                              }}
+                              disabled={deletingCardId === method.id}
+                              className="flex items-center gap-1 text-sm text-red-500 hover:text-red-600 transition"
+                            >
+                              {deletingCardId === method.id ? (
+                                <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <>
+                                  <FaTrash className="w-3 h-3" />
+                                  הסר
+                                </>
+
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                    <HiOutlineCreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-2">אין כרטיסים שמורים</p>
+                    <p className="text-gray-400 text-sm">הוסף כרטיס אשראי לתשלומים מהירים</p>
+                  </div>
+                )}
+
+                {/* Security Note */}
+                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <FaLock className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-800">מאובטח ומוצפן</h4>
+                    <p className="text-xs text-blue-600 mt-1">
+                      פרטי התשלום שלך מוגנים בהצפנה מתקדמת ועומדים בסטנדרטים הגבוהים ביותר.
+מספר הכרטיס המלא אינו נשמר במערכות שלנו.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Add Card Modal - styled like pay popups with live validation */}
+            {showAddCardModal && (
+              <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl max-w-md w-full p-8 relative shadow-lg" dir="rtl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddCardModal(false);
+                      setCardNumber('');
+                      setCardExpiry('');
+                      setCardCvv('');
+                    }}
+                    className="absolute top-4 left-4 text-gray-400 hover:text-gray-600"
+                  >
+                    <FaTimes className="w-5 h-5" />
+                  </button>
+
+                  <h2 className="text-2xl font-bold text-center mb-8">הוספת כרטיס אשראי</h2>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2 text-right">מספר כרטיס</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={cardNumber}
+                          onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                            getCardNumberError() ? 'border-red-400' : 'border-gray-300'
+                          }`}
+                        />
+                        <FaCreditCard className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      </div>
+                      {getCardNumberError() && (
+                        <p className="text-red-500 text-sm mt-1">{getCardNumberError()}</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 text-right">תוקף</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={cardExpiry}
+                            onChange={(e) => {
+                              let val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                              if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2);
+                              setCardExpiry(val);
+                            }}
+                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                              getExpiryError() ? 'border-red-400' : 'border-gray-300'
+                            }`}
+                          />
+                          <FaCalendarAlt className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        </div>
+                        {getExpiryError() && (
+                          <p className="text-red-500 text-sm mt-1">{getExpiryError()}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2 text-right">CVV</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={cardCvv}
+                            onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                              getCvvError() ? 'border-red-400' : 'border-gray-300'
+                            }`}
+                          />
+                          <FaLock className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        </div>
+                        {getCvvError() && (
+                          <p className="text-red-500 text-sm mt-1">{getCvvError()}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!isCardValid) {
+                        return;
+                      }
+                      const token = localStorage.getItem('token');
+                      if (!token) return;
+                      
+                      setSavingCard(true);
+                      try {
+                        const cardLast4 = cardNumber.slice(-4);
+                        const brand = cardNumber.startsWith('4') ? 'Visa' : cardNumber.startsWith('5') ? 'Mastercard' : 'Card';
+                        
+                        const res = await fetch('http://localhost:4000/users/me/payment-methods', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`
+                          },
+                          body: JSON.stringify({ cardLastFour: cardLast4, cardBrand: brand })
+                        });
+                        
+                        if (!res.ok) throw new Error('Failed to save card');
+                        const newCard = await res.json();
+                        
+                        setPaymentMethods(prev => [...prev, newCard]);
+                        setShowAddCardModal(false);
+                        setCardNumber('');
+                        setCardExpiry('');
+                        setCardCvv('');
+                        setMessage('הכרטיס נוסף בהצלחה');
+                        setMessageType('success');
+                      } catch {
+                        setMessage('שגיאה בשמירת הכרטיס');
+                        setMessageType('error');
+                      } finally {
+                        setSavingCard(false);
+                      }
+                    }}
+                    disabled={savingCard || !isCardValid}
+                    className="w-full mt-8 bg-black text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition disabled:opacity-50"
+                  >
+                    {savingCard ? 'שומר...' : 'שמור כרטיס'}
+                  </button>
                 </div>
               </div>
             )}

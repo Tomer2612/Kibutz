@@ -209,4 +209,10 @@ export class UsersController {
   async deletePaymentMethod(@Req() req, @Param('id') id: string) {
     return this.usersService.deletePaymentMethod(req.user.userId, id);
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('me/payment-methods/:id/set-primary')
+  async setPrimaryPaymentMethod(@Req() req, @Param('id') id: string) {
+    return this.usersService.setPrimaryPaymentMethod(req.user.userId, id);
+  }
 }

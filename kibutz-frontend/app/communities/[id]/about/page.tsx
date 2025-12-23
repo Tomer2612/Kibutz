@@ -134,6 +134,38 @@ export default function CommunityAboutPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [managerCount, setManagerCount] = useState(0);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leavingCommunity, setLeavingCommunity] = useState(false);
+
+  // Leave community handler
+  const handleLeaveCommunity = async () => {
+    const token = localStorage.getItem('token');
+    if (!token || !communityId) return;
+
+    setLeavingCommunity(true);
+    try {
+      const res = await fetch(`http://localhost:4000/communities/${communityId}/leave`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to leave community');
+      }
+
+      // Redirect to homepage after leaving
+      router.push('/');
+    } catch (err) {
+      console.error('Leave community error:', err);
+      alert('שגיאה בעזיבת הקהילה');
+    } finally {
+      setLeavingCommunity(false);
+      setShowLeaveModal(false);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -482,6 +514,19 @@ export default function CommunityAboutPage() {
                 </div>
               )}
             </div>
+
+            {/* Leave Community Button - only for non-owners */}
+            {userId && community.ownerId !== userId && (
+              <div className="bg-white rounded-2xl border border-gray-200 p-5">
+                <button
+                  onClick={() => setShowLeaveModal(true)}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 text-red-600 hover:bg-red-50 rounded-xl transition font-medium"
+                >
+                  <FaSignOutAlt className="w-4 h-4" />
+                  עזוב את הקהילה
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Main Content */}
@@ -505,6 +550,41 @@ export default function CommunityAboutPage() {
           </div>
         </div>
       </div>
+
+      {/* Leave Community Confirmation Modal */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-lg" dir="rtl">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">עזיבת הקהילה</h3>
+            <p className="text-gray-600 mb-6">
+              האם אתה בטוח שברצונך לעזוב את הקהילה <span className="font-semibold">{community?.name}</span>?
+              לאחר העזיבה, לא תהיה לך גישה לפוסטים ולא תוכל להשתתף בדיונים, עד להצטרפות מחדש
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLeaveModal(false)}
+                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={handleLeaveCommunity}
+                disabled={leavingCommunity}
+                className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {leavingCommunity ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    עוזב...
+                  </>
+                ) : (
+                  'עזוב את הקהילה'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

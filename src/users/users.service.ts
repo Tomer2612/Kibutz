@@ -430,4 +430,12 @@ export class UsersService {
       where: { id: paymentMethodId, userId },
     });
   }
+
+  async setPrimaryPaymentMethod(userId: string, paymentMethodId: string) {
+    // Update the createdAt to now to make it the most recent (primary)
+    return this.prisma.userPaymentMethod.updateMany({
+      where: { id: paymentMethodId, userId },
+      data: { createdAt: new Date() },
+    });
+  }
 }

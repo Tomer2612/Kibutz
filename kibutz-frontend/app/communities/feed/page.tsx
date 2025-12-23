@@ -501,6 +501,13 @@ export default function CommunityFeedPage() {
     return () => clearInterval(interval);
   }, [selectedCommunityId, userId]);
 
+  // Redirect non-members to homepage
+  useEffect(() => {
+    if (isMember === false) {
+      router.push('/');
+    }
+  }, [isMember, router]);
+
   // Fetch link previews for posts
   useEffect(() => {
     const fetchLinkPreviews = async () => {
@@ -1486,46 +1493,6 @@ export default function CommunityFeedPage() {
           )}
         </div>
       </header>
-
-      {/* Not a member message */}
-      {isMember === false && community && (
-        <section className="max-w-2xl mx-auto py-16 px-4 text-center">
-          <div className="bg-white rounded-2xl border border-gray-200 p-12 shadow-sm">
-            {community.image ? (
-              <img
-                src={`http://localhost:4000${community.image}`}
-                alt={community.name}
-                className="w-32 h-32 rounded-full object-cover mx-auto mb-6 border-4 border-gray-100"
-              />
-            ) : (
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-green-100 mx-auto mb-6 flex items-center justify-center border-4 border-gray-100">
-                <FaUsers className="w-12 h-12 text-gray-400" />
-              </div>
-            )}
-            <h1 className="text-3xl font-bold text-black mb-3">{community.name}</h1>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">{community.description}</p>
-            <div className="flex items-center justify-center gap-3 text-sm mb-8">
-              <span className="bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full font-medium">
-                {community.memberCount ?? 0} חברים
-              </span>
-              {community.topic && (
-                <span className="bg-cyan-100 text-cyan-700 px-4 py-1.5 rounded-full font-medium">
-                  {community.topic}
-                </span>
-              )}
-            </div>
-            
-            <p className="text-gray-600 mb-6">על מנת להצטרף לקהילה, יש לעשות זאת מהעמוד הראשי</p>
-            
-            <Link 
-              href="/"
-              className="bg-black text-white px-8 py-3 rounded-xl font-semibold hover:opacity-90 transition inline-block"
-            >
-              חזרה לעמוד הראשי
-            </Link>
-          </div>
-        </section>
-      )}
 
       {/* Main 3-column layout - only show if member */}
       {isMember !== false && (
