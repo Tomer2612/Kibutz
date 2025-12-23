@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FaUser, FaCheckCircle, FaCheck, FaTimes, FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
 import { HiOutlineMail, HiOutlineKey } from 'react-icons/hi';
@@ -28,7 +28,7 @@ const isValidEmail = (email: string) => {
   return emailRegex.test(email);
 };
 
-export default function SignupPage() {
+function SignupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [name, setName] = useState('');
@@ -623,5 +623,13 @@ export default function SignupPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">טוען...</div>}>
+      <SignupContent />
+    </Suspense>
   );
 }

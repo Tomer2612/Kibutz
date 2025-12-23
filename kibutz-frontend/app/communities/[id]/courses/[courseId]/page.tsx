@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaCheck, FaChevronDown, FaChevronUp, FaClock, FaEdit, FaTrash, FaFileAlt, FaVideo, FaUsers, FaCog, FaSignOutAlt, FaUser, FaTimes, FaQuestionCircle, FaCheckCircle, FaTimesCircle, FaLink, FaImage, FaLayerGroup } from 'react-icons/fa';
@@ -81,7 +81,7 @@ interface Course {
   _count: { enrollments: number };
 }
 
-export default function CourseViewerPage() {
+function CourseViewerContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1083,5 +1083,13 @@ export default function CourseViewerPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CourseViewerPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">טוען...</div>}>
+      <CourseViewerContent />
+    </Suspense>
   );
 }

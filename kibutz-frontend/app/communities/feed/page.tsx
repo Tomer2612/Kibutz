@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
@@ -135,7 +135,7 @@ interface UpcomingEvent {
 
 // NAV_LINKS will be generated dynamically based on communityId
 
-export default function CommunityFeedPage() {
+function CommunityFeedContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialCommunityId = searchParams.get('communityId');
@@ -3131,5 +3131,13 @@ export default function CommunityFeedPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function CommunityFeedPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">טוען...</div>}>
+      <CommunityFeedContent />
+    </Suspense>
   );
 }

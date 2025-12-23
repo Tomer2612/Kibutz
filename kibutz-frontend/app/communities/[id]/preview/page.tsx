@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
@@ -116,7 +116,7 @@ function CommunityGallery({ primaryImage, galleryImages, communityName }: {
   );
 }
 
-export default function CommunityPreviewPage() {
+function CommunityPreviewContent() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -808,5 +808,13 @@ export default function CommunityPreviewPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function CommunityPreviewPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">טוען...</div>}>
+      <CommunityPreviewContent />
+    </Suspense>
   );
 }
