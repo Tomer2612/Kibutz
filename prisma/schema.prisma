@@ -52,6 +52,18 @@ model User {
   coursesCreated           Course[]
   courseEnrollments        CourseEnrollment[]
   lessonProgress           LessonProgress[]
+  paymentMethods           UserPaymentMethod[]
+}
+
+model UserPaymentMethod {
+  id          String   @id @default(cuid())
+  userId      String
+  cardLastFour String
+  cardBrand   String   @default("Visa")
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_payment_methods")
 }
 
 model UserFollow {
@@ -111,10 +123,15 @@ model Community {
   instagramUrl  String?
   galleryImages String[]
   rules         String[]
+  // Trial and payment info
+  trialStartDate    DateTime?
+  trialCancelled    Boolean           @default(false)
+  cardLastFour      String?
+  cardBrand         String?
   posts         Post[]
   events        Event[]
   courses       Course[]
-  owner         User              @relation(fields: [ownerId], references: [id])
+  owner         User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members       CommunityMember[]
   bans          CommunityBan[]
 
@@ -167,7 +184,7 @@ model Post {
   createdAt   DateTime    @default(now())
   authorId    String
   communityId String
-  author      User        @relation(fields: [authorId], references: [id])
+  author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   community   Community   @relation(fields: [communityId], references: [id], onDelete: Cascade)
   likes       Like[]
   comments    Comment[]

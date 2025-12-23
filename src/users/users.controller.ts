@@ -43,7 +43,7 @@ export class UsersController {
       coverImage: user?.coverImage,
       bio: user?.bio,
       location: user?.location,
-      googleConnected: !!user?.googleId,
+      isGoogleAccount: !!user?.googleId,
     };
   }
 
@@ -69,20 +69,6 @@ export class UsersController {
       coverImage: user?.coverImage,
       bio: user?.bio,
       location: user?.location,
-      googleConnected: !!user?.googleId,
-    };
-  }
-
-  @UseGuards(AuthGuard('jwt'))
-  @Delete('me/google')
-  async disconnectGoogle(@Req() req) {
-    const user = await this.usersService.disconnectGoogle(req.user.userId);
-    return {
-      userId: user?.id,
-      email: user?.email,
-      name: user?.name,
-      profileImage: user?.profileImage,
-      googleConnected: !!user?.googleId,
     };
   }
 
@@ -196,5 +182,31 @@ export class UsersController {
   @Get(':userId/is-following')
   async isFollowing(@Req() req, @Param('userId') userId: string) {
     return this.usersService.isFollowing(req.user.userId, userId);
+  }
+
+  // Payment Methods
+  @UseGuards(AuthGuard('jwt'))
+  @Get('me/payment-methods')
+  async getPaymentMethods(@Req() req) {
+    return this.usersService.getPaymentMethods(req.user.userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('me/payment-methods')
+  async addPaymentMethod(
+    @Req() req,
+    @Body() body: { cardLastFour: string; cardBrand?: string },
+  ) {
+    return this.usersService.addPaymentMethod(
+      req.user.userId,
+      body.cardLastFour,
+      body.cardBrand || 'Visa',
+    );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('me/payment-methods/:id')
+  async deletePaymentMethod(@Req() req, @Param('id') id: string) {
+    return this.usersService.deletePaymentMethod(req.user.userId, id);
   }
 }

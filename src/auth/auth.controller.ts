@@ -34,8 +34,17 @@ export class AuthController {
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() res) {
-    const token = await this.authService.loginWithGoogle(req.user);
-    res.redirect(`http://localhost:3000/google-success?token=${token}`);
+    try {
+      const token = await this.authService.loginWithGoogle(req.user);
+      res.redirect(`http://localhost:3000/google-success?token=${token}`);
+    } catch (error) {
+      if (error.message === 'ACCOUNT_EXISTS_USE_PASSWORD') {
+        // User exists with email/password, redirect to login with message
+        res.redirect(`http://localhost:3000/login?error=account_exists`);
+      } else {
+        res.redirect(`http://localhost:3000/login?error=google_failed`);
+      }
+    }
   }
 
   // Email verification endpoints

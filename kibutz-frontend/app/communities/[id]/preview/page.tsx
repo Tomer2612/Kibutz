@@ -282,6 +282,26 @@ export default function CommunityPreviewPage() {
     e.preventDefault();
     if (!isPaymentValid) return;
     setJoining(true);
+    
+    // Save credit card info to user payment methods
+    const token = localStorage.getItem('token');
+    const lastFour = cardNumber.slice(-4);
+    try {
+      await fetch('http://localhost:4000/users/me/payment-methods', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          cardLastFour: lastFour,
+          cardBrand: 'Visa',
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to save card info:', err);
+    }
+    
     await joinCommunity();
     setShowPaymentModal(false);
   };
@@ -712,7 +732,7 @@ export default function CommunityPreviewPage() {
               <FaTimes className="w-5 h-5" />
             </button>
 
-            <h2 className="text-2xl font-bold text-center mb-8">מתחילים 14 ימי ניסיון חינם</h2>
+            <h2 className="text-2xl font-bold text-center mb-8">מתחילים 7 ימי ניסיון חינם</h2>
 
             <div className="space-y-4">
               <div>

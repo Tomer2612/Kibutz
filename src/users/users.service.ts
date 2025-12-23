@@ -130,26 +130,6 @@ export class UsersService {
     });
   }
 
-  async disconnectGoogle(userId: string) {
-    // Find user by ID or email first
-    const user = await this.findByIdOrEmail(userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    return this.prisma.user.update({
-      where: { id: user.id },
-      data: { googleId: null },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        profileImage: true,
-        googleId: true,
-      },
-    });
-  }
-
   async toggleOnlineStatus(userId: string, showOnline: boolean) {
     const user = await this.findByIdOrEmail(userId);
     if (!user) {
@@ -407,5 +387,47 @@ export class UsersService {
     });
 
     return { isFollowing: !!follow };
+  }
+
+  // Payment Methods
+  async getPaymentMethods(userId: string) {
+    return this.prisma.userPaymentMethod.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async addPaymentMethod(userId: string, cardLastFour: string, cardBrand: string = 'Visa') {
+    // Check if this card already exists for the user
+    const existing = await this.prisma.userPaymentMethod.findFirst({
+      where: { userId, cardLastFour },
+    });
+    
+    if (existing) {
+      return existing; // Don't add duplicate
+    }
+    
+    return this.prisma.userPaymentMethod.create({
+      data: {
+        userId,
+        cardLastFour,
+        cardBrand,
+      },
+    });
+  }
+
+  async deletePaymentMethod(userId: string, paymentMethodId: string) {
+    // Check if user has more than one payment method
+    const count = await this.prisma.userPaymentMethod.count({
+      where: { userId },
+    });
+    
+    if (count <= 1) {
+      throw new BadRequestException('לא ניתן למחוק את אמצעי התשלום האחרון');
+    }
+    
+    return this.prisma.userPaymentMethod.deleteMany({
+      where: { id: paymentMethodId, userId },
+    });
   }
 }

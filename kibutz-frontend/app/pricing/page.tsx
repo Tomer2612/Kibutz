@@ -164,7 +164,7 @@ export default function PricingPage() {
   };
 
   const handlePaymentAndCreate = async () => {
-    // Simulate payment processing then create community
+    // Create community and save payment info
     if (!communityName.trim()) return;
     
     setCreatingCommunity(true);
@@ -184,6 +184,34 @@ export default function PricingPage() {
       
       if (res.ok) {
         const newCommunity = await res.json();
+        
+        // Save credit card info to the new community
+        const lastFour = cardNumber.slice(-4);
+        await fetch(`http://localhost:4000/communities/${newCommunity.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            cardLastFour: lastFour,
+            cardBrand: 'Visa',
+          }),
+        });
+        
+        // Also save to user payment methods
+        await fetch('http://localhost:4000/users/me/payment-methods', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            cardLastFour: lastFour,
+            cardBrand: 'Visa',
+          }),
+        });
+        
         router.push(`/communities/feed?communityId=${newCommunity.id}`);
       }
     } catch (err) {
@@ -284,7 +312,7 @@ export default function PricingPage() {
     return (
       <main className="min-h-screen bg-gray-100 flex items-center justify-center" dir="rtl">
         <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-          <h2 className="text-2xl font-bold text-center mb-8">מתחילים 14 ימי ניסיון חינם</h2>
+          <h2 className="text-2xl font-bold text-center mb-8">מתחילים 7 ימי ניסיון חינם</h2>
           
           <div className="space-y-4">
             <div>

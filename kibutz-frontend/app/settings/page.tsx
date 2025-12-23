@@ -4,8 +4,15 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import Image from 'next/image';
-import { FaUser, FaEnvelope, FaCamera, FaCog, FaSignOutAlt, FaCheck, FaLink, FaUnlink, FaLock, FaEye, FaEyeSlash, FaPowerOff, FaArrowRight, FaTrash, FaMapMarkerAlt } from 'react-icons/fa';
+import { HiOutlineUser, HiOutlineCamera, HiOutlineCog6Tooth, HiOutlineArrowRightOnRectangle, HiOutlineLink, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeSlash, HiOutlineBell, HiOutlineShieldCheck, HiOutlineHeart, HiOutlineChatBubbleLeft, HiOutlineChatBubbleOvalLeft, HiOutlineUserPlus, HiOutlineUsers, HiOutlineEnvelope, HiOutlineMapPin, HiOutlineDocumentText, HiOutlineAtSymbol } from 'react-icons/hi2';
+import { FaPowerOff, FaTrash, FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa';
+
+// Password requirements (same as signup)
+const passwordRequirements = [
+  { id: 'length', label: 'לפחות 6 תווים', test: (p: string) => p.length >= 6 },
+  { id: 'letter', label: 'לפחות אות אחת', test: (p: string) => /[a-zA-Z]/.test(p) },
+  { id: 'number', label: 'לפחות מספר אחד', test: (p: string) => /[0-9]/.test(p) },
+];
 
 // Israeli cities list
 const ISRAELI_CITIES = [
@@ -79,20 +86,22 @@ interface UserProfile {
   profileImage: string | null;
   bio: string | null;
   location: string | null;
-  googleConnected: boolean;
+  isGoogleAccount?: boolean;
 }
+
+type TabType = 'profile' | 'security' | 'notifications';
 
 export default function SettingsPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
   const [settingOffline, setSettingOffline] = useState(false);
   const [showOnline, setShowOnline] = useState(true);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -123,12 +132,11 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // Message state
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
-  const [passwordMessage, setPasswordMessage] = useState('');
-  const [passwordMessageType, setPasswordMessageType] = useState<'error' | 'success'>('error');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -247,28 +255,9 @@ export default function SettingsPage() {
       setUserProfile(updatedProfile);
       setProfileImage(null);
       
-      // Update the preview with the new image from server
       if (updatedProfile.profileImage) {
         setImagePreview(`http://localhost:4000${updatedProfile.profileImage}`);
       }
-      
-      // Also save notification preferences
-      await fetch('http://localhost:4000/users/me/notification-preferences', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          notifyLikes,
-          notifyComments,
-          notifyFollows,
-          notifyNewPosts,
-          notifyMentions,
-          notifyCommunityJoins,
-          notifyMessages,
-        }),
-      });
       
       // Redirect to profile page after successful save
       router.push(`/profile/${userId}`);
@@ -278,45 +267,6 @@ export default function SettingsPage() {
       setMessageType('error');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleConnectGoogle = () => {
-    // Store current token to maintain session after Google auth
-    const token = localStorage.getItem('token');
-    if (token) {
-      localStorage.setItem('pendingGoogleLink', token);
-    }
-    window.location.href = 'http://localhost:4000/auth/google?linkAccount=true';
-  };
-
-  const handleDisconnectGoogle = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    try {
-      setDisconnectingGoogle(true);
-      const res = await fetch('http://localhost:4000/users/me/google', {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to disconnect Google');
-      }
-
-      const updatedProfile = await res.json();
-      setUserProfile(updatedProfile);
-      setMessage('חשבון Google נותק בהצלחה');
-      setMessageType('success');
-    } catch (err: any) {
-      console.error('Google disconnect error:', err);
-      setMessage('שגיאה בניתוק חשבון Google');
-      setMessageType('error');
-    } finally {
-      setDisconnectingGoogle(false);
     }
   };
 
@@ -352,12 +302,11 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveNotificationPreferences = async () => {
+  const saveNotificationPreference = async (key: string, value: boolean) => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
     try {
-      setSavingNotifications(true);
       const res = await fetch('http://localhost:4000/users/me/notification-preferences', {
         method: 'PATCH',
         headers: {
@@ -365,29 +314,58 @@ export default function SettingsPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          notifyLikes,
-          notifyComments,
-          notifyFollows,
-          notifyNewPosts,
-          notifyMentions,
-          notifyCommunityJoins,
-          notifyMessages,
+          [key]: value,
         }),
       });
 
       if (!res.ok) {
         throw new Error('Failed to save notification preferences');
       }
-
-      setMessage('העדפות התראות נשמרו בהצלחה');
-      setMessageType('success');
     } catch (err: any) {
-      console.error('Save notification preferences error:', err);
-      setMessage('שגיאה בשמירת העדפות התראות');
-      setMessageType('error');
-    } finally {
-      setSavingNotifications(false);
+      console.error('Save notification preference error:', err);
     }
+  };
+
+  const toggleNotifyLikes = () => {
+    const newValue = !notifyLikes;
+    setNotifyLikes(newValue);
+    saveNotificationPreference('notifyLikes', newValue);
+  };
+
+  const toggleNotifyComments = () => {
+    const newValue = !notifyComments;
+    setNotifyComments(newValue);
+    saveNotificationPreference('notifyComments', newValue);
+  };
+
+  const toggleNotifyFollows = () => {
+    const newValue = !notifyFollows;
+    setNotifyFollows(newValue);
+    saveNotificationPreference('notifyFollows', newValue);
+  };
+
+  const toggleNotifyNewPosts = () => {
+    const newValue = !notifyNewPosts;
+    setNotifyNewPosts(newValue);
+    saveNotificationPreference('notifyNewPosts', newValue);
+  };
+
+  const toggleNotifyMentions = () => {
+    const newValue = !notifyMentions;
+    setNotifyMentions(newValue);
+    saveNotificationPreference('notifyMentions', newValue);
+  };
+
+  const toggleNotifyCommunityJoins = () => {
+    const newValue = !notifyCommunityJoins;
+    setNotifyCommunityJoins(newValue);
+    saveNotificationPreference('notifyCommunityJoins', newValue);
+  };
+
+  const toggleNotifyMessages = () => {
+    const newValue = !notifyMessages;
+    setNotifyMessages(newValue);
+    saveNotificationPreference('notifyMessages', newValue);
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -396,28 +374,35 @@ export default function SettingsPage() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    // Validation
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordMessage('יש למלא את כל השדות');
-      setPasswordMessageType('error');
+      setMessage('יש למלא את כל השדות');
+      setMessageType('error');
       return;
     }
 
-    if (newPassword.length < 6) {
-      setPasswordMessage('הסיסמה החדשה חייבת להכיל לפחות 6 תווים');
-      setPasswordMessageType('error');
+    // Check all password requirements
+    const requirementsMet = passwordRequirements.every(req => req.test(newPassword));
+    if (!requirementsMet) {
+      setMessage('הסיסמה החדשה חייבת להכיל לפחות 6 תווים, אות אחת ומספר אחד');
+      setMessageType('error');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordMessage('הסיסמאות אינן תואמות');
-      setPasswordMessageType('error');
+      setMessage('הסיסמאות אינן תואמות');
+      setMessageType('error');
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setMessage('הסיסמה החדשה לא יכולה להיות זהה לסיסמה הנוכחית');
+      setMessageType('error');
       return;
     }
 
     try {
       setChangingPassword(true);
-      setPasswordMessage('');
+      setMessage('');
 
       const res = await fetch('http://localhost:4000/users/me/password', {
         method: 'PATCH',
@@ -433,15 +418,15 @@ export default function SettingsPage() {
         throw new Error(errorData.message || 'Failed to change password');
       }
 
-      setPasswordMessage('הסיסמה שונתה בהצלחה!');
-      setPasswordMessageType('success');
+      setMessage('הסיסמה שונתה בהצלחה!');
+      setMessageType('success');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
       console.error('Password change error:', err);
-      setPasswordMessage(err.message || 'שגיאה בשינוי הסיסמה');
-      setPasswordMessageType('error');
+      setMessage(err.message || 'שגיאה בשינוי הסיסמה');
+      setMessageType('error');
     } finally {
       setChangingPassword(false);
     }
@@ -470,10 +455,7 @@ export default function SettingsPage() {
         throw new Error('Failed to delete account');
       }
 
-      // Clear token
       localStorage.removeItem('token');
-      
-      // Show success message and redirect after delay
       setMessage('מחיקת המשתמש עברה בהצלחה');
       setMessageType('success');
       setDeletingAccount(false);
@@ -499,14 +481,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 text-right">
+    <main className="min-h-screen bg-gray-100 text-right" dir="rtl">
       {/* Header */}
-      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
+      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
         <div className="flex items-center gap-4">
           <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
             Kibutz
           </Link>
         </div>
+        
         <div className="relative">
           <button
             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
@@ -532,7 +515,7 @@ export default function SettingsPage() {
                 className="fixed inset-0 z-40" 
                 onClick={() => setProfileMenuOpen(false)}
               />
-              <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+              <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
                 <button
                   onClick={() => {
                     setProfileMenuOpen(false);
@@ -544,9 +527,7 @@ export default function SettingsPage() {
                   הפרופיל שלי
                 </button>
                 <button
-                  onClick={() => {
-                    setProfileMenuOpen(false);
-                  }}
+                  onClick={() => setProfileMenuOpen(false)}
                   className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
                 >
                   <FaCog className="w-4 h-4" />
@@ -569,46 +550,91 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      {/* Form Section */}
-      <section className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">הגדרות משתמש</h1>
-            <p className="text-gray-600">עדכנו את פרטי הפרופיל שלכם</p>
+      {/* Main Layout with Sidebar */}
+      <div className="flex min-h-[calc(100vh-65px)]">
+        {/* Right Sidebar - Settings Tabs */}
+        <aside className="w-64 bg-white border-l border-gray-200 p-6 flex-shrink-0">
+          <div className="flex items-center gap-2 mb-6">
+            <HiOutlineCog6Tooth className="w-5 h-5 text-gray-600" />
+            <h2 className="text-base font-semibold text-gray-900">הגדרות</h2>
           </div>
+          
+          <nav className="space-y-1">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('profile');
+                setMessage('');
+              }}
+              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                activeTab === 'profile'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              פרטי פרופיל
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('security');
+                setMessage('');
+              }}
+              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                activeTab === 'security'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              אבטחה
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('notifications');
+                setMessage('');
+              }}
+              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                activeTab === 'notifications'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              התראות
+            </button>
+          </nav>
+        </aside>
 
-          {/* Two column layout for cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left column - Profile Form */}
-            <div className="space-y-6">
-              {/* Profile Form Card */}
-              <form
-                onSubmit={handleSubmit}
-                className="bg-white rounded-lg shadow-md p-8 space-y-6"
-              >
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">פרטי פרופיל</h2>
-                
-                {/* Profile Image */}
-                <div className="flex flex-col items-center mb-6">
-                  <div className="relative group">
-                    {imagePreview ? (
-                      <img 
-                        src={imagePreview}
-                        alt={name || 'User'}
-                        className="w-32 h-32 rounded-full object-cover border-4 border-gray-100"
-                      />
-                    ) : (
-                      <div className="w-32 h-32 rounded-full bg-pink-100 flex items-center justify-center text-4xl font-bold text-pink-600 border-4 border-gray-100">
-                        {name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 w-10 h-10 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-800 transition shadow-lg"
-                    >
-                      <FaCamera className="w-4 h-4" />
-                    </button>
+        {/* Main Content */}
+        <div className="flex-1 p-8">
+          <form onSubmit={handleSubmit} className="max-w-3xl">
+            {/* Profile Tab */}
+            {activeTab === 'profile' && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+                {/* Profile Photo */}
+                <div className="flex items-center gap-8">
+                  <h3 className="text-sm font-medium text-gray-900 w-32 flex-shrink-0">תמונת פרופיל</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      {imagePreview ? (
+                        <img
+                          src={imagePreview}
+                          alt="Profile"
+                          className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 rounded-full bg-pink-100 flex items-center justify-center text-xl font-bold text-pink-600 border-2 border-gray-200">
+                          {name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute bottom-0 right-0 w-7 h-7 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition"
+                      >
+                        <HiOutlineCamera className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -616,79 +642,82 @@ export default function SettingsPage() {
                       onChange={handleImageChange}
                       className="hidden"
                     />
+                    <div className="text-sm text-gray-500">
+                      <p>לחצו על האייקון לשינוי התמונה</p>
+                      <p className="text-xs text-gray-400">JPG, PNG עד 5MB</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-3">לחצו על הכפתור לשינוי תמונה</p>
                 </div>
 
-                {/* Email (read-only) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                    אימייל
-                  </label>
-                  <div className="relative">
-                    <FaEnvelope className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                {/* Email */}
+                <div className="flex items-center gap-8">
+                  <h3 className="text-sm font-medium text-gray-900 w-32 flex-shrink-0">אימייל</h3>
+                  <div className="flex-1 relative">
+                    <HiOutlineEnvelope className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="email"
-                      value={userProfile?.email || ''}
+                      value={userEmail || ''}
                       disabled
-                      className="w-full p-3 pr-10 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-right cursor-not-allowed"
+                      className="w-full pr-11 pl-4 py-3 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 text-sm"
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">האימייל לא ניתן לשינוי</p>
                 </div>
 
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                    שם מלא
-                  </label>
-                  <div className="relative">
-                    <FaUser className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                {/* Full Name */}
+                <div className="flex items-center gap-8">
+                  <h3 className="text-sm font-medium text-gray-900 w-32 flex-shrink-0">שם מלא</h3>
+                  <div className="flex-1 relative">
+                    <HiOutlineUser className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="הזינו את שמכם המלא"
-                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      maxLength={100}
+                      onChange={(e) => setName(e.target.value.slice(0, 50))}
+                      placeholder="שם מלא"
+                      maxLength={50}
+                      className="w-full pr-11 pl-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black text-sm"
                     />
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">{name.length}/50</span>
                   </div>
                 </div>
 
-                {/* Bio/Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                    תיאור
-                  </label>
-                  <textarea
-                    placeholder="ספרו על עצמכם..."
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right resize-none"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    maxLength={500}
-                    rows={4}
-                  />
-                  <p className="text-xs text-gray-500 mt-1 text-left">{bio.length}/500</p>
+                {/* Bio */}
+                <div className="flex items-start gap-8">
+                  <div className="w-32 flex-shrink-0">
+                    <h3 className="text-sm font-medium text-gray-900">תיאור</h3>
+                    <p className="text-xs text-gray-500">ספרו על עצמכם</p>
+                  </div>
+                  <div className="flex-1 min-w-[400px] relative">
+                    <textarea
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value.slice(0, 300))}
+                      placeholder="ספרו על עצמכם"
+                      maxLength={300}
+                      rows={5}
+                      dir="rtl"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black text-sm resize-none overflow-y-auto"
+                      style={{ direction: 'rtl' }}
+                    />
+                    <span className="absolute left-3 bottom-3 text-xs text-gray-400">{bio.length}/300</span>
+                  </div>
                 </div>
 
                 {/* Location */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                    עיר מגורים
-                  </label>
-                  <div className="relative">
-                    <FaMapMarkerAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <div className="flex items-center gap-8">
+                  <h3 className="text-sm font-medium text-gray-900 w-32 flex-shrink-0">עיר מגורים</h3>
+                  <div className="flex-1 relative">
+                    <HiOutlineMapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <select
-                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right appearance-none bg-white"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
+                      className="w-full pr-11 pl-10 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black text-sm bg-white appearance-none cursor-pointer"
                     >
-                      <option value="">בחרו עיר</option>
-                      {ISRAELI_CITIES.filter(city => city).map((city) => (
-                        <option key={city} value={city}>{city}</option>
+                      {ISRAELI_CITIES.map((city) => (
+                        <option key={city} value={city}>
+                          {city || 'בחר עיר'}
+                        </option>
                       ))}
                     </select>
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
@@ -696,428 +725,362 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div className="border-t border-gray-200 pt-4">
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">שינוי סיסמה</h3>
-                  
+                {/* Online Status */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">הסטטוס שלי</h3>
+                    <p className="text-xs text-gray-500">כרגע מוצג כמחובר לכל חברי הקהילות</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleOnlineStatus}
+                    disabled={settingOffline}
+                    className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    <FaPowerOff className="w-4 h-4 text-gray-600" />
+                    {showOnline ? 'הפוך ללא מחובר' : 'הפוך למחובר'}
+                    <div 
+                      className="w-2.5 h-2.5 rounded-full border border-gray-900" 
+                      style={{ backgroundColor: showOnline ? '#A7EA7B' : '#D1D5DB' }} 
+                    />
+                  </button>
+                </div>
+
+                {/* Save Button */}
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50"
+                  >
+                    {saving ? 'שומר...' : 'שמור שינויים'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Security Tab */}
+            {activeTab === 'security' && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+                {/* Change Password Section */}
+                <div className={userProfile?.isGoogleAccount ? 'opacity-50 pointer-events-none' : ''}>
+                  <h3 className="text-base font-semibold text-gray-900 mb-4">שינוי סיסמא</h3>
+                  {userProfile?.isGoogleAccount && (
+                    <p className="text-sm text-gray-500 mb-4">לא ניתן לשנות סיסמא עבור חשבונות Google</p>
+                  )}
+                
                   {/* Current Password */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                      סיסמה נוכחית
-                    </label>
-                    <div className="relative">
-                      <FaLock className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <div className="flex items-center gap-8 mb-4">
+                    <div className="w-40 flex-shrink-0">
+                      <h4 className="text-sm font-medium text-gray-900">סיסמא נוכחית</h4>
+                      <p className="text-xs text-gray-500">הזינו את הסיסמא הנוכחית</p>
+                    </div>
+                    <div className="relative flex-1">
                       <input
                         type={showCurrentPassword ? 'text' : 'password'}
-                        placeholder="הזינו את הסיסמה הנוכחית"
-                        className="w-full p-3 pr-10 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
+                        disabled={userProfile?.isGoogleAccount}
+                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-gray-400 text-sm disabled:bg-gray-100"
                       />
                       <button
                         type="button"
                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {showCurrentPassword ? <FaEyeSlash /> : <FaEye />}
+                        {showCurrentPassword ? <HiOutlineEye className="w-5 h-5" /> : <HiOutlineEyeSlash className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
 
                   {/* New Password */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                      סיסמה חדשה
-                    </label>
-                    <div className="relative">
-                      <FaLock className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <div className="flex items-center gap-8 mb-4">
+                    <div className="w-40 flex-shrink-0">
+                      <h4 className="text-sm font-medium text-gray-900">סיסמא חדשה</h4>
+                      <p className="text-xs text-gray-500">הזינו את הסיסמא החדשה</p>
+                    </div>
+                    <div className="relative flex-1">
                       <input
                         type={showNewPassword ? 'text' : 'password'}
-                        placeholder="הזינו סיסמה חדשה (לפחות 6 תווים)"
-                        className="w-full p-3 pr-10 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={userProfile?.isGoogleAccount}
+                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-gray-400 text-sm disabled:bg-gray-100"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+                        {showNewPassword ? <HiOutlineEye className="w-5 h-5" /> : <HiOutlineEyeSlash className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
 
                   {/* Confirm Password */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                      אישור סיסמה חדשה
-                    </label>
-                    <div className="relative">
-                      <FaLock className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <div className="flex items-center gap-8 mb-4">
+                    <div className="w-40 flex-shrink-0">
+                      <h4 className="text-sm font-medium text-gray-900">אישור סיסמא חדשה</h4>
+                      <p className="text-xs text-gray-500">הזינו שוב את הסיסמא החדשה</p>
+                    </div>
+                    <div className="relative flex-1">
                       <input
-                        type={showNewPassword ? 'text' : 'password'}
-                        placeholder="הזינו שוב את הסיסמה החדשה"
-                        className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
+                        type={showConfirmPassword ? 'text' : 'password'}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={userProfile?.isGoogleAccount}
+                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-gray-400 text-sm disabled:bg-gray-100"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showConfirmPassword ? <HiOutlineEye className="w-5 h-5" /> : <HiOutlineEyeSlash className="w-5 h-5" />}
+                      </button>
                     </div>
                   </div>
 
-                  {/* Password Change Button */}
-                  {(currentPassword || newPassword || confirmPassword) && (
+                  {/* Password Button */}
+                  <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={handleChangePassword}
-                      disabled={changingPassword}
-                      className={`w-full mt-4 py-2 rounded-lg font-medium transition text-sm ${
-                        changingPassword
-                          ? 'bg-gray-400 cursor-not-allowed text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                      disabled={changingPassword || userProfile?.isGoogleAccount}
+                      className="px-6 py-2.5 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50 text-sm"
                     >
-                      {changingPassword ? 'משנה סיסמה...' : 'שנה סיסמה'}
+                      {changingPassword ? 'משנה...' : 'שנה סיסמא'}
                     </button>
-                  )}
-
-                  {/* Password Message */}
-                  {passwordMessage && (
-                    <div
-                      className={`mt-4 p-3 rounded-lg flex items-center gap-2 text-sm ${
-                        passwordMessageType === 'error'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-green-100 text-green-700'
-                      }`}
-                    >
-                      {passwordMessageType === 'success' && <FaCheck className="w-4 h-4" />}
-                      {passwordMessage}
-                    </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* Message Display */}
-                {message && (
-                  <div
-                    className={`p-4 rounded-lg flex items-center gap-2 ${
-                      messageType === 'error'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-green-100 text-green-700'
-                    }`}
-                  >
-                    {messageType === 'success' && <FaCheck className="w-4 h-4" />}
-                    {message}
-                  </div>
-                )}
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className={`w-full py-3 rounded-lg font-semibold transition ${
-                    saving
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-black text-white hover:opacity-90'
-                  }`}
-                >
-                  {saving ? 'שומר...' : 'שמור שינויים'}
-                </button>
-              </form>
-            </div>
-
-            {/* Right column - Connected Accounts & Online Status */}
-            <div className="space-y-6">
-              {/* Connected Accounts Card */}
-              <div className="bg-white rounded-lg shadow-md p-8 space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">חשבונות מקושרים</h2>
-                
-                {/* Google Account */}
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center">
-                      <Image 
-                        src="https://developers.google.com/identity/images/g-logo.png" 
-                        alt="Google" 
-                        width={24} 
-                        height={24}
-                        className="w-6 h-6"
-                      />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-800">Google</p>
-                      <p className="text-sm text-gray-500">
-                        {userProfile?.googleConnected ? 'מחובר' : 'לא מחובר'}
+                {/* Delete Account */}
+                <div className="pt-6 border-t border-gray-200">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-gray-900">מחיקת חשבון</h4>
+                      <p className="text-xs text-gray-500 mt-1">
+                        מחיקת החשבון היא פעולה בלתי הפיכה. כל הנתונים שלך יימחקו לצמיתות, כולל:
                       </p>
+                      <ul className="text-xs text-gray-500 mt-2 space-y-1 list-disc list-inside">
+                        <li>כל הפוסטים שפרסמת</li>
+                        <li>הקהילות שאתה הבעלים שלהן</li>
+                        <li>כל התגובות שכתבת</li>
+                      </ul>
                     </div>
-                  </div>
-                  
-                  {userProfile?.googleConnected ? (
                     <button
-                      onClick={handleDisconnectGoogle}
-                      disabled={disconnectingGoogle}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition disabled:opacity-50"
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition text-sm text-white hover:opacity-90 flex-shrink-0"
+                      style={{ backgroundColor: '#B3261E' }}
                     >
-                      <FaUnlink className="w-4 h-4" />
-                      {disconnectingGoogle ? 'מנתק...' : 'נתק חשבון'}
+                      אני רוצה למחוק את החשבון שלי
+                      <FaTrash className="w-4 h-4" />
                     </button>
-                  ) : (
-                    <button
-                      onClick={handleConnectGoogle}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
-                    >
-                      <FaLink className="w-4 h-4" />
-                      קשר חשבון
-                    </button>
-                  )}
-                </div>
-
-                <p className="text-xs text-gray-500 text-center">
-                  קישור חשבון Google מאפשר התחברות מהירה יותר
-                </p>
-              </div>
-
-              {/* Online Status Card */}
-              <div className="bg-white rounded-lg shadow-md p-8 space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">סטטוס מחובר</h2>
-                
-                <div className={`flex items-center justify-between p-4 border rounded-lg ${!showOnline ? 'border-gray-300 bg-gray-50' : 'border-gray-200'}`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${!showOnline ? 'bg-gray-200' : 'bg-green-100'}`}>
-                      <div className={`w-4 h-4 rounded-full ${!showOnline ? 'bg-gray-400' : 'bg-green-500'}`}></div>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-800">הסטטוס שלי</p>
-                      <p className="text-sm text-gray-500">
-                        {!showOnline ? 'כרגע מוצג כלא מחובר' : 'כרגע מוצג כמחובר לכל חברי הקהילות'}
-                      </p>
-                    </div>
                   </div>
-                  
-                  <button
-                    onClick={handleToggleOnlineStatus}
-                    disabled={settingOffline}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg transition disabled:opacity-50 ${
-                      showOnline 
-                        ? 'text-gray-600 border-gray-200 hover:bg-gray-50'
-                        : 'text-green-600 border-green-200 hover:bg-green-50'
-                    }`}
-                  >
-                    <FaPowerOff className="w-4 h-4" />
-                    {settingOffline ? 'משנה...' : (showOnline ? 'הפוך ללא מחובר' : 'הפוך למחובר')}
-                  </button>
                 </div>
-
-                <p className="text-xs text-gray-500 text-center">
-                  {!showOnline 
-                    ? 'לחץ על הכפתור כדי לחזור להופיע כמחובר'
-                    : 'לחיצה תסתיר אותך מרשימת המחוברים עד שתשנה חזרה'
-                  }
-                </p>
               </div>
+            )}
 
-              {/* Notification Preferences Card */}
-              <div className="bg-white rounded-lg shadow-md p-8 space-y-6">
-                <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">העדפות התראות</h2>
-                
-                <div className="space-y-4">
+            {/* Notifications Tab */}
+            {activeTab === 'notifications' && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="space-y-6">
                   {/* Likes */}
-                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                        <span className="text-lg">❤️</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">לייקים</p>
-                        <p className="text-sm text-gray-500">קבל התראה כשמישהו אוהב את הפוסט שלך</p>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">לייקים</h4>
+                      <p className="text-xs text-gray-500">קבל התראה כשמישהו אוהב את הפוסט שלך</p>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={notifyLikes}
-                      onChange={(e) => setNotifyLikes(e.target.checked)}
-                      className="w-5 h-5 accent-black"
-                    />
-                  </label>
+                    <button
+                      type="button"
+                      onClick={toggleNotifyLikes}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <HiOutlineHeart className="w-5 h-5 text-gray-400" />
+                      {notifyLikes ? 'בטל התראות' : 'הפעל התראות'}
+                      <div 
+                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
+                        style={{ backgroundColor: notifyLikes ? '#A7EA7B' : '#D1D5DB' }} 
+                      />
+                    </button>
+                  </div>
 
                   {/* Comments */}
-                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <span className="text-lg">💬</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">תגובות</p>
-                        <p className="text-sm text-gray-500">קבל התראה כשמישהו מגיב על הפוסט שלך</p>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">תגובות</h4>
+                      <p className="text-xs text-gray-500">קבל התראה כשמישהו מגיב על הפוסט שלך</p>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={notifyComments}
-                      onChange={(e) => setNotifyComments(e.target.checked)}
-                      className="w-5 h-5 accent-black"
-                    />
-                  </label>
+                    <button
+                      type="button"
+                      onClick={toggleNotifyComments}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <HiOutlineChatBubbleOvalLeft className="w-5 h-5 text-gray-400" />
+                      {notifyComments ? 'בטל התראות' : 'הפעל התראות'}
+                      <div 
+                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
+                        style={{ backgroundColor: notifyComments ? '#A7EA7B' : '#D1D5DB' }} 
+                      />
+                    </button>
+                  </div>
 
-                  {/* Follows */}
-                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                        <span className="text-lg">👤</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">עוקבים חדשים</p>
-                        <p className="text-sm text-gray-500">קבל התראה כשמישהו מתחיל לעקוב אחריך</p>
-                      </div>
+                  {/* New Followers */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">עוקבים חדשים</h4>
+                      <p className="text-xs text-gray-500">קבל התראה כשמישהו מתחיל לעקוב אחריך</p>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={notifyFollows}
-                      onChange={(e) => setNotifyFollows(e.target.checked)}
-                      className="w-5 h-5 accent-black"
-                    />
-                  </label>
+                    <button
+                      type="button"
+                      onClick={toggleNotifyFollows}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <HiOutlineUsers className="w-5 h-5 text-gray-400" />
+                      {notifyFollows ? 'בטל התראות' : 'הפעל התראות'}
+                      <div 
+                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
+                        style={{ backgroundColor: notifyFollows ? '#A7EA7B' : '#D1D5DB' }} 
+                      />
+                    </button>
+                  </div>
 
                   {/* New Posts */}
-                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <span className="text-lg">📝</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">פוסטים חדשים</p>
-                        <p className="text-sm text-gray-500">קבל התראה כשמישהו שאתה עוקב אחריו מפרסם</p>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">פוסטים חדשים</h4>
+                      <p className="text-xs text-gray-500">קבל התראה כשמישהו שאתה עוקב אחריו מפרסם</p>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={notifyNewPosts}
-                      onChange={(e) => setNotifyNewPosts(e.target.checked)}
-                      className="w-5 h-5 accent-black"
-                    />
-                  </label>
+                    <button
+                      type="button"
+                      onClick={toggleNotifyNewPosts}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <HiOutlineDocumentText className="w-5 h-5 text-gray-400" />
+                      {notifyNewPosts ? 'בטל התראות' : 'הפעל התראות'}
+                      <div 
+                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
+                        style={{ backgroundColor: notifyNewPosts ? '#A7EA7B' : '#D1D5DB' }} 
+                      />
+                    </button>
+                  </div>
 
                   {/* Mentions */}
-                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                        <span className="text-lg">@</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">אזכורים</p>
-                        <p className="text-sm text-gray-500">קבל התראה כשמישהו מזכיר אותך בתגובה</p>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">אזכורים</h4>
+                      <p className="text-xs text-gray-500">קבל התראה כשמישהו מזכיר אותך בתגובה</p>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={notifyMentions}
-                      onChange={(e) => setNotifyMentions(e.target.checked)}
-                      className="w-5 h-5 accent-black"
-                    />
-                  </label>
+                    <button
+                      type="button"
+                      onClick={toggleNotifyMentions}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <HiOutlineAtSymbol className="w-5 h-5 text-gray-400" />
+                      {notifyMentions ? 'בטל התראות' : 'הפעל התראות'}
+                      <div 
+                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
+                        style={{ backgroundColor: notifyMentions ? '#A7EA7B' : '#D1D5DB' }} 
+                      />
+                    </button>
+                  </div>
 
                   {/* Community Joins */}
-                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
-                        <span className="text-lg">👥</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">הצטרפות לקהילה</p>
-                        <p className="text-sm text-gray-500">קבל התראה כשמישהו מצטרף לקהילה שלך</p>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">הצטרפות לקהילה</h4>
+                      <p className="text-xs text-gray-500">קבל התראה כשמישהו מצטרף לקהילה שלך</p>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={notifyCommunityJoins}
-                      onChange={(e) => setNotifyCommunityJoins(e.target.checked)}
-                      className="w-5 h-5 accent-black"
-                    />
-                  </label>
-
-                  {/* Direct Messages */}
-                  <label className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-                        <span className="text-lg">✉️</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">הודעות פרטיות</p>
-                        <p className="text-sm text-gray-500">קבל התראה כשמישהו שולח לך הודעה</p>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={notifyMessages}
-                      onChange={(e) => setNotifyMessages(e.target.checked)}
-                      className="w-5 h-5 accent-black"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Delete Account Card */}
-              <div className="bg-white rounded-lg shadow-md p-8 space-y-6 border border-red-100">
-                <h2 className="text-xl font-semibold text-red-600 border-b border-red-100 pb-3">מחיקת חשבון</h2>
-                
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-red-700 text-sm">
-                    <strong>אזהרה:</strong> מחיקת החשבון היא פעולה בלתי הפיכה. כל הנתונים שלך יימחקו לצמיתות, כולל:
-                  </p>
-                  <ul className="text-red-600 text-sm mt-2 list-disc list-inside space-y-1">
-                    <li>כל הפוסטים שפרסמת</li>
-                    <li>כל התגובות שכתבת</li>
-                    <li>החברויות בקהילות</li>
-                    <li>הקהילות שאתה הבעלים שלהן</li>
-                  </ul>
-                </div>
-
-                {!showDeleteConfirm ? (
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition"
-                  >
-                    <FaTrash className="w-4 h-4" />
-                    אני רוצה למחוק את החשבון שלי
-                  </button>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-sm text-gray-700 text-center">
-                      לאישור, הקלד: <strong className="text-red-600">מחק את החשבון שלי</strong>
-                    </p>
-                    <input
-                      type="text"
-                      value={deleteConfirmText}
-                      onChange={(e) => setDeleteConfirmText(e.target.value)}
-                      placeholder="הקלד כאן לאישור..."
-                      className="w-full p-3 border border-red-300 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-red-500"
-                      dir="rtl"
-                    />
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => {
-                          setShowDeleteConfirm(false);
-                          setDeleteConfirmText('');
-                        }}
-                        className="flex-1 px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                      >
-                        ביטול
-                      </button>
-                      <button
-                        onClick={handleDeleteAccount}
-                        disabled={deletingAccount || deleteConfirmText !== 'מחק את החשבון שלי'}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <FaTrash className="w-4 h-4" />
-                        {deletingAccount ? 'מוחק...' : 'מחק לצמיתות'}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleNotifyCommunityJoins}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <HiOutlineUserPlus className="w-5 h-5 text-gray-400" />
+                      {notifyCommunityJoins ? 'בטל התראות' : 'הפעל התראות'}
+                      <div 
+                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
+                        style={{ backgroundColor: notifyCommunityJoins ? '#A7EA7B' : '#D1D5DB' }} 
+                      />
+                    </button>
                   </div>
-                )}
+
+                  {/* Private Messages */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">הודעות פרטיות</h4>
+                      <p className="text-xs text-gray-500">קבל התראה כשמישהו שולח לך הודעה</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleNotifyMessages}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <HiOutlineChatBubbleLeft className="w-5 h-5 text-gray-400" />
+                      {notifyMessages ? 'בטל התראות' : 'הפעל התראות'}
+                      <div 
+                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
+                        style={{ backgroundColor: notifyMessages ? '#A7EA7B' : '#D1D5DB' }} 
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
+            )}
+
+            {/* Message Display */}
+            {message && (
+              <div
+                className={`mt-6 p-4 rounded-lg ${
+                  messageType === 'error'
+                    ? 'bg-red-50 text-red-600 border border-red-200'
+                    : 'bg-green-50 text-green-600 border border-green-200'
+                }`}
+              >
+                {message}
+              </div>
+            )}
+          </form>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6" dir="rtl">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">אישור מחיקת חשבון</h3>
+            <p className="text-gray-600 mb-4">
+              פעולה זו בלתי הפיכה. כדי לאשר, הקלידו: <strong>&quot;מחק את החשבון שלי&quot;</strong>
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="הקלידו כאן"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm mb-4"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount || deleteConfirmText !== 'מחק את החשבון שלי'}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition disabled:opacity-50"
+              >
+                {deletingAccount ? 'מוחק...' : 'מחק לצמיתות'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmText('');
+                }}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition"
+              >
+                ביטול
+              </button>
             </div>
           </div>
         </div>
-      </section>
+      )}
     </main>
   );
 }

@@ -21,6 +21,16 @@ export default function LoginPage() {
   const [returnUrl, setReturnUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check for Google auth error
+    const errorParam = searchParams.get('error');
+    if (errorParam === 'account_exists') {
+      setMessage('חשבון עם כתובת האימייל הזו כבר קיים. אנא התחבר עם האימייל והסיסמא שלך.');
+      setMessageType('error');
+    } else if (errorParam === 'google_failed') {
+      setMessage('שגיאה בהתחברות עם Google. אנא נסה שוב.');
+      setMessageType('error');
+    }
+
     // Check URL param first, then localStorage
     const returnParam = searchParams.get('returnUrl');
     if (returnParam) {

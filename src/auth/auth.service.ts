@@ -70,29 +70,23 @@ export class AuthService {
   }
 
   async loginWithGoogle(googleUser: any) {
-    // Find user by email
-    let user = await this.prisma.user.findUnique({
+    // Check if user already exists with this email
+    const existingUser = await this.prisma.user.findUnique({
       where: { email: googleUser.email },
     });
 
-    if (user) {
-      // User exists - update googleId and optionally profile image
-      const updateData: any = {};
-      if (!user.googleId) {
-        updateData.googleId = googleUser.email;
+    if (existingUser) {
+      // If user exists but doesn't have googleId, they registered with email/password
+      // Tell them to login with their password instead
+      if (!existingUser.googleId) {
+        throw new BadRequestException('ACCOUNT_EXISTS_USE_PASSWORD');
       }
-      // Update profile image from Google if user doesn't have one
-      if (!user.profileImage && googleUser.picture) {
-        updateData.profileImage = googleUser.picture;
-      }
-      
-      if (Object.keys(updateData).length > 0) {
-        user = await this.prisma.user.update({
-          where: { id: user.id },
-          data: updateData,
-        });
-      }
-    } else {
+      // User exists and has googleId - they originally signed up with Google, allow login
+    }
+
+    let user = existingUser;
+
+    if (!user) {
       // Create new user with Google - email is automatically verified
       user = await this.prisma.user.create({
         data: {

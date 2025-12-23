@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaUsers, FaFileAlt, FaImage, FaCog, FaSignOutAlt, FaTrash, FaSearch, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar, FaPlus, FaLock, FaUser } from 'react-icons/fa';
+import { FaUsers, FaImage, FaCog, FaSignOutAlt, FaTrash, FaSearch, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar, FaPlus, FaUser, FaCreditCard, FaChevronDown, FaCalendarAlt, FaLock } from 'react-icons/fa';
 
 interface JwtPayload {
   email: string;
@@ -28,6 +28,10 @@ interface Community {
   instagramUrl: string | null;
   galleryImages: string[];
   rules: string[];
+  trialStartDate: string | null;
+  trialCancelled: boolean;
+  cardLastFour: string | null;
+  cardBrand: string | null;
 }
 
 interface ImageFile {
@@ -38,14 +42,18 @@ interface ImageFile {
   existingPath?: string;
 }
 
+type TabType = 'general' | 'rules' | 'social' | 'payments';
+
 export default function ManageCommunityPage() {
   const router = useRouter();
   const params = useParams();
   const communityId = params.id as string;
   
+  const [activeTab, setActiveTab] = useState<TabType>('general');
   const [community, setCommunity] = useState<Community | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [topic, setTopic] = useState('');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
   const [loading, setLoading] = useState(false);
@@ -75,10 +83,44 @@ export default function ManageCommunityPage() {
   // Community Rules
   const [rules, setRules] = useState<string[]>([]);
   const [newRule, setNewRule] = useState('');
-  const [savingRules, setSavingRules] = useState(false);
   
   // Price
-  const [price, setPrice] = useState<number>(0);
+  const [price, setPrice] = useState<number>(10);
+  const [isPaidCommunity, setIsPaidCommunity] = useState(false);
+  
+  // Trial and payment
+  const [trialStartDate, setTrialStartDate] = useState<Date | null>(null);
+  const [trialCancelled, setTrialCancelled] = useState(false);
+  const [cardLastFour, setCardLastFour] = useState<string | null>(null);
+  const [cardBrand, setCardBrand] = useState<string | null>(null);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [showCancelTrialModal, setShowCancelTrialModal] = useState(false);
+  const [cancellingTrial, setCancellingTrial] = useState(false);
+  const [newCardNumber, setNewCardNumber] = useState('');
+  const [newCardExpiry, setNewCardExpiry] = useState('');
+  const [newCardCvv, setNewCardCvv] = useState('');
+
+  // Categories - synced with COMMUNITY_TOPICS from home page
+  const categories = [
+    'בחר קטגוריה',
+    'אנימציה',
+    'אוכל, בישול ותזונה',
+    'עזרה ותמיכה',
+    'עיצוב גרפי',
+    'עיצוב מותגים',
+    'עריכת וידאו',
+    'בריאות הנפש ופיתוח אישי',
+    'גיימינג',
+    'טיולים ולייפסטייל',
+    'לימודים ואקדמיה',
+    'מדיה, קולנוע וסדרות',
+    'מדיה חברתית ותוכן ויזואלי',
+    'ניהול פיננסי והשקעות',
+    'ספרים וכתיבה',
+    'ספורט ואורח חיים פעיל',
+    'תחביבים',
+    'יזמות ועסקים עצמאיים'
+  ];
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -145,12 +187,25 @@ export default function ManageCommunityPage() {
         setCommunity(data);
         setName(data.name);
         setDescription(data.description);
+        setTopic(data.topic || '');
         setYoutubeUrl(data.youtubeUrl || '');
         setWhatsappUrl(data.whatsappUrl || '');
         setFacebookUrl(data.facebookUrl || '');
         setInstagramUrl(data.instagramUrl || '');
         setRules(data.rules || []);
-        setPrice(data.price ?? 0);
+        setPrice(data.price || 10);
+        setIsPaidCommunity((data.price ?? 0) > 0);
+        
+        // Load trial and payment info
+        if (data.trialStartDate) {
+          setTrialStartDate(new Date(data.trialStartDate));
+        } else {
+          // If no trial start date, set it to community creation date (or now)
+          setTrialStartDate(data.createdAt ? new Date(data.createdAt) : new Date());
+        }
+        setTrialCancelled(data.trialCancelled || false);
+        setCardLastFour(data.cardLastFour || null);
+        setCardBrand(data.cardBrand || null);
         
         // Load logo
         if (data.logo) {
@@ -277,6 +332,7 @@ export default function ManageCommunityPage() {
       const formData = new FormData();
       formData.append('name', name);
       formData.append('description', description);
+      formData.append('topic', topic);
       
       // Logo
       if (logo) {
@@ -374,36 +430,6 @@ export default function ManageCommunityPage() {
 
   const handleRemoveRule = (index: number) => {
     setRules(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSaveRules = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    try {
-      setSavingRules(true);
-      const res = await fetch(`http://localhost:4000/communities/${communityId}/rules`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ rules }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to save rules');
-      }
-
-      setMessage('כללי הקהילה נשמרו בהצלחה!');
-      setMessageType('success');
-    } catch (err) {
-      console.error('Save rules error:', err);
-      setMessage('שגיאה בשמירת הכללים');
-      setMessageType('error');
-    } finally {
-      setSavingRules(false);
-    }
   };
 
   const handleDeleteCommunity = async () => {
@@ -569,235 +595,246 @@ export default function ManageCommunityPage() {
         </div>
       </header>
 
-      {/* Form Section */}
-      <section className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">ניהול קהילה</h1>
-            <p className="text-gray-600">ערוך את פרטי הקהילה שלך</p>
+      {/* Main Layout with Sidebar */}
+      <div className="flex min-h-[calc(100vh-65px)]">
+        {/* Right Sidebar - Settings Tabs */}
+        <aside className="w-64 bg-white border-l border-gray-200 p-6 flex-shrink-0">
+          <div className="flex items-center gap-2 mb-6">
+            <FaCog className="w-5 h-5 text-gray-600" />
+            <h2 className="text-base font-semibold text-gray-900">הגדרות</h2>
           </div>
-
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-            <form
-              onSubmit={handleUpdateCommunity}
-              className="flex-1 bg-white rounded-lg shadow-md p-8 space-y-6"
+          
+          <nav className="space-y-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('general')}
+              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                activeTab === 'general'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
             >
-              {/* Community Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                  שם הקהילה *
-                </label>
-                <div className="relative">
-                  <FaUsers className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="לדוגמא: יוגה למומחים"
-                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    maxLength={100}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">עד 100 תווים</p>
-              </div>
+              כללי
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('rules')}
+              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                activeTab === 'rules'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              כללי הקהילה
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('social')}
+              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                activeTab === 'social'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              רשתות חברתיות
+            </button>
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('payments')}
+                className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                  activeTab === 'payments'
+                    ? 'bg-gray-100 text-gray-900'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                תשלומים
+              </button>
+            )}
+          </nav>
+        </aside>
 
-              {/* Community Logo */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                  לוגו הקהילה (אופציונלי)
-                </label>
-                <p className="text-xs text-gray-500 mb-3 text-right">
-                  תמונת לוגו מרובעת מומלצת (JPG, PNG, GIF עד 5MB)
-                </p>
-                <div className="flex items-center gap-4">
-                  {logo ? (
-                    <div className="relative group">
+        {/* Main Content */}
+        <main className="flex-1 p-6 overflow-auto">
+          <form onSubmit={handleUpdateCommunity} className="max-w-5xl">
+            
+            {/* General Tab */}
+            {activeTab === 'general' && (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 space-y-8">
+                {/* Community Name */}
+                <div className="flex gap-8">
+                  <div className="w-48 flex-shrink-0 text-right">
+                    <h3 className="font-medium text-gray-900 text-base">שם הקהילה</h3>
+                    <p className="text-sm text-gray-500 mt-1">השם הכללי שיוצג ברחבי האתר</p>
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      placeholder="לדוגמא: יוגה למומחים"
+                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      maxLength={100}
+                    />
+                  </div>
+                </div>
+
+                {/* Community URL */}
+                <div className="flex gap-8">
+                  <div className="w-48 flex-shrink-0 text-right">
+                    <h3 className="font-medium text-gray-900 text-base">לינק (URL)</h3>
+                    <p className="text-sm text-gray-500 mt-1">הכתובת הציבורית של הקהילה</p>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden" dir="ltr">
+                      <span className="px-4 py-3.5 bg-gray-50 text-gray-500 text-base border-r border-gray-300">kibutz.co.il/</span>
+                      <div className="flex-1 p-3.5 text-left text-gray-900 text-base bg-white">
+                        {communityId}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Logo */}
+                <div className="flex gap-8">
+                  <div className="w-48 flex-shrink-0 text-right">
+                    <h3 className="font-medium text-gray-900 text-base">לוגו / תמונת פרופיל</h3>
+                    <p className="text-sm text-gray-500 mt-1">האייקון שמייצג את הקהילה</p>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-4">
+                    {logo ? (
                       <img
                         src={logo.preview}
                         alt="לוגו הקהילה"
-                        className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200"
+                        className="w-32 h-32 object-cover rounded-lg border border-gray-200"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setLogo(null)}
-                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    ) : (
+                      <div className="w-32 h-32 border border-gray-200 rounded-lg flex items-center justify-center bg-gray-50">
+                        <FaImage className="w-10 h-10 text-gray-300" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                        id="logo-upload"
+                      />
+                      <label
+                        htmlFor="logo-upload"
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 text-gray-600 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition text-sm w-44"
                       >
-                        <FaTimes className="w-3 h-3" />
-                      </button>
+                        <span>העלאת תמונת לוגו</span>
+                        <FaImage className="w-5 h-5" />
+                      </label>
+                      {logo && (
+                        <button
+                          type="button"
+                          onClick={() => setLogo(null)}
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition text-sm w-44"
+                        >
+                          <span>מחק תמונה נוכחית</span>
+                          <FaTrash className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
-                  ) : (
-                    <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                      <FaImage className="w-8 h-8 text-gray-300" />
+                  </div>
+                </div>
+                </div>
+
+                {/* Category */}
+                <div className="flex gap-8">
+                  <div className="w-48 flex-shrink-0 text-right">
+                    <h3 className="font-medium text-gray-900 text-base">קטגוריה</h3>
+                    <p className="text-sm text-gray-500 mt-1">עוזר לאיתור וגילוי הקהילה</p>
+                  </div>
+                  <div className="flex-1 relative">
+                    <select
+                      value={topic}
+                      onChange={(e) => setTopic(e.target.value)}
+                      className="w-full p-3.5 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right bg-white text-base appearance-none cursor-pointer"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat} value={cat === 'בחר קטגוריה' ? '' : cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                    <FaChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="flex gap-8">
+                  <div className="w-48 flex-shrink-0 text-right">
+                    <h3 className="font-medium text-gray-900 text-base">תיאור הקהילה</h3>
+                    <p className="text-sm text-gray-500 mt-1">פירוט על הקהילה, למי היא מתאימה, מטרותיה ותחומי העניין שעוסקים בה</p>
+                  </div>
+                  <div className="flex-1">
+                    <textarea
+                      placeholder="תארו את הקהילה, מה הם הנושאים המרכזיים, מי יכול להצטרף..."
+                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right resize-vertical text-base"
+                      rows={6}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      required
+                      maxLength={1000}
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      {description.length}/1000 תווים
+                    </p>
+                  </div>
+                </div>
+
+                {/* Community Images */}
+                <div className="flex gap-8">
+                  <div className="w-48 flex-shrink-0 text-right">
+                    <h3 className="font-medium text-gray-900 text-base">תמונות הקהילה</h3>
+                    <p className="text-sm text-gray-500 mt-1">תמונות שיוצגו בעמוד הקהילה</p>
+                  </div>
+                  <div className="flex-1">
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      {images.map((img, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={img.preview}
+                            alt={`תמונה ${index + 1}`}
+                            className={`w-full h-24 object-cover rounded-lg border-2 ${
+                              img.isPrimary ? 'border-yellow-400' : 'border-gray-200'
+                            }`}
+                          />
+                          {img.isPrimary && (
+                            <div className="absolute top-1 right-1 bg-yellow-400 text-white text-xs px-1.5 py-0.5 rounded">
+                              ראשית
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPrimaryImage(index)}
+                              className={`p-1.5 rounded-full ${
+                                img.isPrimary ? 'bg-yellow-400 text-white' : 'bg-white text-gray-600 hover:text-yellow-500'
+                              }`}
+                            >
+                              <FaStar className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeImageAtIndex(index)}
+                              className="p-1.5 bg-white text-red-500 rounded-full hover:bg-red-50"
+                            >
+                              <FaTimes className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
-                  <div className="flex-1">
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                      id="logo-upload"
-                    />
-                    <label
-                      htmlFor="logo-upload"
-                      className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition text-sm"
-                    >
-                      <FaImage className="text-gray-400" />
-                      <span className="text-gray-600">{logo ? 'החלף לוגו' : 'העלה לוגו'}</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                  מחיר חודשי (₪)
-                </label>
-                <div className="relative">
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">₪</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    placeholder="0 = חינם"
-                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
-                    value={price}
-                    onChange={(e) => setPrice(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {price === 0 ? 'הקהילה תהיה חינמית' : `מחיר: ₪${price} לחודש`}
-                </p>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                  תיאור הקהילה *
-                </label>
-                <div className="relative">
-                  <FaFileAlt className="absolute right-3 top-4 text-gray-400" />
-                  <textarea
-                    placeholder="תארו את הקהילה, מה הם הנושאים המרכזיים, מי יכול להצטרף..."
-                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right resize-vertical"
-                    rows={6}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    required
-                    maxLength={1000}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {description.length}/1000 תווים
-                </p>
-              </div>
-
-              {/* Social Links */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                  קישורים לרשתות חברתיות (אופציונלי)
-                </label>
-                <div className="space-y-3">
-                  <div className="relative">
-                    <FaYoutube className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500" />
-                    <input
-                      type="url"
-                      placeholder="קישור לערוץ YouTube"
-                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
-                      value={youtubeUrl}
-                      onChange={(e) => setYoutubeUrl(e.target.value)}
-                    />
-                  </div>
-                  <div className="relative">
-                    <FaWhatsapp className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
-                    <input
-                      type="url"
-                      placeholder="קישור לקבוצת WhatsApp"
-                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
-                      value={whatsappUrl}
-                      onChange={(e) => setWhatsappUrl(e.target.value)}
-                    />
-                  </div>
-                  <div className="relative">
-                    <FaFacebook className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600" />
-                    <input
-                      type="url"
-                      placeholder="קישור לעמוד Facebook"
-                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
-                      value={facebookUrl}
-                      onChange={(e) => setFacebookUrl(e.target.value)}
-                    />
-                  </div>
-                  <div className="relative">
-                    <FaInstagram className="absolute right-3 top-1/2 -translate-y-1/2 text-pink-500" />
-                    <input
-                      type="url"
-                      placeholder="קישור לעמוד Instagram"
-                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
-                      value={instagramUrl}
-                      onChange={(e) => setInstagramUrl(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Community Images */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                  תמונות הקהילה
-                </label>
-                <p className="text-xs text-gray-500 mb-3 text-right">
-                  לחץ על הכוכב כדי לבחור תמונה ראשית. תמונות בגודל עד 5MB (JPG, PNG, GIF)
-                </p>
-                
-                {/* Image Grid */}
-                {images.length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
-                    {images.map((img, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={img.preview}
-                          alt={`תמונה ${index + 1}`}
-                          className={`w-full h-24 object-cover rounded-lg border-2 ${
-                            img.isPrimary ? 'border-yellow-400' : 'border-gray-200'
-                          }`}
-                        />
-                        {img.isPrimary && (
-                          <div className="absolute top-1 right-1 bg-yellow-400 text-white text-xs px-1.5 py-0.5 rounded">
-                            ראשית
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setPrimaryImage(index)}
-                            className={`p-1.5 rounded-full ${
-                              img.isPrimary ? 'bg-yellow-400 text-white' : 'bg-white text-gray-600 hover:text-yellow-500'
-                            }`}
-                            title="הגדר כראשית"
-                          >
-                            <FaStar className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeImageAtIndex(index)}
-                            className="p-1.5 bg-white text-red-500 rounded-full hover:bg-red-50"
-                            title="הסר תמונה"
-                          >
-                            <FaTimes className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {/* Upload Button */}
-                <div className="relative">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -815,129 +852,547 @@ export default function ManageCommunityPage() {
                     <span className="text-gray-600">לחץ להעלאת תמונות</span>
                   </label>
                 </div>
-              </div>
-
-              {/* Message Display */}
-              {message && (
-                <div
-                  className={`p-4 rounded-lg ${
-                    messageType === 'error'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-green-100 text-green-700'
-                  }`}
-                >
-                  {message}
                 </div>
-              )}
 
-              {/* Buttons */}
-              <div className="flex gap-3 justify-end">
-                <Link
-                  href={`/communities/feed?communityId=${communityId}`}
-                  className="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                >
-                  ביטול
-                </Link>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors"
-                >
-                  {loading ? 'שומר...' : 'שמור שינויים'}
-                </button>
-              </div>
-            </form>
-
-            {/* Right Sidebar */}
-            <div className="w-full lg:w-80 lg:self-start lg:flex-none space-y-4">
-              {/* Community Rules Panel */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <FaLock className="w-4 h-4 text-gray-500" />
-                  כללי הקהילה
-                </h3>
-                <p className="text-xs text-gray-500 mb-4">
-                  הגדירו את הכללים שחברי הקהילה יראו בעמוד הפיד
-                </p>
-                
-                {/* Existing Rules */}
-                {rules.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    {rules.map((rule, index) => (
-                      <div 
-                        key={index} 
-                        className="flex items-start gap-2 bg-gray-50 rounded-lg p-3 border border-gray-200"
-                      >
-                        <span className="text-green-500 mt-0.5">✓</span>
-                        <span className="flex-1 text-sm text-gray-700">{rule}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveRule(index)}
-                          className="p-1 text-gray-400 hover:text-red-500 transition"
-                          title="הסר כלל"
-                        >
-                          <FaTimes className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                {/* Delete Community - Only for owners */}
+                {isOwner && (
+                  <div className="flex items-center justify-between gap-6 pt-6 border-t border-gray-200">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-base" style={{ color: '#B3261E' }}>מחיקת קהילה</h3>
+                      <p className="text-sm text-gray-500 mt-1">מחיקת הקהילה תמחוק את כל התוכן, החברים, התגובות והתשלומים שנעשו בתוכה. הפעולה הזאת לא הפיכה</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="py-3 px-6 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-base hover:opacity-90 flex-shrink-0"
+                      style={{ backgroundColor: '#B3261E' }}
+                    >
+                      <span>מחק קהילה לצמיתות</span>
+                      <FaTrash className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
-                
-                {/* Add New Rule */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="כלל חדש..."
-                    className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-sm"
-                    value={newRule}
-                    onChange={(e) => setNewRule(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddRule();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddRule}
-                    disabled={!newRule.trim()}
-                    className="px-3 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition flex items-center gap-1 text-sm"
-                  >
-                    <FaPlus className="w-3 h-3" />
-                    הוסף
-                  </button>
-                </div>
-                
-                {rules.length === 0 && (
-                  <p className="mt-3 text-xs text-gray-400 text-center">הכללים יישמרו עם "שמור שינויים"</p>
-                )}
               </div>
+            )}
 
-              {/* Danger Zone - Only visible to owners */}
-              {isOwner && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 shadow-sm">
-                <h3 className="font-bold text-red-900 mb-3 flex items-center gap-2">
-                  <FaTrash className="w-4 h-4" />
-                  אזור מסוכן
-                </h3>
-                <p className="text-sm text-red-800 mb-4">
-                  מחיקת הקהילה היא פעולה בלתי הפיכה. כל הפוסטים, התגובות והחברים יימחקו לצמיתות.
-                </p>
+            {/* Rules Tab */}
+            {activeTab === 'rules' && (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 space-y-8">
+                <div className="flex gap-8">
+                  <div className="w-48 flex-shrink-0 text-right">
+                    <h3 className="font-medium text-gray-900 text-base">כללי הקהילה</h3>
+                    <p className="text-sm text-gray-500 mt-1">הכללים שחברי הקהילה יראו בעמוד הפיד</p>
+                  </div>
+                  <div className="flex-1 space-y-3">
+                  {rules.length > 0 && (
+                    <div className="space-y-2">
+                      {rules.map((rule, index) => (
+                        <div 
+                          key={index} 
+                          className="flex items-center gap-2 bg-gray-50 rounded-lg p-3 border border-gray-200"
+                        >
+                          <span className="text-green-500">✓</span>
+                          <span className="flex-1 text-sm text-gray-700">{rule}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRule(index)}
+                            className="p-1 text-gray-400 hover:text-red-500 transition"
+                          >
+                            <FaTimes className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="כלל חדש..."
+                      className="flex-1 p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                      value={newRule}
+                      onChange={(e) => setNewRule(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddRule();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddRule}
+                      disabled={!newRule.trim()}
+                      className="px-5 py-3.5 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition flex items-center gap-2 text-base"
+                    >
+                      <FaPlus className="w-3 h-3" />
+                      הוסף
+                    </button>
+                  </div>
+                </div>
+                </div>
+              </div>
+            )}
+
+            {/* Social Links Tab */}
+            {activeTab === 'social' && (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 space-y-8">
+                <div className="flex gap-8">
+                  <div className="w-48 flex-shrink-0 text-right">
+                    <h3 className="font-medium text-gray-900 text-base">רשתות חברתיות</h3>
+                    <p className="text-sm text-gray-500 mt-1">קישורים לפרופילים החברתיים שלכם</p>
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <div className="relative">
+                      <FaYoutube className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500" />
+                      <input
+                        type="url"
+                        placeholder="קישור לערוץ YouTube"
+                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                        value={youtubeUrl}
+                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                      />
+                    </div>
+                    <div className="relative">
+                      <FaWhatsapp className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
+                      <input
+                        type="url"
+                        placeholder="קישור לקבוצת WhatsApp"
+                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                        value={whatsappUrl}
+                        onChange={(e) => setWhatsappUrl(e.target.value)}
+                      />
+                    </div>
+                    <div className="relative">
+                      <FaFacebook className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600" />
+                      <input
+                        type="url"
+                        placeholder="קישור לעמוד Facebook"
+                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                        value={facebookUrl}
+                        onChange={(e) => setFacebookUrl(e.target.value)}
+                      />
+                    </div>
+                    <div className="relative">
+                      <FaInstagram className="absolute right-3 top-1/2 -translate-y-1/2 text-pink-500" />
+                      <input
+                        type="url"
+                        placeholder="קישור לעמוד Instagram"
+                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                        value={instagramUrl}
+                        onChange={(e) => setInstagramUrl(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Payments Tab */}
+            {activeTab === 'payments' && isOwner && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+                <div className="flex items-center gap-42">
+                  <div>
+                    <h3 className="font-medium text-gray-900 text-base">מחיר חודשי</h3>
+                    <p className="text-sm text-gray-500 mt-1">בחר/י אם להצטרפות לקהילה יש עלות</p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <div className="inline-flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPaidCommunity(false);
+                          setPrice(0);
+                        }}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium border transition ${
+                          !isPaidCommunity
+                            ? 'border-gray-300 bg-white text-gray-900'
+                            : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                        }`}
+                      >
+                        <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M15 9.5c-.5-1-1.5-1.5-3-1.5-2 0-3 1-3 2.5s1 2 3 2.5c2 .5 3 1.5 3 2.5s-1 2.5-3 2.5c-1.5 0-2.5-.5-3-1.5" />
+                          <path d="M12 5.5v2M12 16.5v2" />
+                          <path d="M4 4l16 16" strokeLinecap="round" />
+                        </svg>
+                        <span>חינם להצטרפות</span>
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-900 flex items-center justify-center bg-white">
+                          {!isPaidCommunity && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#91DCED' }} />}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPaidCommunity(true);
+                          if (price < 10) setPrice(10);
+                        }}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium border transition ${
+                          isPaidCommunity
+                            ? 'border-gray-300 bg-white text-gray-900'
+                            : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                        }`}
+                      >
+                        <span className="text-gray-400 font-medium">$</span>
+                        <span>מנוי בתשלום</span>
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-900 flex items-center justify-center bg-white">
+                          {isPaidCommunity && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#A7EA7B' }} />}
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-6 pt-6 border-t border-gray-200">
+                  <div className={`flex-1 ${!isPaidCommunity ? 'opacity-50' : ''}`}>
+                    <h3 className="font-medium text-gray-900 text-base">עלות מנוי חודשי</h3>
+                    <p className="text-sm text-gray-500 mt-1">סכום החיוב החודשי (בשקלים) לכל חבר קהילה (ניתן לשנות בהמשך)</p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                      <span className={`px-5 py-3.5 bg-gray-50 text-lg font-medium border-l border-gray-300 ${
+                        isPaidCommunity ? 'text-gray-600' : 'text-gray-300'
+                      }`}>₪</span>
+                      <input
+                        type="number"
+                        min="10"
+                        max="1000"
+                        step="1"
+                        placeholder=""
+                        className={`w-108 p-3.5 text-right text-lg focus:outline-none ${
+                          isPaidCommunity
+                            ? 'bg-white'
+                            : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                        }`}
+                        value={isPaidCommunity ? price : ''}
+                        onChange={(e) => setPrice(Math.max(10, Math.min(1000, parseInt(e.target.value) || 10)))}
+                        disabled={!isPaidCommunity}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-6 pt-6 border-t border-gray-200">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900 text-base">חיוב ותשלומים</h3>
+                    {!trialCancelled && trialStartDate ? (
+                      <p className="text-sm text-gray-500 mt-1">
+                        תקופת הניסיון שלך (7 ימים) מסתיימת בתאריך {new Date(trialStartDate.getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('he-IL')}.
+                        {` החל מ-${new Date(trialStartDate.getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('he-IL')} יחויב אמצעי התשלום שלך ב99₪ לחודש.`}
+                      </p>
+                    ) : trialCancelled ? (
+                      <p className="text-sm text-gray-500 mt-1">תקופת הניסיון בוטלה.</p>
+                    ) : (
+                      <p className="text-sm text-gray-500 mt-1">נהל את אמצעי התשלום שלך.</p>
+                    )}
+                    {cardLastFour && (
+                      <p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
+                        <FaCreditCard className="text-gray-400" />
+                        <span>כרטיס נוכחי: {cardBrand || 'Visa'} ************{cardLastFour}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex-shrink-0 flex gap-2">
+                    {!trialCancelled && trialStartDate && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCancelTrialModal(true)}
+                        className="py-2.5 px-5 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition text-sm"
+                      >
+                        ביטול תקופת ניסיון
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowCardModal(true)}
+                      className="py-2.5 px-5 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition text-sm"
+                    >
+                      עדכון אמצעי תשלום
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Message Display */}
+            {message && (
+              <div
+                className={`mt-6 p-4 rounded-lg ${
+                  messageType === 'error'
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-green-100 text-green-700'
+                }`}
+              >
+                {message}
+              </div>
+            )}
+
+            {/* Save Button */}
+            <div className="flex gap-3 justify-end mt-8 pt-6 border-t border-gray-200">
+              <Link
+                href={`/communities/feed?communityId=${communityId}`}
+                className="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                ביטול
+              </Link>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors"
+              >
+                {loading ? 'שומר...' : 'שמור שינויים'}
+              </button>
+            </div>
+          </form>
+
+          {/* Credit Card Modal - Outside form */}
+          {showCardModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md" dir="rtl">
                 <button
                   type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full py-2 px-4 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                  onClick={() => {
+                    setShowCardModal(false);
+                    setNewCardNumber('');
+                    setNewCardExpiry('');
+                    setNewCardCvv('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 mb-4"
                 >
-                  <FaTrash className="w-4 h-4" />
-                  מחק קהילה
+                  <FaTimes className="w-5 h-5" />
                 </button>
+                
+                <h2 className="text-2xl font-bold text-center mb-8">עדכון אמצעי תשלום</h2>
+                
+                {cardLastFour && (
+                  <p className="text-center text-gray-600 mb-4">
+                    כרטיס נוכחי: <strong>{cardBrand || 'Visa'} ************{cardLastFour}</strong>
+                  </p>
+                )}
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 text-right">מספר כרטיס</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={newCardNumber}
+                        onChange={(e) => setNewCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
+                        className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                          newCardNumber.length > 0 && newCardNumber.length < 16 ? 'border-red-400' : 'border-gray-300'
+                        }`}
+                      />
+                      <FaCreditCard className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    </div>
+                    {newCardNumber.length > 0 && newCardNumber.length < 16 && (
+                      <p className="text-red-500 text-sm mt-1">חסרות {16 - newCardNumber.length} ספרות</p>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2 text-right">תוקף</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={newCardExpiry}
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                            if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2);
+                            setNewCardExpiry(val);
+                          }}
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                            newCardExpiry.length > 0 && (newCardExpiry.length < 5 || (() => {
+                              if (newCardExpiry.length !== 5) return false;
+                              const [m, y] = newCardExpiry.split('/').map(Number);
+                              const now = new Date();
+                              const cm = now.getMonth() + 1;
+                              const cy = now.getFullYear() % 100;
+                              return y < cy || (y === cy && m < cm);
+                            })()) ? 'border-red-400' : 'border-gray-300'
+                          }`}
+                        />
+                        <FaCalendarAlt className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      </div>
+                      {newCardExpiry.length > 0 && newCardExpiry.length < 5 && (
+                        <p className="text-red-500 text-sm mt-1">פורמט: MM/YY</p>
+                      )}
+                      {newCardExpiry.length === 5 && (() => {
+                        const [m, y] = newCardExpiry.split('/').map(Number);
+                        const now = new Date();
+                        const cm = now.getMonth() + 1;
+                        const cy = now.getFullYear() % 100;
+                        return y < cy || (y === cy && m < cm);
+                      })() && (
+                        <p className="text-red-500 text-sm mt-1">הכרטיס פג תוקף</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2 text-right">CVV</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={newCardCvv}
+                          onChange={(e) => setNewCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                            newCardCvv.length > 0 && newCardCvv.length < 3 ? 'border-red-400' : 'border-gray-300'
+                          }`}
+                        />
+                        <FaLock className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      </div>
+                      {newCardCvv.length > 0 && newCardCvv.length < 3 && (
+                        <p className="text-red-500 text-sm mt-1">חסרות {3 - newCardCvv.length} ספרות</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={async () => {
+                    console.log('Save card clicked', { newCardNumber, newCardExpiry, newCardCvv });
+                    if (newCardNumber.length !== 16) {
+                      setMessage('מספר כרטיס חייב להכיל 16 ספרות');
+                      setMessageType('error');
+                      return;
+                    }
+                    if (newCardExpiry.length !== 5) {
+                      setMessage('תוקף לא תקין');
+                      setMessageType('error');
+                      return;
+                    }
+                    // Check if expiry date is in the past
+                    const [expMonth, expYear] = newCardExpiry.split('/').map(Number);
+                    const now = new Date();
+                    const currentMonth = now.getMonth() + 1;
+                    const currentYear = now.getFullYear() % 100;
+                    if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+                      setMessage('הכרטיס פג תוקף');
+                      setMessageType('error');
+                      return;
+                    }
+                    if (newCardCvv.length !== 3) {
+                      setMessage('CVV חייב להכיל 3 ספרות');
+                      setMessageType('error');
+                      return;
+                    }
+                    try {
+                      const token = localStorage.getItem('token');
+                      const lastFour = newCardNumber.slice(-4);
+                      
+                      // Save to community
+                      const res = await fetch(`http://localhost:4000/communities/${communityId}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ 
+                          cardLastFour: lastFour,
+                          cardBrand: 'Visa',
+                        }),
+                      });
+                      
+                      // Also save to user payment methods
+                      await fetch('http://localhost:4000/users/me/payment-methods', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ 
+                          cardLastFour: lastFour,
+                          cardBrand: 'Visa',
+                        }),
+                      });
+                      
+                      if (res.ok) {
+                        setCardLastFour(lastFour);
+                        setCardBrand('Visa');
+                        setShowCardModal(false);
+                        setNewCardNumber('');
+                        setNewCardExpiry('');
+                        setNewCardCvv('');
+                        setMessage('אמצעי התשלום עודכן בהצלחה');
+                        setMessageType('success');
+                      } else {
+                        setMessage('שגיאה בעדכון אמצעי התשלום');
+                        setMessageType('error');
+                      }
+                    } catch (err) {
+                      console.error('Error saving card', err);
+                      setMessage('שגיאה בעדכון אמצעי התשלום');
+                      setMessageType('error');
+                    }
+                  }}
+                  className="w-full mt-8 bg-black text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition"
+                >
+                  שמור כרטיס
+                </button>
+                
+                <p className="text-center text-sm text-gray-500 mt-4">
+                  הכרטיס ישמש לחיוב המנוי החודשי של הקהילה.
+                </p>
               </div>
-              )}
             </div>
-          </div>
-        </div>
-      </section>
+          )}
+
+          {/* Cancel Trial Confirmation Modal - Outside form */}
+          {showCancelTrialModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl p-6 max-w-md w-full text-right" dir="rtl">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">ביטול תקופת ניסיון</h2>
+                <p className="text-gray-600 mb-6">
+                  האם אתה בטוח שברצונך לבטל את תקופת הניסיון?
+                  <br />
+                  <span className="text-red-600 font-medium">לאחר הביטול, הקהילה תיסגר ולא תוכל לגבות תשלומים מהחברים.</span>
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelTrialModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition"
+                    disabled={cancellingTrial}
+                  >
+                    חזור
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setCancellingTrial(true);
+                      try {
+                        const token = localStorage.getItem('token');
+                        const res = await fetch(`http://localhost:4000/communities/${communityId}`, {
+                          method: 'PATCH',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ trialCancelled: true }),
+                        });
+                        if (res.ok) {
+                          setTrialCancelled(true);
+                          setShowCancelTrialModal(false);
+                          setMessage('תקופת הניסיון בוטלה בהצלחה');
+                          setMessageType('success');
+                        }
+                      } catch {
+                        setMessage('שגיאה בביטול תקופת הניסיון');
+                        setMessageType('error');
+                      } finally {
+                        setCancellingTrial(false);
+                      }
+                    }}
+                    disabled={cancellingTrial}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 transition"
+                  >
+                    {cancellingTrial ? 'מבטל...' : 'בטל תקופת ניסיון'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && isOwner && (

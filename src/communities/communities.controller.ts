@@ -81,8 +81,8 @@ export class CommunitiesController {
     @Param('id') id: string,
     @Req() req,
     @Body() body: { 
-      name: string; 
-      description: string; 
+      name?: string; 
+      description?: string; 
       topic?: string | null; 
       removeImage?: string;
       removeLogo?: string;
@@ -94,6 +94,9 @@ export class CommunitiesController {
       existingPrimaryImage?: string;
       existingLogo?: string;
       price?: string;
+      trialCancelled?: boolean;
+      cardLastFour?: string;
+      cardBrand?: string;
     },
     @UploadedFiles() files?: { image?: any[]; logo?: any[]; galleryImages?: any[] },
   ) {
@@ -143,6 +146,9 @@ export class CommunitiesController {
       body.instagramUrl,
       galleryImages,
       price,
+      body.trialCancelled,
+      body.cardLastFour,
+      body.cardBrand,
     );
   }
 

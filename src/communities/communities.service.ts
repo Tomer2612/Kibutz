@@ -38,6 +38,7 @@ export class CommunitiesService {
           facebookUrl: facebookUrl || null,
           instagramUrl: instagramUrl || null,
           galleryImages: galleryImages || [],
+          trialStartDate: new Date(),
         } as any,
       });
       
@@ -114,8 +115,8 @@ export class CommunitiesService {
   async update(
     id: string,
     userId: string,
-    name: string,
-    description: string,
+    name?: string,
+    description?: string,
     image?: string | null,
     logo?: string | null,
     topic?: string | null,
@@ -125,6 +126,9 @@ export class CommunitiesService {
     instagramUrl?: string | null,
     galleryImages?: string[],
     price?: number | null,
+    trialCancelled?: boolean,
+    cardLastFour?: string | null,
+    cardBrand?: string | null,
   ) {
     try {
       const community = await this.prisma.community.findUnique({
@@ -144,7 +148,13 @@ export class CommunitiesService {
         throw new ForbiddenException('Only owners and managers can update the community');
       }
 
-      const updateData: any = { name, description };
+      const updateData: any = {};
+      if (name !== undefined) {
+        updateData.name = name;
+      }
+      if (description !== undefined) {
+        updateData.description = description;
+      }
       if (image !== undefined) {
         updateData.image = image; // Can be null to remove, or a path to set
       }
@@ -171,6 +181,15 @@ export class CommunitiesService {
       }
       if (price !== undefined) {
         updateData.price = price;
+      }
+      if (trialCancelled !== undefined) {
+        updateData.trialCancelled = trialCancelled;
+      }
+      if (cardLastFour !== undefined) {
+        updateData.cardLastFour = cardLastFour;
+      }
+      if (cardBrand !== undefined) {
+        updateData.cardBrand = cardBrand;
       }
 
       return await this.prisma.community.update({
@@ -469,6 +488,8 @@ export class CommunitiesService {
             name: true,
             profileImage: true,
             createdAt: true,
+            lastActiveAt: true,
+            showOnline: true,
           },
         },
       },
@@ -478,12 +499,16 @@ export class CommunitiesService {
       ],
     });
 
+    // Consider users "online" if they were active in the last 5 minutes AND showOnline is true
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
     return memberships.map(m => ({
       ...m.user,
       joinedAt: m.joinedAt,
       role: m.role,
       isOwner: m.role === 'OWNER',
       isManager: m.role === 'MANAGER',
+      isOnline: m.user.showOnline && m.user.lastActiveAt && new Date(m.user.lastActiveAt) > fiveMinutesAgo,
     }));
   }
 
@@ -520,7 +545,7 @@ export class CommunitiesService {
       },
     });
 
-    // Calculate points: post=5, comment=3, like=1
+    // Calculate points: post=5, comment=3, like=1, course=20, event RSVP=10
     for (const post of posts) {
       // 5 points for creating a post (only if member)
       if (memberIds.has(post.authorId)) {
@@ -542,6 +567,43 @@ export class CommunitiesService {
           const currentCommentPoints = pointsMap.get(comment.userId) || 0;
           pointsMap.set(comment.userId, currentCommentPoints + 3);
         }
+      }
+    }
+
+    // 5 points for starting a course, 15 additional points for completing
+    const courseEnrollments = await this.prisma.courseEnrollment.findMany({
+      where: {
+        course: { communityId },
+      },
+      select: { userId: true, completedAt: true },
+    });
+
+    for (const enrollment of courseEnrollments) {
+      if (memberIds.has(enrollment.userId)) {
+        const currentPoints = pointsMap.get(enrollment.userId) || 0;
+        // 5 points for enrolling (starting)
+        let enrollmentPoints = 5;
+        // Additional 15 points if completed
+        if (enrollment.completedAt) {
+          enrollmentPoints += 15;
+        }
+        pointsMap.set(enrollment.userId, currentPoints + enrollmentPoints);
+      }
+    }
+
+    // 10 points for RSVP (GOING) to events in this community
+    const eventRsvps = await this.prisma.eventRsvp.findMany({
+      where: {
+        status: 'GOING',
+        event: { communityId },
+      },
+      select: { userId: true },
+    });
+
+    for (const rsvp of eventRsvps) {
+      if (memberIds.has(rsvp.userId)) {
+        const currentPoints = pointsMap.get(rsvp.userId) || 0;
+        pointsMap.set(rsvp.userId, currentPoints + 10);
       }
     }
 

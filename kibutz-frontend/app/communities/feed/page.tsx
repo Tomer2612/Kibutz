@@ -225,6 +225,7 @@ export default function CommunityFeedPage() {
   const [topMembers, setTopMembers] = useState<TopMember[]>([]);
   const [onlineCount, setOnlineCount] = useState<number>(0);
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
+  const [rulesExpanded, setRulesExpanded] = useState(false);
   
   // Lightbox state
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
@@ -1781,7 +1782,7 @@ export default function CommunityFeedPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px] max-w-5xl">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px] max-w-5xl mx-auto">
 
           {/* CENTER: Posts feed */}
           <div className="space-y-6">
@@ -2902,19 +2903,27 @@ export default function CommunityFeedPage() {
                 <h3 className="font-semibold text-black">כללי הקהילה</h3>
               </div>
               {community?.rules && community.rules.length > 0 ? (
-                <ul className="space-y-2 text-sm text-gray-600">
-                  {community.rules.slice(0, 3).map((rule, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <svg className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>{rule}</span>
-                    </li>
-                  ))}
+                <>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    {(rulesExpanded ? community.rules : community.rules.slice(0, 3)).map((rule, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <svg className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{rule}</span>
+                      </li>
+                    ))}
+                  </ul>
                   {community.rules.length > 3 && (
-                    <li className="text-gray-400 text-xs">ועוד {community.rules.length - 3} כללים...</li>
+                    <button
+                      type="button"
+                      onClick={() => setRulesExpanded(!rulesExpanded)}
+                      className="mt-3 text-sm text-gray-500 hover:text-gray-700 transition"
+                    >
+                      {rulesExpanded ? 'הצג פחות' : `הצג עוד ${community.rules.length - 3} כללים`}
+                    </button>
                   )}
-                </ul>
+                </>
               ) : (
                 <p className="text-gray-500 text-sm text-center py-2">
                   {(isOwner || isManager) ? (

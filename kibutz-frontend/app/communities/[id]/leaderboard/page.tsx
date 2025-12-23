@@ -97,9 +97,9 @@ export default function LeaderboardPage() {
           setIsManager(membershipData.isManager || false);
         }
 
-        // Fetch leaderboard (top 50 members)
+        // Fetch leaderboard (top 10 members)
         const leaderboardRes = await fetch(
-          `http://localhost:4000/communities/${communityId}/top-members?limit=50`,
+          `http://localhost:4000/communities/${communityId}/top-members?limit=10`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (leaderboardRes.ok) {
@@ -275,37 +275,21 @@ export default function LeaderboardPage() {
       </header>
 
       {/* Main Content */}
-      <section className="max-w-4xl mx-auto py-8 px-4">
+      <section className="max-w-5xl mx-auto py-8 px-4">
         {/* Title */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
-            <FaTrophy className="w-8 h-8 text-yellow-500" />
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-yellow-100 rounded-full mb-3">
+            <FaTrophy className="w-7 h-7 text-yellow-500" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">לוח תוצאות</h1>
-          <p className="text-gray-600">החברים הפעילים ביותר בקהילה</p>
+          <h1 className="text-2xl font-bold text-gray-900">עשרת המובילים</h1>
         </div>
 
-        {/* Points Legend */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-          <h3 className="font-semibold text-gray-900 mb-3 text-sm">איך צוברים נקודות?</h3>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <div className="flex items-center gap-2 text-gray-600">
-              <FaFileAlt className="w-4 h-4 text-green-600" />
-              <span>פרסום פוסט = <strong className="text-green-600">5 נקודות</strong></span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <FaComment className="w-4 h-4 text-blue-500" />
-              <span>תגובה = <strong className="text-blue-600">3 נקודות</strong></span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <FaHeart className="w-4 h-4 text-red-500" />
-              <span>לייק = <strong className="text-red-600">1 נקודה</strong></span>
-            </div>
-          </div>
-        </div>
-
-        {/* Leaderboard */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6">
+          
+          {/* Left Content - Leaderboard */}
+          <div>
+            {/* Leaderboard */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           {members.length > 0 ? (
             <div className="divide-y divide-gray-100">
               {members.map((member, index) => (
@@ -376,6 +360,36 @@ export default function LeaderboardPage() {
               <p className="text-sm text-gray-400">התחילו לפרסם פוסטים ולהגיב כדי לצבור נקודות!</p>
             </div>
           )}
+        </div>
+          </div>
+
+          {/* Right Sidebar - User Points */}
+          <div className="order-2 lg:order-2">
+            <div className="bg-white rounded-2xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-900 mb-2">הניקוד שלך:</h3>
+              <div className="text-2xl font-bold text-gray-900 mb-4">
+                {members.find(m => m.userId === userId)?.points || 0} נקודות
+              </div>
+              
+              <div className="border-t border-gray-100 pt-4">
+                <h4 className="font-semibold text-gray-900 mb-3 text-sm">איך צוברים נקודות:</h4>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400">•</span>
+                    <span>ליצור פוסטים, להגיב ולעשות לייקים</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400">•</span>
+                    <span>להתחיל ולסיים קורסים</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400">•</span>
+                    <span>להשתתף באירועי הקהילה</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>

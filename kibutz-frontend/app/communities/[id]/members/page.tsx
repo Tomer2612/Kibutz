@@ -22,6 +22,7 @@ interface Member {
   role: 'OWNER' | 'MANAGER' | 'USER';
   isOwner: boolean;
   isManager: boolean;
+  isOnline?: boolean;
 }
 
 interface BannedUser {
@@ -474,6 +475,9 @@ export default function CommunityMembersPage() {
                     <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center text-lg font-bold text-pink-600 hover:opacity-80 transition">
                       {member.name?.charAt(0) || member.email.charAt(0).toUpperCase()}
                     </div>
+                  )}
+                  {member.isOnline && (
+                    <span className="absolute bottom-0 left-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>
                   )}
                 </Link>
 
