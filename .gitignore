@@ -71,9 +71,12 @@ credentials.json
 # -----------------------------
 # Server / Deployment secrets
 # -----------------------------
-server-access.txt
-*.pem
-ssh-config.txt
+server/server-access.txt
+server/*.pem
+server/ssh-config.txt
+
+# Nginx config can be committed (not secret)
+# server/nginx.conf
 
 # -----------------------------
 # OS / Editor junk
