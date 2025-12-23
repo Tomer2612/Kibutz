@@ -38,6 +38,7 @@ interface LessonForm {
   contentOrder: ('video' | 'text' | 'images' | 'links')[];
   isNew?: boolean;
   isDeleted?: boolean;
+  expanded?: boolean;
 }
 
 interface ChapterForm {
@@ -227,6 +228,11 @@ export default function EditCoursePage() {
     updateChapter(index, { expanded: !course.chapters[index].expanded });
   };
 
+  const toggleLesson = (chapterIndex: number, lessonIndex: number) => {
+    if (!course) return;
+    updateLesson(chapterIndex, lessonIndex, { expanded: !course.chapters[chapterIndex].lessons[lessonIndex].expanded });
+  };
+
   const addLesson = (chapterIndex: number) => {
     if (!course) return;
     setCourse(prev => {
@@ -253,6 +259,7 @@ export default function EditCoursePage() {
                     quiz: null,
                     contentOrder: ['video', 'text', 'images', 'links'],
                     isNew: true,
+                    expanded: true,
                   },
                 ],
               }
@@ -968,21 +975,35 @@ export default function EditCoursePage() {
                               
                               return (
                                 <div key={lesson.id || lessonIndex} id={`lesson-${chapterIndex}-${lessonIndex}`} className="bg-gray-50 rounded-lg p-4">
-                                  <div className="flex items-center gap-3 mb-3">
+                                  <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-2">
                                       {getLessonIcon()}
                                       <span className="text-sm text-gray-600 font-medium">{getLessonTypeLabel()} {lessonIndex + 1}</span>
                                     </div>
-                                    <button
-                                      onClick={() => removeLesson(chapterIndex, lessonIndex)}
-                                      className="mr-auto p-1 text-red-500 hover:bg-red-100 rounded transition"
-                                    >
-                                      <FaTrash className="w-3 h-3" />
-                                    </button>
+                                    <div className="mr-auto flex items-center gap-1">
+                                      <button
+                                        onClick={() => toggleLesson(chapterIndex, lessonIndex)}
+                                        className="p-1.5 hover:bg-gray-200 rounded transition"
+                                      >
+                                        {lesson.expanded !== false ? (
+                                          <FaChevronUp className="w-3.5 h-3.5 text-gray-500" />
+                                        ) : (
+                                          <FaChevronDown className="w-3.5 h-3.5 text-gray-500" />
+                                        )}
+                                      </button>
+                                      <button
+                                        onClick={() => removeLesson(chapterIndex, lessonIndex)}
+                                        className="p-1.5 text-red-500 hover:bg-red-100 rounded transition"
+                                      >
+                                        <FaTrash className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
                                   </div>
 
+                                  {lesson.expanded !== false && (
+                                  <>
                                   {/* Lesson Type Selector */}
-                                  <div className="mb-3">
+                                  <div className="mb-3 mt-3">
                                     <label className="block text-xs text-gray-500 mb-1">סוג שיעור</label>
                                     <div className="flex gap-2">
                                       <button
@@ -1518,13 +1539,15 @@ export default function EditCoursePage() {
                                         ))}
                                       </div>
                                     )}
-                                        </div>
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
-                              );
-                            })}
+                              )}
+                            </div>
+                            </>
+                            )}
+                          </div>
+                        );
+                      })}
 
                             <button
                               onClick={() => addLesson(chapterIndex)}

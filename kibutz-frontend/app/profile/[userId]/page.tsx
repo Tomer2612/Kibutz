@@ -46,6 +46,31 @@ const formatMemberCount = (count: number) => {
   return count.toString();
 };
 
+// Helper function to get visible page numbers (max 10, sliding window)
+const getVisiblePages = (currentPage: number, totalPages: number): number[] => {
+  const maxVisible = 10;
+  let start = 1;
+  let end = Math.min(totalPages, maxVisible);
+  
+  if (totalPages > maxVisible) {
+    // Center the current page in the window when possible
+    const halfWindow = Math.floor(maxVisible / 2);
+    start = Math.max(1, currentPage - halfWindow);
+    end = start + maxVisible - 1;
+    
+    if (end > totalPages) {
+      end = totalPages;
+      start = Math.max(1, end - maxVisible + 1);
+    }
+  }
+  
+  const pages: number[] = [];
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+  return pages;
+};
+
 interface UserProfile {
   id: string;
   name: string;
@@ -98,6 +123,11 @@ export default function MemberProfilePage() {
   });
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+
+  // Pagination state for communities
+  const [createdPage, setCreatedPage] = useState(1);
+  const [memberPage, setMemberPage] = useState(1);
+  const communitiesPerPage = 3;
 
   // Current user state (for navbar)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -431,7 +461,7 @@ export default function MemberProfilePage() {
       {/* Main Content - Full width */}
       <div className="w-full px-8 relative z-10">
         {/* Profile Section - Two columns: Left side (profile info) + Right side (stats & buttons) */}
-        <div className="flex justify-between items-end -mt-20 pb-6">
+        <div className="flex justify-between items-start -mt-20 pb-6 relative">
           {/* Left Side - Profile Info */}
           <div className="flex flex-col items-start">
             {/* Profile Picture */}
@@ -528,8 +558,8 @@ export default function MemberProfilePage() {
             </div>
           </div>
 
-          {/* Right Side - Stats & Buttons - aligned to bottom of profile info */}
-          <div className="flex flex-col items-end ml-auto mr-128">
+          {/* Right Side - Stats & Buttons - aligned higher and more to the right */}
+          <div className="flex flex-col items-end absolute left-8 top-24">
             {/* Stats - all on one line */}
             <div className="flex items-center">
               <div className="text-center px-4">
@@ -578,23 +608,29 @@ export default function MemberProfilePage() {
           <div className="flex justify-start gap-8 border-b border-gray-200">
             <button
               onClick={() => setActiveTab('created')}
-              className={`pb-4 px-2 font-semibold transition border-b-2 ${
+              className={`pb-4 px-2 font-semibold transition relative ${
                 activeTab === 'created'
-                  ? 'text-black border-black'
-                  : 'text-gray-400 border-transparent hover:text-gray-600'
+                  ? 'text-black'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               קהילות שיצר
+              {activeTab === 'created' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" style={{ borderRadius: 0 }} />
+              )}
             </button>
             <button
               onClick={() => setActiveTab('member')}
-              className={`pb-4 px-2 font-semibold transition border-b-2 ${
+              className={`pb-4 px-2 font-semibold transition relative ${
                 activeTab === 'member'
-                  ? 'text-black border-black'
-                  : 'text-gray-400 border-transparent hover:text-gray-600'
+                  ? 'text-black'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               חבר בקהילות
+              {activeTab === 'member' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" style={{ borderRadius: 0 }} />
+              )}
             </button>
           </div>
 
@@ -607,8 +643,12 @@ export default function MemberProfilePage() {
                     <p>עדיין לא יצר קהילות</p>
                   </div>
                 ) : (
+                  <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {createdCommunities.map((community) => (
+                    {[...createdCommunities]
+                      .reverse()
+                      .slice((createdPage - 1) * communitiesPerPage, createdPage * communitiesPerPage)
+                      .map((community) => (
                       <div
                         key={community.id}
                         className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
@@ -696,6 +736,43 @@ export default function MemberProfilePage() {
                       </div>
                     ))}
                   </div>
+                  {/* Pagination for created communities */}
+                  {createdCommunities.length > communitiesPerPage && (() => {
+                    const totalPages = Math.ceil(createdCommunities.length / communitiesPerPage);
+                    const visiblePages = getVisiblePages(createdPage, totalPages);
+                    return (
+                    <div className="flex items-center justify-center gap-2 mt-8">
+                      <button
+                        onClick={() => setCreatedPage(p => Math.max(1, p - 1))}
+                        disabled={createdPage === 1}
+                        className={`text-2xl transition ${createdPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                        &lt;
+                      </button>
+                      {visiblePages.map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setCreatedPage(page)}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition ${
+                            page === createdPage
+                              ? 'bg-gray-200 text-gray-600'
+                              : 'bg-white text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setCreatedPage(p => Math.min(totalPages, p + 1))}
+                        disabled={createdPage >= totalPages}
+                        className={`text-2xl transition ${createdPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                        &gt;
+                      </button>
+                    </div>
+                    );
+                  })()}
+                  </>
                 )
               ) : (
                 memberCommunities.length === 0 ? (
@@ -704,8 +781,12 @@ export default function MemberProfilePage() {
                     <p>עדיין לא הצטרף לקהילות</p>
                   </div>
                 ) : (
+                  <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {memberCommunities.map((community) => (
+                    {[...memberCommunities]
+                      .reverse()
+                      .slice((memberPage - 1) * communitiesPerPage, memberPage * communitiesPerPage)
+                      .map((community) => (
                       <div
                         key={community.id}
                         className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
@@ -792,6 +873,43 @@ export default function MemberProfilePage() {
                       </div>
                     ))}
                   </div>
+                  {/* Pagination for member communities */}
+                  {memberCommunities.length > communitiesPerPage && (() => {
+                    const totalPages = Math.ceil(memberCommunities.length / communitiesPerPage);
+                    const visiblePages = getVisiblePages(memberPage, totalPages);
+                    return (
+                    <div className="flex items-center justify-center gap-2 mt-8">
+                      <button
+                        onClick={() => setMemberPage(p => Math.max(1, p - 1))}
+                        disabled={memberPage === 1}
+                        className={`text-2xl transition ${memberPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                        &lt;
+                      </button>
+                      {visiblePages.map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setMemberPage(page)}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition ${
+                            page === memberPage
+                              ? 'bg-gray-200 text-gray-600'
+                              : 'bg-white text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setMemberPage(p => Math.min(totalPages, p + 1))}
+                        disabled={memberPage >= totalPages}
+                        className={`text-2xl transition ${memberPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                        &gt;
+                      </button>
+                    </div>
+                    );
+                  })()}
+                  </>
                 )
               )}
           </div>

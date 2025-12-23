@@ -37,6 +37,30 @@ interface Community {
   logo?: string | null;
 }
 
+// Helper function to get visible page numbers (max 10, sliding window)
+const getVisiblePages = (currentPage: number, totalPages: number): number[] => {
+  const maxVisible = 10;
+  let start = 1;
+  let end = Math.min(totalPages, maxVisible);
+  
+  if (totalPages > maxVisible) {
+    const halfWindow = Math.floor(maxVisible / 2);
+    start = Math.max(1, currentPage - halfWindow);
+    end = start + maxVisible - 1;
+    
+    if (end > totalPages) {
+      end = totalPages;
+      start = Math.max(1, end - maxVisible + 1);
+    }
+  }
+  
+  const pages: number[] = [];
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+  return pages;
+};
+
 export default function CoursesPage() {
   const params = useParams();
   const router = useRouter();
@@ -54,6 +78,12 @@ export default function CoursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; courseId: string | null; courseTitle: string }>({ open: false, courseId: null, courseTitle: '' });
   const [deleting, setDeleting] = useState(false);
+
+  // Pagination state
+  const [allPage, setAllPage] = useState(1);
+  const [inProgressPage, setInProgressPage] = useState(1);
+  const [completedPage, setCompletedPage] = useState(1);
+  const coursesPerPage = 3;
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -409,8 +439,15 @@ export default function CoursesPage() {
             </p>
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayedCourses.map(course => (
+            {[...displayedCourses]
+              .reverse()
+              .slice(
+                ((activeTab === 'all' ? allPage : activeTab === 'in-progress' ? inProgressPage : completedPage) - 1) * coursesPerPage,
+                (activeTab === 'all' ? allPage : activeTab === 'in-progress' ? inProgressPage : completedPage) * coursesPerPage
+              )
+              .map(course => (
               <div
                 key={course.id}
                 className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition group border border-gray-100 relative"
@@ -507,6 +544,45 @@ export default function CoursesPage() {
               </div>
             ))}
           </div>
+          {/* Pagination */}
+          {displayedCourses.length > coursesPerPage && (() => {
+            const currentPage = activeTab === 'all' ? allPage : activeTab === 'in-progress' ? inProgressPage : completedPage;
+            const setCurrentPage = activeTab === 'all' ? setAllPage : activeTab === 'in-progress' ? setInProgressPage : setCompletedPage;
+            const totalPages = Math.ceil(displayedCourses.length / coursesPerPage);
+            const visiblePages = getVisiblePages(currentPage, totalPages);
+            return (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className={`text-2xl transition ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  &lt;
+                </button>
+                {visiblePages.map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition ${
+                      page === currentPage
+                        ? 'bg-gray-200 text-gray-600'
+                        : 'bg-white text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className={`text-2xl transition ${currentPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  &gt;
+                </button>
+              </div>
+            );
+          })()}
+          </>
         )}
       </div>
 

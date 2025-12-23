@@ -265,7 +265,7 @@ function ResetPasswordContent() {
           )}
         </div>
 
-        {/* Confirm Password Field */}}
+        {/* Confirm Password Field */}
         <div>
           <div className="relative">
             <FaLock className="absolute right-3 top-3 text-gray-400" />
