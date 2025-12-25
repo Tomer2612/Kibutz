@@ -1043,17 +1043,13 @@ function EventsPageContent() {
                   <div className="flex bg-gray-100 rounded-lg p-1 flex-1">
                     <button
                       onClick={() => setViewMode('calendar')}
-                      className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition ${
-                        viewMode === 'calendar' ? 'bg-white shadow text-black' : 'text-gray-600'
-                      }`}
+                      className="flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition bg-white shadow text-black"
                     >
                       לוח שנה
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
-                      className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition ${
-                        viewMode === 'list' ? 'bg-white shadow text-black' : 'text-gray-600'
-                      }`}
+                      className="flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition text-gray-600"
                     >
                       רשימה
                     </button>
