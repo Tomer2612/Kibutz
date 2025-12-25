@@ -210,7 +210,7 @@ export default function SettingsPage() {
       setUserId(decoded.sub);
       
       // Fetch user profile
-      fetch('http://localhost:4000/users/me', {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => {
@@ -224,14 +224,14 @@ export default function SettingsPage() {
           setBio(data.bio || '');
           setLocation(data.location || '');
           if (data.profileImage) {
-            setImagePreview(`http://localhost:4000${data.profileImage}`);
+            setImagePreview(`${process.env.NEXT_PUBLIC_API_URL}${data.profileImage}`);
           }
         })
         .catch(console.error)
         .finally(() => setLoading(false));
       
       // Fetch online status
-      fetch('http://localhost:4000/users/me/online-status', {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/online-status`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => res.json())
@@ -239,7 +239,7 @@ export default function SettingsPage() {
         .catch(console.error);
       
       // Fetch notification preferences
-      fetch('http://localhost:4000/users/me/notification-preferences', {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/notification-preferences`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => res.json())
@@ -255,7 +255,7 @@ export default function SettingsPage() {
         .catch(console.error);
         
       // Fetch payment methods
-      fetch('http://localhost:4000/users/me/payment-methods', {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/payment-methods`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => res.json())
@@ -306,7 +306,7 @@ export default function SettingsPage() {
         formData.append('profileImage', profileImage);
       }
 
-      const res = await fetch('http://localhost:4000/users/me', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -324,7 +324,7 @@ export default function SettingsPage() {
       setProfileImage(null);
       
       if (updatedProfile.profileImage) {
-        setImagePreview(`http://localhost:4000${updatedProfile.profileImage}`);
+        setImagePreview(`${process.env.NEXT_PUBLIC_API_URL}${updatedProfile.profileImage}`);
       }
       
       // Redirect to profile page after successful save
@@ -344,7 +344,7 @@ export default function SettingsPage() {
 
     try {
       setSettingOffline(true);
-      const res = await fetch('http://localhost:4000/users/me/online-status', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/online-status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -375,7 +375,7 @@ export default function SettingsPage() {
     if (!token) return;
 
     try {
-      const res = await fetch('http://localhost:4000/users/me/notification-preferences', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/notification-preferences`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -472,7 +472,7 @@ export default function SettingsPage() {
       setChangingPassword(true);
       setMessage('');
 
-      const res = await fetch('http://localhost:4000/users/me/password', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/password`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -512,7 +512,7 @@ export default function SettingsPage() {
 
     try {
       setDeletingAccount(true);
-      const res = await fetch('http://localhost:4000/users/me', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1158,7 +1158,7 @@ export default function SettingsPage() {
                               if (!token) return;
                               setSettingPrimaryId(method.id);
                               try {
-                                const res = await fetch(`http://localhost:4000/users/me/payment-methods/${method.id}/set-primary`, {
+                                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/payment-methods/${method.id}/set-primary`, {
                                   method: 'PATCH',
                                   headers: { Authorization: `Bearer ${token}` }
                                 });
@@ -1206,7 +1206,7 @@ export default function SettingsPage() {
                                 if (!token) return;
                                 setDeletingCardId(method.id);
                                 try {
-                                  const res = await fetch(`http://localhost:4000/users/me/payment-methods/${method.id}`, {
+                                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/payment-methods/${method.id}`, {
                                     method: 'DELETE',
                                     headers: { Authorization: `Bearer ${token}` }
                                   });
@@ -1365,7 +1365,7 @@ export default function SettingsPage() {
                         const cardLast4 = cardNumber.slice(-4);
                         const brand = cardNumber.startsWith('4') ? 'Visa' : cardNumber.startsWith('5') ? 'Mastercard' : 'Card';
                         
-                        const res = await fetch('http://localhost:4000/users/me/payment-methods', {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/payment-methods`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',

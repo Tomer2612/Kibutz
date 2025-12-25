@@ -91,7 +91,7 @@ function SignupContent() {
     
     // Check if email exists
     try {
-      const res = await fetch(`http://localhost:4000/auth/check-email?email=${encodeURIComponent(email)}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check-email?email=${encodeURIComponent(email)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.exists) {
@@ -165,7 +165,7 @@ function SignupContent() {
 
     try {
       setIsSubmitting(true);
-      const res = await fetch('http://localhost:4000/auth/signup', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), email, password }),
@@ -205,7 +205,7 @@ function SignupContent() {
         } else {
           // Free community - join directly then redirect to community
           try {
-            const joinRes = await fetch(`http://localhost:4000/communities/${pendingJoinCommunity}/join`, {
+            const joinRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${pendingJoinCommunity}/join`, {
               method: 'POST',
               headers: { Authorization: `Bearer ${data.access_token}` },
             });
@@ -237,7 +237,7 @@ function SignupContent() {
   const handleResendVerification = async () => {
     setResending(true);
     try {
-      const res = await fetch('http://localhost:4000/auth/resend-verification', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -359,7 +359,7 @@ function SignupContent() {
 
                 {/* Google Button */}
                 <a
-                  href="http://localhost:4000/auth/google"
+                  href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
                   className="flex items-center justify-center gap-2 p-3 rounded-lg text-[16px] hover:opacity-80 transition"
                   style={{ backgroundColor: '#F4F4F5' }}
                 >

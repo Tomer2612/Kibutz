@@ -145,7 +145,7 @@ export default function ManageCommunityPage() {
       setUserId(decoded.sub);
       
       // Fetch user profile
-      fetch('http://localhost:4000/users/me', {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => res.ok ? res.json() : null)
@@ -174,7 +174,7 @@ export default function ManageCommunityPage() {
       try {
         // First check membership and permissions
         const membershipRes = await fetch(
-          `http://localhost:4000/communities/${communityId}/membership`,
+          `\/communities/${communityId}/membership`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         
@@ -193,7 +193,7 @@ export default function ManageCommunityPage() {
           return;
         }
         
-        const res = await fetch(`http://localhost:4000/communities/${communityId}`);
+        const res = await fetch(`\/communities/${communityId}`);
         if (!res.ok) throw new Error('Community not found');
         
         const data = await res.json();
@@ -224,7 +224,7 @@ export default function ManageCommunityPage() {
         // Load logo
         if (data.logo) {
           setLogo({
-            preview: `http://localhost:4000${data.logo}`,
+            preview: `\${data.logo}`,
             isExisting: true,
             existingPath: data.logo,
           });
@@ -236,7 +236,7 @@ export default function ManageCommunityPage() {
         // Primary image
         if (data.image) {
           loadedImages.push({
-            preview: `http://localhost:4000${data.image}`,
+            preview: `\${data.image}`,
             isPrimary: true,
             isExisting: true,
             existingPath: data.image,
@@ -247,7 +247,7 @@ export default function ManageCommunityPage() {
         if (data.galleryImages && Array.isArray(data.galleryImages)) {
           data.galleryImages.forEach((path: string) => {
             loadedImages.push({
-              preview: `http://localhost:4000${path}`,
+              preview: `\${path}`,
               isPrimary: false,
               isExisting: true,
               existingPath: path,
@@ -394,7 +394,7 @@ export default function ManageCommunityPage() {
         formData.append('galleryImages', img.file!);
       });
 
-      const res = await fetch(`http://localhost:4000/communities/${communityId}`, {
+      const res = await fetch(`\/communities/${communityId}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -408,7 +408,7 @@ export default function ManageCommunityPage() {
       }
 
       // Also save rules
-      const rulesRes = await fetch(`http://localhost:4000/communities/${communityId}/rules`, {
+      const rulesRes = await fetch(`\/communities/${communityId}/rules`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -452,7 +452,7 @@ export default function ManageCommunityPage() {
 
     try {
       setDeleting(true);
-      const res = await fetch(`http://localhost:4000/communities/${communityId}`, {
+      const res = await fetch(`\/communities/${communityId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -494,7 +494,7 @@ export default function ManageCommunityPage() {
           <div className="flex items-center gap-2">
             {community?.logo ? (
               <img
-                src={`http://localhost:4000${community.logo}`}
+                src={`\${community.logo}`}
                 alt={community.name}
                 className="w-8 h-8 rounded-lg object-cover"
               />
@@ -543,7 +543,7 @@ export default function ManageCommunityPage() {
               >
                 {userProfile?.profileImage ? (
                   <img
-                    src={`http://localhost:4000${userProfile.profileImage}`}
+                    src={`\${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -1299,7 +1299,7 @@ export default function ManageCommunityPage() {
                       const lastFour = newCardNumber.slice(-4);
                       
                       // Save to community
-                      const res = await fetch(`http://localhost:4000/communities/${communityId}`, {
+                      const res = await fetch(`\/communities/${communityId}`, {
                         method: 'PUT',
                         headers: {
                           'Content-Type': 'application/json',
@@ -1312,7 +1312,7 @@ export default function ManageCommunityPage() {
                       });
                       
                       // Also save to user payment methods
-                      await fetch('http://localhost:4000/users/me/payment-methods', {
+                      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/payment-methods`, {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
@@ -1380,7 +1380,7 @@ export default function ManageCommunityPage() {
                       setCancellingTrial(true);
                       try {
                         const token = localStorage.getItem('token');
-                        const res = await fetch(`http://localhost:4000/communities/${communityId}`, {
+                        const res = await fetch(`\/communities/${communityId}`, {
                           method: 'PATCH',
                           headers: {
                             'Content-Type': 'application/json',

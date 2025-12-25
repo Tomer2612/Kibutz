@@ -74,7 +74,7 @@ function CommunityGallery({ primaryImage, galleryImages, communityName }: {
       {/* Main Image with Navigation */}
       <div className="relative">
         <img
-          src={`http://localhost:4000${allImages[currentIndex]}`}
+          src={`\${allImages[currentIndex]}`}
           alt={`${communityName} - תמונה ${currentIndex + 1}`}
           className="w-full h-80 object-cover"
         />
@@ -108,7 +108,7 @@ function CommunityGallery({ primaryImage, galleryImages, communityName }: {
               }`}
             >
               <img
-                src={`http://localhost:4000${img}`}
+                src={`\${img}`}
                 alt={`Thumbnail ${idx + 1}`}
                 className="w-full h-full object-cover"
               />
@@ -145,7 +145,7 @@ export default function CommunityAboutPage() {
 
     setLeavingCommunity(true);
     try {
-      const res = await fetch(`http://localhost:4000/communities/${communityId}/leave`, {
+      const res = await fetch(`\/communities/${communityId}/leave`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -185,7 +185,7 @@ export default function CommunityAboutPage() {
         setUserId(decoded.sub);
         
         // Fetch user profile
-        fetch('http://localhost:4000/users/me', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then((res) => res.json())
@@ -214,7 +214,7 @@ export default function CommunityAboutPage() {
         
         // Check membership and role - redirect non-members to preview page
         if (token) {
-          const membershipRes = await fetch(`http://localhost:4000/communities/${communityId}/membership`, {
+          const membershipRes = await fetch(`\/communities/${communityId}/membership`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (membershipRes.ok) {
@@ -232,14 +232,14 @@ export default function CommunityAboutPage() {
           return;
         }
 
-        const res = await fetch(`http://localhost:4000/communities/${communityId}`);
+        const res = await fetch(`\/communities/${communityId}`);
         if (!res.ok) throw new Error('Failed to fetch community');
         const data = await res.json();
         setCommunity(data);
 
         // Fetch owner data separately
         if (data.ownerId) {
-          const ownerRes = await fetch(`http://localhost:4000/users/${data.ownerId}`);
+          const ownerRes = await fetch(`\/users/${data.ownerId}`);
           if (ownerRes.ok) {
             const owner = await ownerRes.json();
             setOwnerData(owner);
@@ -248,7 +248,7 @@ export default function CommunityAboutPage() {
 
         // Fetch members to count managers (OWNER + MANAGER roles)
         if (token) {
-          const membersRes = await fetch(`http://localhost:4000/communities/${communityId}/members`, {
+          const membersRes = await fetch(`\/communities/${communityId}/members`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (membersRes.ok) {
@@ -287,7 +287,7 @@ export default function CommunityAboutPage() {
           <div className="flex items-center gap-2">
             {community?.logo ? (
               <img
-                src={`http://localhost:4000${community.logo}`}
+                src={`\${community.logo}`}
                 alt={community.name}
                 className="w-8 h-8 rounded-lg object-cover"
               />
@@ -338,7 +338,7 @@ export default function CommunityAboutPage() {
               >
                 {userProfile?.profileImage ? (
                   <img
-                    src={`http://localhost:4000${userProfile.profileImage}`}
+                    src={`\${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -408,7 +408,7 @@ export default function CommunityAboutPage() {
               {/* Cover Photo */}
               {ownerData?.coverImage ? (
                 <img
-                  src={`http://localhost:4000${ownerData.coverImage}`}
+                  src={`\${ownerData.coverImage}`}
                   alt=""
                   className="w-full h-28 object-cover"
                 />
@@ -421,7 +421,7 @@ export default function CommunityAboutPage() {
                 <div className="flex justify-center mb-3">
                   {ownerData?.profileImage ? (
                     <img
-                      src={`http://localhost:4000${ownerData.profileImage}`}
+                      src={`\${ownerData.profileImage}`}
                       alt={ownerData.name}
                       className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
                     />

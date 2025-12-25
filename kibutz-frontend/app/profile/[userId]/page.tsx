@@ -154,7 +154,7 @@ export default function MemberProfilePage() {
         setCurrentUserEmail(decoded.email);
         setCurrentUserId(decoded.sub);
 
-        fetch('http://localhost:4000/users/me', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
@@ -184,12 +184,12 @@ export default function MemberProfilePage() {
 
         // Fetch all data in parallel for faster loading
         const [profileRes, createdRes, memberRes, statsRes, isFollowingRes] = await Promise.all([
-          fetch(`http://localhost:4000/users/${userId}`),
-          fetch(`http://localhost:4000/users/${userId}/communities/created`),
-          fetch(`http://localhost:4000/users/${userId}/communities/member`),
-          fetch(`http://localhost:4000/users/${userId}/stats`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/communities/created`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/communities/member`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/stats`),
           token 
-            ? fetch(`http://localhost:4000/users/${userId}/is-following`, {
+            ? fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/is-following`, {
                 headers: { Authorization: `Bearer ${token}` },
               })
             : Promise.resolve(null),
@@ -262,7 +262,7 @@ export default function MemberProfilePage() {
     setFollowLoading(true);
     try {
       const method = isFollowing ? 'DELETE' : 'POST';
-      const res = await fetch(`http://localhost:4000/users/${userId}/follow`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/follow`, {
         method,
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -362,7 +362,7 @@ export default function MemberProfilePage() {
               >
                 {currentUserProfile?.profileImage ? (
                   <img
-                    src={`http://localhost:4000${currentUserProfile.profileImage}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${currentUserProfile.profileImage}`}
                     alt={currentUserProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -427,7 +427,7 @@ export default function MemberProfilePage() {
       <div className="w-full h-64 relative z-0">
         {profile?.coverImage ? (
           <img
-            src={`http://localhost:4000${profile.coverImage}`}
+            src={`${process.env.NEXT_PUBLIC_API_URL}${profile.coverImage}`}
             alt="Cover"
             className="w-full h-full object-cover"
           />
@@ -457,7 +457,7 @@ export default function MemberProfilePage() {
                   const formData = new FormData();
                   formData.append('coverImage', file);
                   
-                  const res = await fetch('http://localhost:4000/users/me', {
+                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
                     method: 'PATCH',
                     headers: { Authorization: `Bearer ${token}` },
                     body: formData,
@@ -487,7 +487,7 @@ export default function MemberProfilePage() {
             {/* Profile Picture */}
             {profile?.profileImage ? (
               <img
-                src={`http://localhost:4000${profile.profileImage}`}
+                src={`${process.env.NEXT_PUBLIC_API_URL}${profile.profileImage}`}
                 alt={profile.name}
                 className="w-36 h-36 rounded-full object-cover border-4 border-white shadow-lg"
               />
@@ -676,7 +676,7 @@ export default function MemberProfilePage() {
                         <Link href={`/communities/feed?communityId=${community.id}`}>
                           {community.image ? (
                             <img
-                              src={`http://localhost:4000${community.image}`}
+                              src={`${process.env.NEXT_PUBLIC_API_URL}${community.image}`}
                               alt={community.name}
                               className="w-full h-44 object-cover"
                             />
@@ -684,14 +684,13 @@ export default function MemberProfilePage() {
                             <div className="w-full h-44 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
                               <span className="text-gray-400 font-medium">תמונת קהילה</span>
                             </div>
-                          )}
-                        </Link>
+                          )}n                        </Link>
                         <div className="p-5 text-right" dir="rtl">
                           {/* Logo + Name row */}
                           <div className="flex items-start gap-3 mb-2">
                             {community.logo ? (
                               <img
-                                src={`http://localhost:4000${community.logo}`}
+                                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
                                 alt={community.name}
                                 className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                               />
@@ -814,7 +813,7 @@ export default function MemberProfilePage() {
                         <Link href={`/communities/feed?communityId=${community.id}`}>
                           {community.image ? (
                             <img
-                              src={`http://localhost:4000${community.image}`}
+                              src={`${process.env.NEXT_PUBLIC_API_URL}${community.image}`}
                               alt={community.name}
                               className="w-full h-44 object-cover"
                             />
@@ -829,7 +828,7 @@ export default function MemberProfilePage() {
                           <div className="flex items-start gap-3 mb-2">
                             {community.logo ? (
                               <img
-                                src={`http://localhost:4000${community.logo}`}
+                                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
                                 alt={community.name}
                                 className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                               />

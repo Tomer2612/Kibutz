@@ -61,7 +61,7 @@ function LoginContent() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('http://localhost:4000/auth/login', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -117,7 +117,7 @@ function LoginContent() {
 
                 {/* Google Button */}
                 <a
-                  href="http://localhost:4000/auth/google"
+                  href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
                   className="flex items-center justify-center gap-2 p-3 rounded-lg text-[16px] hover:opacity-80 transition"
                   style={{ backgroundColor: '#F4F4F5' }}
                 >

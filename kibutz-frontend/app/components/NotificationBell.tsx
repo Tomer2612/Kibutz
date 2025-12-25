@@ -155,7 +155,7 @@ export default function NotificationBell() {
       if (!token) return;
 
       try {
-        const res = await fetch('http://localhost:4000/notifications/unread-count', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/unread-count`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -200,7 +200,7 @@ export default function NotificationBell() {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:4000/notifications?limit=50', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications?limit=50`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -231,7 +231,7 @@ export default function NotificationBell() {
       // Mark all notifications in the group as read
       await Promise.all(
         unreadNotifications.map(n =>
-          fetch(`http://localhost:4000/notifications/${n.id}/read`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/${n.id}/read`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
           })
@@ -253,7 +253,7 @@ export default function NotificationBell() {
     if (!token) return;
 
     try {
-      await fetch('http://localhost:4000/notifications/read-all', {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/read-all`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -362,7 +362,7 @@ export default function NotificationBell() {
                         >
                           {actor?.profileImage ? (
                             <img
-                              src={`http://localhost:4000${actor.profileImage}`}
+                              src={`${process.env.NEXT_PUBLIC_API_URL}${actor.profileImage}`}
                               alt={actor.name}
                               className="w-9 h-9 rounded-full object-cover"
                             />

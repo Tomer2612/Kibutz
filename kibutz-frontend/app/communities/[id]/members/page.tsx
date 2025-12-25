@@ -86,7 +86,7 @@ export default function CommunityMembersPage() {
         setUserEmail(decoded.email);
         setUserId(decoded.sub);
 
-        fetch('http://localhost:4000/users/me', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
@@ -118,13 +118,13 @@ export default function CommunityMembersPage() {
         setLoading(true);
 
         // Fetch community details
-        const communityRes = await fetch(`http://localhost:4000/communities/${communityId}`);
+        const communityRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`);
         if (communityRes.ok) {
           setCommunity(await communityRes.json());
         }
 
         // Check current user's role
-        const membershipRes = await fetch(`http://localhost:4000/communities/${communityId}/membership`, {
+        const membershipRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/membership`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (membershipRes.ok) {
@@ -133,7 +133,7 @@ export default function CommunityMembersPage() {
         }
 
         // Fetch members
-        const membersRes = await fetch(`http://localhost:4000/communities/${communityId}/members`, {
+        const membersRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/members`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -144,7 +144,7 @@ export default function CommunityMembersPage() {
         }
 
         // Fetch banned users (for owners/managers)
-        const bannedRes = await fetch(`http://localhost:4000/communities/${communityId}/banned`, {
+        const bannedRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/banned`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (bannedRes.ok) {
@@ -220,7 +220,7 @@ export default function CommunityMembersPage() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/communities/${communityId}/members/${memberId}/role`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/members/${memberId}/role`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -258,7 +258,7 @@ export default function CommunityMembersPage() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/communities/${communityId}/members/${memberId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/members/${memberId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -271,7 +271,7 @@ export default function CommunityMembersPage() {
         setFilteredMembers(prev => prev.filter(m => m.id !== memberId));
         
         // Refresh banned users list
-        const bannedRes = await fetch(`http://localhost:4000/communities/${communityId}/banned`, {
+        const bannedRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/banned`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (bannedRes.ok) {
@@ -296,7 +296,7 @@ export default function CommunityMembersPage() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/communities/${communityId}/banned/${banId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/banned/${banId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -327,7 +327,7 @@ export default function CommunityMembersPage() {
           <div className="flex items-center gap-2">
             {community?.logo ? (
               <img
-                src={`http://localhost:4000${community.logo}`}
+                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
                 alt={community.name}
                 className="w-8 h-8 rounded-lg object-cover"
               />
@@ -378,7 +378,7 @@ export default function CommunityMembersPage() {
               >
                 {userProfile?.profileImage ? (
                   <img
-                    src={`http://localhost:4000${userProfile.profileImage}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -467,7 +467,7 @@ export default function CommunityMembersPage() {
                 <Link href={`/profile/${member.id}`} className="relative flex-shrink-0">
                   {member.profileImage ? (
                     <img
-                      src={`http://localhost:4000${member.profileImage}`}
+                      src={`${process.env.NEXT_PUBLIC_API_URL}${member.profileImage}`}
                       alt={member.name}
                       className="w-12 h-12 rounded-full object-cover hover:opacity-80 transition"
                     />
@@ -563,7 +563,7 @@ export default function CommunityMembersPage() {
                     <div className="relative flex-shrink-0">
                       {ban.user.profileImage ? (
                         <img
-                          src={`http://localhost:4000${ban.user.profileImage}`}
+                          src={`${process.env.NEXT_PUBLIC_API_URL}${ban.user.profileImage}`}
                           alt={ban.user.name}
                           className="w-12 h-12 rounded-full object-cover opacity-50"
                         />

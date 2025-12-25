@@ -148,7 +148,7 @@ export default function Home() {
         setUserId(decoded.sub);
         
         // Fetch user profile
-        fetch('http://localhost:4000/users/me', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
@@ -162,7 +162,7 @@ export default function Home() {
           .catch(console.error);
 
         // Fetch user memberships
-        fetch('http://localhost:4000/communities/user/memberships', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/user/memberships`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : [])
@@ -179,7 +179,7 @@ export default function Home() {
     const fetchCommunities = async () => {
       try {
         setLoading(true);
-        const res = await fetch('http://localhost:4000/communities');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities`);
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         // Sort by oldest first (ascending by createdAt)
@@ -305,7 +305,7 @@ export default function Home() {
               >
                 {userProfile?.profileImage ? (
                   <img 
-                    src={`http://localhost:4000${userProfile.profileImage}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -511,7 +511,7 @@ export default function Home() {
               >
                 {community.image ? (
                   <img
-                    src={`http://localhost:4000${community.image}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${community.image}`}
                     alt={community.name}
                     className="w-full h-44 object-cover"
                   />
@@ -524,7 +524,7 @@ export default function Home() {
                   <div className="flex items-start gap-3 mb-2">
                     {community.logo ? (
                       <img
-                        src={`http://localhost:4000${community.logo}`}
+                        src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
                         alt={community.name}
                         className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                       />

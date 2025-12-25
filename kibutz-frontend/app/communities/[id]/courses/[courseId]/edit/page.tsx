@@ -110,7 +110,7 @@ export default function EditCoursePage() {
       setUserEmail(payload.email);
       
       // Fetch user profile
-      fetch('http://localhost:4000/users/me', {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => res.ok ? res.json() : null)
@@ -133,7 +133,7 @@ export default function EditCoursePage() {
   const fetchCourse = async () => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:4000/courses/${courseId}`, {
+      const res = await fetch(`\/courses/${courseId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (res.ok) {
@@ -144,7 +144,7 @@ export default function EditCoursePage() {
           description: data.description || '',
           image: data.image,
           newImage: null,
-          imagePreview: data.image ? `http://localhost:4000${data.image}` : null,
+          imagePreview: data.image ? `\${data.image}` : null,
           isPublished: data.isPublished,
           chapters: data.chapters.map((c: any) => ({
             id: c.id,
@@ -499,7 +499,7 @@ export default function EditCoursePage() {
         for (const file of lesson.imageFiles) {
           const imageFormData = new FormData();
           imageFormData.append('image', file);
-          const uploadRes = await fetch('http://localhost:4000/courses/lessons/upload-image', {
+          const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/lessons/upload-image`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: imageFormData,
@@ -523,7 +523,7 @@ export default function EditCoursePage() {
         formData.append('image', course.newImage);
       }
 
-      await fetch(`http://localhost:4000/courses/${courseId}`, {
+      await fetch(`\/courses/${courseId}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -533,13 +533,13 @@ export default function EditCoursePage() {
       for (const chapter of course.chapters) {
         if (chapter.isDeleted && chapter.id) {
           // Delete chapter
-          await fetch(`http://localhost:4000/courses/chapters/${chapter.id}`, {
+          await fetch(`\/courses/chapters/${chapter.id}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
           });
         } else if (chapter.isNew) {
           // Create new chapter
-          const chapterRes = await fetch(`http://localhost:4000/courses/${courseId}/chapters`, {
+          const chapterRes = await fetch(`\/courses/${courseId}/chapters`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -573,7 +573,7 @@ export default function EditCoursePage() {
                 })),
               } : null;
 
-              await fetch(`http://localhost:4000/courses/chapters/${newChapter.id}/lessons`, {
+              await fetch(`\/courses/chapters/${newChapter.id}/lessons`, {
                 method: 'POST',
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -597,7 +597,7 @@ export default function EditCoursePage() {
           }
         } else if (chapter.id) {
           // Update existing chapter
-          await fetch(`http://localhost:4000/courses/chapters/${chapter.id}`, {
+          await fetch(`\/courses/chapters/${chapter.id}`, {
             method: 'PATCH',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -612,7 +612,7 @@ export default function EditCoursePage() {
           // Process lessons
           for (const lesson of chapter.lessons) {
             if (lesson.isDeleted && lesson.id) {
-              await fetch(`http://localhost:4000/courses/lessons/${lesson.id}`, {
+              await fetch(`\/courses/lessons/${lesson.id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
               });
@@ -634,7 +634,7 @@ export default function EditCoursePage() {
                 })),
               } : null;
 
-              await fetch(`http://localhost:4000/courses/chapters/${chapter.id}/lessons`, {
+              await fetch(`\/courses/chapters/${chapter.id}/lessons`, {
                 method: 'POST',
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -672,7 +672,7 @@ export default function EditCoursePage() {
                 })),
               } : null;
 
-              await fetch(`http://localhost:4000/courses/lessons/${lesson.id}`, {
+              await fetch(`\/courses/lessons/${lesson.id}`, {
                 method: 'PATCH',
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -734,7 +734,7 @@ export default function EditCoursePage() {
             >
               {userProfile?.profileImage ? (
                 <img 
-                  src={`http://localhost:4000${userProfile.profileImage}`}
+                  src={`\${userProfile.profileImage}`}
                   alt={userProfile.name || 'User'}
                   className="w-10 h-10 rounded-full object-cover"
                 />
@@ -1229,7 +1229,7 @@ export default function EditCoursePage() {
                                             {(lesson.images || []).map((imageUrl, imgIndex) => (
                                               <div key={`saved-${imgIndex}`} className="relative group">
                                                 <img
-                                                  src={`http://localhost:4000${imageUrl}`}
+                                                  src={`\${imageUrl}`}
                                                   alt={`תמונה ${imgIndex + 1}`}
                                                   className="w-full h-24 object-cover rounded border border-gray-200"
                                                 />

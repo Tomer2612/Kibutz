@@ -72,7 +72,7 @@ function CommunityGallery({ primaryImage, galleryImages, communityName }: {
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
       <div className="relative">
         <img
-          src={`http://localhost:4000${allImages[currentIndex]}`}
+          src={`${process.env.NEXT_PUBLIC_API_URL}${allImages[currentIndex]}`}
           alt={`${communityName} - תמונה ${currentIndex + 1}`}
           className="w-full h-80 object-cover"
         />
@@ -104,7 +104,7 @@ function CommunityGallery({ primaryImage, galleryImages, communityName }: {
               }`}
             >
               <img
-                src={`http://localhost:4000${img}`}
+                src={`${process.env.NEXT_PUBLIC_API_URL}${img}`}
                 alt={`Thumbnail ${idx + 1}`}
                 className="w-full h-full object-cover"
               />
@@ -164,7 +164,7 @@ function CommunityPreviewContent() {
         setUserEmail(decoded.email);
         setUserId(decoded.sub);
         
-        fetch('http://localhost:4000/users/me', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then((res) => res.json())
@@ -193,7 +193,7 @@ function CommunityPreviewContent() {
         
         // Check membership - if member, redirect to about page
         if (token) {
-          const membershipRes = await fetch(`http://localhost:4000/communities/${communityId}/membership`, {
+          const membershipRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/membership`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (membershipRes.ok) {
@@ -206,14 +206,14 @@ function CommunityPreviewContent() {
           }
         }
 
-        const res = await fetch(`http://localhost:4000/communities/${communityId}`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`);
         if (!res.ok) throw new Error('Failed to fetch community');
         const data = await res.json();
         setCommunity(data);
 
         // Fetch owner data separately
         if (data.ownerId) {
-          const ownerRes = await fetch(`http://localhost:4000/users/${data.ownerId}`);
+          const ownerRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${data.ownerId}`);
           if (ownerRes.ok) {
             const owner = await ownerRes.json();
             setOwnerData(owner);
@@ -222,7 +222,7 @@ function CommunityPreviewContent() {
 
         // Fetch similar communities (same topic)
         if (data.topic) {
-          const allRes = await fetch('http://localhost:4000/communities');
+          const allRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities`);
           if (allRes.ok) {
             const allCommunities = await allRes.json();
             const similar = allCommunities.filter((c: Community) => 
@@ -234,7 +234,7 @@ function CommunityPreviewContent() {
 
         // Fetch members to count managers
         if (token) {
-          const membersRes = await fetch(`http://localhost:4000/communities/${communityId}/members`, {
+          const membersRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/members`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (membersRes.ok) {
@@ -276,7 +276,7 @@ function CommunityPreviewContent() {
     const token = localStorage.getItem('token');
     
     try {
-      const res = await fetch(`http://localhost:4000/communities/${communityId}/join`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/join`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -300,7 +300,7 @@ function CommunityPreviewContent() {
     const token = localStorage.getItem('token');
     const lastFour = cardNumber.slice(-4);
     try {
-      await fetch('http://localhost:4000/users/me/payment-methods', {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/payment-methods`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -414,7 +414,7 @@ function CommunityPreviewContent() {
                 >
                   {userProfile?.profileImage ? (
                     <img
-                      src={`http://localhost:4000${userProfile.profileImage}`}
+                      src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                       alt={userProfile.name || 'User'}
                       className="w-10 h-10 rounded-full object-cover"
                     />
@@ -485,7 +485,7 @@ function CommunityPreviewContent() {
               {/* Cover Photo */}
               {ownerData?.coverImage ? (
                 <img
-                  src={`http://localhost:4000${ownerData.coverImage}`}
+                  src={`${process.env.NEXT_PUBLIC_API_URL}${ownerData.coverImage}`}
                   alt=""
                   className="w-full h-28 object-cover"
                 />
@@ -498,7 +498,7 @@ function CommunityPreviewContent() {
                 <div className="flex justify-center mb-3">
                   {ownerData?.profileImage ? (
                     <img
-                      src={`http://localhost:4000${ownerData.profileImage}`}
+                      src={`${process.env.NEXT_PUBLIC_API_URL}${ownerData.profileImage}`}
                       alt={ownerData.name}
                       className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
                     />
@@ -659,7 +659,7 @@ function CommunityPreviewContent() {
                   >
                     {comm.image ? (
                       <img
-                        src={`http://localhost:4000${comm.image}`}
+                        src={`${process.env.NEXT_PUBLIC_API_URL}${comm.image}`}
                         alt={comm.name}
                         className="w-full h-44 object-cover"
                       />
@@ -672,7 +672,7 @@ function CommunityPreviewContent() {
                       <div className="flex items-start gap-3 mb-2">
                         {comm.logo ? (
                           <img
-                            src={`http://localhost:4000${comm.logo}`}
+                            src={`${process.env.NEXT_PUBLIC_API_URL}${comm.logo}`}
                             alt={comm.name}
                             className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                           />

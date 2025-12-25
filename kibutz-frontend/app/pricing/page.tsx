@@ -126,7 +126,7 @@ function PricingContent() {
         setUserId(decoded.sub);
         
         // Fetch user profile
-        fetch('http://localhost:4000/users/me', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
@@ -192,7 +192,7 @@ function PricingContent() {
       formData.append('description', `קהילת ${communityName}`);
       if (communityTopic) formData.append('topic', communityTopic);
       
-      const res = await fetch('http://localhost:4000/communities', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -203,7 +203,7 @@ function PricingContent() {
         
         // Save credit card info to the new community
         const lastFour = cardNumber.slice(-4);
-        await fetch(`http://localhost:4000/communities/${newCommunity.id}`, {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${newCommunity.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -216,7 +216,7 @@ function PricingContent() {
         });
         
         // Also save to user payment methods
-        await fetch('http://localhost:4000/users/me/payment-methods', {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/payment-methods`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -466,7 +466,7 @@ function PricingContent() {
               >
                 {userProfile?.profileImage ? (
                   <img 
-                    src={`http://localhost:4000${userProfile.profileImage}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />

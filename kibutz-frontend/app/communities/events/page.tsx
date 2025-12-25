@@ -426,7 +426,7 @@ function EventsPageContent() {
         setUserEmail(decoded.email);
         
         // Fetch user profile
-        fetch('http://localhost:4000/users/me', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(res => res.ok ? res.json() : null)
           .then(data => {
@@ -438,7 +438,7 @@ function EventsPageContent() {
           });
           
         // Fetch communities user is member of
-        fetch('http://localhost:4000/communities/user/memberships', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/user/memberships`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(res => res.ok ? res.json() : [])
           .then(data => {
@@ -460,7 +460,7 @@ function EventsPageContent() {
       
       try {
         // Fetch community
-        const communityRes = await fetch(`http://localhost:4000/communities/${communityId}`);
+        const communityRes = await fetch(`\/communities/${communityId}`);
         if (communityRes.ok) {
           const communityData = await communityRes.json();
           setCommunity(communityData);
@@ -468,7 +468,7 @@ function EventsPageContent() {
 
         // Check membership
         if (token) {
-          const membershipRes = await fetch(`http://localhost:4000/communities/${communityId}/membership`, {
+          const membershipRes = await fetch(`\/communities/${communityId}/membership`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (membershipRes.ok) {
@@ -494,7 +494,7 @@ function EventsPageContent() {
     const token = localStorage.getItem('token');
     try {
       const res = await fetch(
-        `http://localhost:4000/events/community/${communityId}/calendar?year=${year}&month=${month}`,
+        `\/events/community/${communityId}/calendar?year=${year}&month=${month}`,
         token ? { headers: { Authorization: `Bearer ${token}` } } : {}
       );
       if (res.ok) {
@@ -538,7 +538,7 @@ function EventsPageContent() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/events/${eventId}`, {
+      const res = await fetch(`\/events/${eventId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -598,7 +598,7 @@ function EventsPageContent() {
     try {
       // If clicking same status, remove RSVP
       if (isRemoving) {
-        const res = await fetch(`http://localhost:4000/events/${eventId}/rsvp`, {
+        const res = await fetch(`\/events/${eventId}/rsvp`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -615,7 +615,7 @@ function EventsPageContent() {
           ));
         }
       } else {
-        const res = await fetch(`http://localhost:4000/events/${eventId}/rsvp`, {
+        const res = await fetch(`\/events/${eventId}/rsvp`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -797,7 +797,7 @@ function EventsPageContent() {
           <div className="flex items-center gap-2">
             {community?.logo ? (
               <img
-                src={`http://localhost:4000${community.logo}`}
+                src={`\${community.logo}`}
                 alt={community?.name || ''}
                 className="w-8 h-8 rounded-lg object-cover"
               />
@@ -849,7 +849,7 @@ function EventsPageContent() {
               >
                 {userProfile?.profileImage ? (
                   <img 
-                    src={`http://localhost:4000${userProfile.profileImage}`}
+                    src={`\${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -1300,7 +1300,7 @@ function EventCard({
       {event.coverImage && !compact && (
         <div className="h-40 bg-gray-100">
           <img 
-            src={`http://localhost:4000${event.coverImage}`}
+            src={`\${event.coverImage}`}
             alt={event.title}
             className="w-full h-full object-cover"
           />
@@ -1503,7 +1503,7 @@ function AddEventModal({
       formData.append('attendeeType', attendeeType);
       if (coverImage) formData.append('coverImage', coverImage);
 
-      const res = await fetch(`http://localhost:4000/events/community/${communityId}`, {
+      const res = await fetch(`\/events/community/${communityId}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1906,7 +1906,7 @@ function EditEventModal({
   const [attendeeType, setAttendeeType] = useState(event.attendeeType || 'all');
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
-    event.coverImage ? `http://localhost:4000${event.coverImage}` : null
+    event.coverImage ? `\${event.coverImage}` : null
   );
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1952,7 +1952,7 @@ function EditEventModal({
       formData.append('attendeeType', attendeeType);
       if (coverImage) formData.append('coverImage', coverImage);
 
-      const res = await fetch(`http://localhost:4000/events/${event.id}`, {
+      const res = await fetch(`\/events/${event.id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,

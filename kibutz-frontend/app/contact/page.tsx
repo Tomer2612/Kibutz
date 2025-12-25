@@ -65,7 +65,7 @@ export default function ContactPage() {
         setContactEmail(decoded.email);
         
         // Fetch user profile
-        fetch('http://localhost:4000/users/me', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
@@ -175,7 +175,7 @@ export default function ContactPage() {
               >
                 {userProfile?.profileImage ? (
                   <img 
-                    src={`http://localhost:4000${userProfile.profileImage}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />

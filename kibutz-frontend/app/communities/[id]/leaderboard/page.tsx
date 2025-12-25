@@ -67,7 +67,7 @@ export default function LeaderboardPage() {
       setUserId(decoded.sub);
 
       // Fetch user profile
-      fetch('http://localhost:4000/users/me', {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => (res.ok ? res.json() : null))
@@ -94,7 +94,7 @@ export default function LeaderboardPage() {
 
       try {
         // Fetch community details
-        const communityRes = await fetch(`http://localhost:4000/communities/${communityId}`);
+        const communityRes = await fetch(`\/communities/${communityId}`);
         if (communityRes.ok) {
           const communityData = await communityRes.json();
           setCommunity(communityData);
@@ -102,7 +102,7 @@ export default function LeaderboardPage() {
 
         // Check membership and permissions
         const membershipRes = await fetch(
-          `http://localhost:4000/communities/${communityId}/membership`,
+          `\/communities/${communityId}/membership`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (membershipRes.ok) {
@@ -113,7 +113,7 @@ export default function LeaderboardPage() {
 
         // Fetch leaderboard (top 10 members)
         const leaderboardRes = await fetch(
-          `http://localhost:4000/communities/${communityId}/top-members?limit=10`,
+          `\/communities/${communityId}/top-members?limit=10`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (leaderboardRes.ok) {
@@ -168,7 +168,7 @@ export default function LeaderboardPage() {
           <div className="flex items-center gap-2">
             {community?.logo ? (
               <img
-                src={`http://localhost:4000${community.logo}`}
+                src={`\${community.logo}`}
                 alt={community.name}
                 className="w-8 h-8 rounded-lg object-cover"
               />
@@ -217,7 +217,7 @@ export default function LeaderboardPage() {
               >
                 {userProfile?.profileImage ? (
                   <img
-                    src={`http://localhost:4000${userProfile.profileImage}`}
+                    src={`\${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -310,7 +310,7 @@ export default function LeaderboardPage() {
                   <Link href={`/profile/${member.userId}`}>
                     {member.profileImage ? (
                       <img
-                        src={`http://localhost:4000${member.profileImage}`}
+                        src={`\${member.profileImage}`}
                         alt={member.name}
                         className="w-12 h-12 rounded-full object-cover border-2 border-white shadow hover:opacity-80 transition"
                       />

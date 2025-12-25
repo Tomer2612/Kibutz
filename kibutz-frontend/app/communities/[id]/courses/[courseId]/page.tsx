@@ -135,7 +135,7 @@ function CourseViewerContent() {
         const payload = JSON.parse(atob(token.split('.')[1]));
         setUserId(payload.sub);
         setUserEmail(payload.email);
-        fetch('http://localhost:4000/users/me', { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
           .then(res => res.ok ? res.json() : null)
           .then(data => {
             if (data) {
@@ -167,7 +167,7 @@ function CourseViewerContent() {
       if (isOwnerOrAuthor && !course.enrollment) {
         const token = localStorage.getItem('token');
         if (token) {
-          fetch(`http://localhost:4000/courses/${courseId}/enroll`, {
+          fetch(`\/courses/${courseId}/enroll`, {
             method: 'POST', headers: { Authorization: `Bearer ${token}` },
           }).then(res => {
             if (res.ok) fetchCourse();
@@ -330,7 +330,7 @@ function CourseViewerContent() {
   const fetchCourse = async () => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:4000/courses/${courseId}`, {
+      const res = await fetch(`\/courses/${courseId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (res.ok) setCourse(await res.json());
@@ -344,7 +344,7 @@ function CourseViewerContent() {
     if (!token) { router.push('/login'); return; }
     setEnrolling(true);
     try {
-      const res = await fetch(`http://localhost:4000/courses/${courseId}/enroll`, {
+      const res = await fetch(`\/courses/${courseId}/enroll`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -366,7 +366,7 @@ function CourseViewerContent() {
     if (!token) return;
     setUnenrolling(true);
     try {
-      const res = await fetch(`http://localhost:4000/courses/${courseId}/enroll`, {
+      const res = await fetch(`\/courses/${courseId}/enroll`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -407,7 +407,7 @@ function CourseViewerContent() {
     });
     
     try {
-      const res = await fetch(`http://localhost:4000/courses/lessons/${targetLessonId}/complete`, {
+      const res = await fetch(`\/courses/lessons/${targetLessonId}/complete`, {
         method: isCompleted ? 'DELETE' : 'POST', headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
@@ -432,7 +432,7 @@ function CourseViewerContent() {
     if (!token) return;
     setDeleting(true);
     try {
-      const res = await fetch(`http://localhost:4000/courses/${courseId}`, {
+      const res = await fetch(`\/courses/${courseId}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) router.push(`/communities/${communityId}/courses`);
@@ -523,7 +523,7 @@ function CourseViewerContent() {
         <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">Kibutz</Link>
         <div className="flex items-center gap-2">
           {course.community.logo ? (
-            <img src={`http://localhost:4000${course.community.logo}`} alt={course.community.name} className="w-8 h-8 rounded-lg object-cover" />
+            <img src={`\${course.community.logo}`} alt={course.community.name} className="w-8 h-8 rounded-lg object-cover" />
           ) : (
             <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center"><FaUsers className="w-4 h-4 text-gray-400" /></div>
           )}
@@ -549,7 +549,7 @@ function CourseViewerContent() {
           <div className="relative">
             <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="relative focus:outline-none">
               {userProfile?.profileImage ? (
-                <img src={`http://localhost:4000${userProfile.profileImage}`} alt={userProfile.name || 'User'} className="w-10 h-10 rounded-full object-cover" />
+                <img src={`\${userProfile.profileImage}`} alt={userProfile.name || 'User'} className="w-10 h-10 rounded-full object-cover" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">{userProfile?.name?.charAt(0) || userEmail.charAt(0).toUpperCase()}</div>
               )}
@@ -581,7 +581,7 @@ function CourseViewerContent() {
         <Navbar />
         <div className="max-w-4xl mx-auto px-8 py-16">
           <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
-            {course.image && <img src={course.image.startsWith('http') ? course.image : `http://localhost:4000${course.image}`} alt={course.title} className="w-full h-64 object-cover rounded-xl mb-8" />}
+            {course.image && <img src={course.image.startsWith('http') ? course.image : `\${course.image}`} alt={course.title} className="w-full h-64 object-cover rounded-xl mb-8" />}
             <h1 className="text-3xl font-bold text-gray-900 mb-4">{course.title}</h1>
             <p className="text-gray-600 mb-8 max-w-2xl mx-auto">{course.description}</p>
             <div className="flex items-center justify-center gap-6 mb-8 text-gray-500">
@@ -797,7 +797,7 @@ function CourseViewerContent() {
                       {currentLesson.images.map((image, index) => (
                         <a
                           key={index}
-                          href={`http://localhost:4000${image}`}
+                          href={`\${image}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => setViewedImages(prev => new Set([...prev, index]))}
@@ -805,7 +805,7 @@ function CourseViewerContent() {
                         >
                           <div className="relative w-full" style={{ maxHeight: '500px' }}>
                             <img
-                              src={`http://localhost:4000${image}`}
+                              src={`\${image}`}
                               alt={`תמונה ${index + 1}`}
                               className="w-full h-auto max-h-[500px] object-contain rounded-lg border border-gray-200 hover:shadow-lg transition"
                             />

@@ -110,7 +110,7 @@ export default function CreateCoursePage() {
       setUserEmail(payload.email);
       
       // Fetch user profile
-      fetch('http://localhost:4000/users/me', {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => res.ok ? res.json() : null)
@@ -400,7 +400,7 @@ export default function CreateCoursePage() {
         formData.append('image', course.image);
       }
 
-      const courseRes = await fetch('http://localhost:4000/courses', {
+      const courseRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -414,7 +414,7 @@ export default function CreateCoursePage() {
 
       // Create chapters and lessons
       for (const chapter of course.chapters) {
-        const chapterRes = await fetch(`http://localhost:4000/courses/${newCourse.id}/chapters`, {
+        const chapterRes = await fetch(`\/courses/${newCourse.id}/chapters`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -440,7 +440,7 @@ export default function CreateCoursePage() {
             for (const file of lesson.imageFiles) {
               const imageFormData = new FormData();
               imageFormData.append('image', file);
-              const uploadRes = await fetch('http://localhost:4000/courses/lessons/upload-image', {
+              const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/lessons/upload-image`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: imageFormData,
@@ -466,7 +466,7 @@ export default function CreateCoursePage() {
             })),
           } : null;
 
-          await fetch(`http://localhost:4000/courses/chapters/${newChapter.id}/lessons`, {
+          await fetch(`\/courses/chapters/${newChapter.id}/lessons`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -515,7 +515,7 @@ export default function CreateCoursePage() {
             >
               {userProfile?.profileImage ? (
                 <img 
-                  src={`http://localhost:4000${userProfile.profileImage}`}
+                  src={`\${userProfile.profileImage}`}
                   alt={userProfile.name || 'User'}
                   className="w-10 h-10 rounded-full object-cover"
                 />

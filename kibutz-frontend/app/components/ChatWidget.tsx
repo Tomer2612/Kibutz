@@ -130,7 +130,7 @@ export default function ChatWidget() {
       if (!token) return;
 
       try {
-        const res = await fetch('http://localhost:4000/messages/unread-count', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/unread-count`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -160,7 +160,7 @@ export default function ChatWidget() {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:4000/messages/conversations', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/conversations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -210,7 +210,7 @@ export default function ChatWidget() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/messages/conversations/${conv.id}/messages`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/conversations/${conv.id}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -222,7 +222,7 @@ export default function ChatWidget() {
         ));
 
         // Mark as read
-        await fetch(`http://localhost:4000/messages/conversations/${conv.id}/read`, {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/conversations/${conv.id}/read`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -243,7 +243,7 @@ export default function ChatWidget() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/messages/conversations/${userId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/conversations/${userId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -341,7 +341,7 @@ export default function ChatWidget() {
                     <div className="relative flex-shrink-0">
                       {other.profileImage ? (
                         <Image
-                          src={other.profileImage.startsWith('http') ? other.profileImage : `http://localhost:4000${other.profileImage}`}
+                          src={other.profileImage.startsWith('http') ? other.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${other.profileImage}`}
                           alt={other.name}
                           width={40}
                           height={40}
@@ -383,7 +383,7 @@ export default function ChatWidget() {
             >
               {chat.recipientImage ? (
                 <Image
-                  src={chat.recipientImage.startsWith('http') ? chat.recipientImage : `http://localhost:4000${chat.recipientImage}`}
+                  src={chat.recipientImage.startsWith('http') ? chat.recipientImage : `${process.env.NEXT_PUBLIC_API_URL}${chat.recipientImage}`}
                   alt={chat.recipientName}
                   width={24}
                   height={24}
@@ -449,7 +449,7 @@ function ChatWindow({
 
     setSending(true);
     try {
-      const res = await fetch('http://localhost:4000/messages/send', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -489,7 +489,7 @@ function ChatWindow({
         <div className="flex items-center gap-2">
           {chat.recipientImage ? (
             <Image
-              src={chat.recipientImage.startsWith('http') ? chat.recipientImage : `http://localhost:4000${chat.recipientImage}`}
+              src={chat.recipientImage.startsWith('http') ? chat.recipientImage : `${process.env.NEXT_PUBLIC_API_URL}${chat.recipientImage}`}
               alt={chat.recipientName}
               width={32}
               height={32}

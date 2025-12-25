@@ -288,7 +288,7 @@ function CommunityFeedContent() {
         setUserId(decoded.sub);
         
         // Fetch user profile and memberships
-        fetch('http://localhost:4000/users/me', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
@@ -301,7 +301,7 @@ function CommunityFeedContent() {
           });
         
         // Fetch user's community memberships
-        fetch('http://localhost:4000/communities/user/memberships', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/user/memberships`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : [])
@@ -318,7 +318,7 @@ function CommunityFeedContent() {
   useEffect(() => {
     const fetchCommunities = async () => {
       try {
-        const res = await fetch('http://localhost:4000/communities');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities`);
         if (!res.ok) throw new Error('Failed to fetch communities');
         const data = await res.json();
         setCommunities(data);
@@ -349,7 +349,7 @@ function CommunityFeedContent() {
         // First check membership
         if (token) {
           const membershipRes = await fetch(
-            `http://localhost:4000/communities/${selectedCommunityId}/membership`,
+            `\/communities/${selectedCommunityId}/membership`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           if (membershipRes.ok) {
@@ -362,7 +362,7 @@ function CommunityFeedContent() {
             
             // If not a member, don't fetch posts
             if (!membershipData.isMember) {
-              const communityRes = await fetch(`http://localhost:4000/communities/${selectedCommunityId}`);
+              const communityRes = await fetch(`\/communities/${selectedCommunityId}`);
               if (communityRes.ok) {
                 setCommunity(await communityRes.json());
               }
@@ -378,7 +378,7 @@ function CommunityFeedContent() {
           setIsManager(false);
           setCanEdit(false);
           setCanDelete(false);
-          const communityRes = await fetch(`http://localhost:4000/communities/${selectedCommunityId}`);
+          const communityRes = await fetch(`\/communities/${selectedCommunityId}`);
           if (communityRes.ok) {
             setCommunity(await communityRes.json());
           }
@@ -388,8 +388,8 @@ function CommunityFeedContent() {
         }
         
         const [communityRes, postsRes] = await Promise.all([
-          fetch(`http://localhost:4000/communities/${selectedCommunityId}`),
-          fetch(`http://localhost:4000/posts/community/${selectedCommunityId}${userId ? `?userId=${userId}` : ''}`),
+          fetch(`\/communities/${selectedCommunityId}`),
+          fetch(`\/posts/community/${selectedCommunityId}${userId ? `?userId=${userId}` : ''}`),
         ]);
 
         if (!communityRes.ok) {
@@ -418,7 +418,7 @@ function CommunityFeedContent() {
         if (token) {
           try {
             const topMembersRes = await fetch(
-              `http://localhost:4000/communities/${selectedCommunityId}/top-members`,
+              `\/communities/${selectedCommunityId}/top-members`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             if (topMembersRes.ok) {
@@ -433,7 +433,7 @@ function CommunityFeedContent() {
         // Fetch online members count
         try {
           const onlineRes = await fetch(
-            `http://localhost:4000/communities/${selectedCommunityId}/online-count`
+            `\/communities/${selectedCommunityId}/online-count`
           );
           if (onlineRes.ok) {
             const onlineData = await onlineRes.json();
@@ -446,7 +446,7 @@ function CommunityFeedContent() {
         // Fetch upcoming events
         try {
           const eventsRes = await fetch(
-            `http://localhost:4000/events/community/${selectedCommunityId}/upcoming?limit=3`,
+            `\/events/community/${selectedCommunityId}/upcoming?limit=3`,
             token ? { headers: { Authorization: `Bearer ${token}` } } : {}
           );
           if (eventsRes.ok) {
@@ -475,7 +475,7 @@ function CommunityFeedContent() {
     const refreshOnlineCount = async () => {
       try {
         const onlineRes = await fetch(
-          `http://localhost:4000/communities/${selectedCommunityId}/online-count`
+          `\/communities/${selectedCommunityId}/online-count`
         );
         if (onlineRes.ok) {
           const onlineData = await onlineRes.json();
@@ -498,7 +498,7 @@ function CommunityFeedContent() {
       try {
         const token = localStorage.getItem('token');
         const postsRes = await fetch(
-          `http://localhost:4000/posts/community/${selectedCommunityId}?userId=${userId}`,
+          `\/posts/community/${selectedCommunityId}?userId=${userId}`,
           token ? { headers: { Authorization: `Bearer ${token}` } } : {}
         );
         if (postsRes.ok) {
@@ -538,7 +538,7 @@ function CommunityFeedContent() {
       // Fetch previews for new links using backend endpoint
       for (const link of allLinks) {
         try {
-          const res = await fetch(`http://localhost:4000/posts/link-preview?url=${encodeURIComponent(link)}`);
+          const res = await fetch(`\/posts/link-preview?url=${encodeURIComponent(link)}`);
           if (res.ok) {
             const preview = await res.json();
             setLinkPreviews(prev => ({
@@ -617,7 +617,7 @@ function CommunityFeedContent() {
         formData.append('links', JSON.stringify(newPostLinks));
       }
       
-      const res = await fetch(`http://localhost:4000/posts/community/${selectedCommunityId}`, {
+      const res = await fetch(`\/posts/community/${selectedCommunityId}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -631,7 +631,7 @@ function CommunityFeedContent() {
       // If poll was added, create it
       if (showPollCreator && pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2) {
         try {
-          const pollRes = await fetch(`http://localhost:4000/posts/${newPost.id}/poll`, {
+          const pollRes = await fetch(`\/posts/${newPost.id}/poll`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -747,7 +747,7 @@ function CommunityFeedContent() {
     }
 
     try {
-      const res = await fetch(`http://localhost:4000/posts/${postId}/like`, {
+      const res = await fetch(`\/posts/${postId}/like`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -810,7 +810,7 @@ function CommunityFeedContent() {
         formData.append('linksToRemove', JSON.stringify(linksToRemove));
       }
       
-      const res = await fetch(`http://localhost:4000/posts/${postId}`, {
+      const res = await fetch(`\/posts/${postId}`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -983,7 +983,7 @@ function CommunityFeedContent() {
     }
 
     try {
-      const res = await fetch(`http://localhost:4000/posts/${postId}/save`, {
+      const res = await fetch(`\/posts/${postId}/save`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1020,7 +1020,7 @@ function CommunityFeedContent() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/posts/${postId}/pin`, {
+      const res = await fetch(`\/posts/${postId}/pin`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1061,7 +1061,7 @@ function CommunityFeedContent() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/posts/${postId}`, {
+      const res = await fetch(`\/posts/${postId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1087,7 +1087,7 @@ function CommunityFeedContent() {
     setLoadingComments((prev) => ({ ...prev, [postId]: true }));
 
     try {
-      const res = await fetch(`http://localhost:4000/posts/${postId}/comments`);
+      const res = await fetch(`\/posts/${postId}/comments`);
       if (!res.ok) throw new Error('Failed to load comments');
       const comments = await res.json();
       setPostComments((prev) => ({ ...prev, [postId]: comments }));
@@ -1108,7 +1108,7 @@ function CommunityFeedContent() {
     setSubmittingComment((prev) => ({ ...prev, [postId]: true }));
 
     try {
-      const res = await fetch(`http://localhost:4000/posts/${postId}/comments`, {
+      const res = await fetch(`\/posts/${postId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1160,7 +1160,7 @@ function CommunityFeedContent() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/users/search?q=${encodeURIComponent(query)}`, {
+      const res = await fetch(`\/users/search?q=${encodeURIComponent(query)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -1221,7 +1221,7 @@ function CommunityFeedContent() {
     try {
       // If clicking the same option, remove the vote
       if (currentVotedOptionId === optionId) {
-        const res = await fetch(`http://localhost:4000/posts/polls/${pollId}/vote`, {
+        const res = await fetch(`\/posts/polls/${pollId}/vote`, {
           method: 'DELETE',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1238,7 +1238,7 @@ function CommunityFeedContent() {
         }
       } else {
         // Vote for new option
-        const res = await fetch(`http://localhost:4000/posts/polls/${pollId}/vote`, {
+        const res = await fetch(`\/posts/polls/${pollId}/vote`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1270,7 +1270,7 @@ function CommunityFeedContent() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/posts/comments/${commentId}`, {
+      const res = await fetch(`\/posts/comments/${commentId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1311,7 +1311,7 @@ function CommunityFeedContent() {
     if (!token || !content) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/posts/comments/${commentId}`, {
+      const res = await fetch(`\/posts/comments/${commentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1366,7 +1366,7 @@ function CommunityFeedContent() {
           <div className="relative flex items-center gap-2">
             {community?.logo ? (
               <img
-                src={`http://localhost:4000${community.logo}`}
+                src={`\${community.logo}`}
                 alt={community.name}
                 className="w-8 h-8 rounded-lg object-cover"
               />
@@ -1446,7 +1446,7 @@ function CommunityFeedContent() {
               >
                 {userProfile?.profileImage ? (
                   <img 
-                    src={`http://localhost:4000${userProfile.profileImage}`}
+                    src={`\${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -1765,7 +1765,7 @@ function CommunityFeedContent() {
                 <div className="flex items-center gap-3 mb-3">
                   {userProfile?.profileImage ? (
                     <img 
-                      src={`http://localhost:4000${userProfile.profileImage}`}
+                      src={`\${userProfile.profileImage}`}
                       alt={userProfile.name || 'User'}
                       className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                     />
@@ -2081,7 +2081,7 @@ function CommunityFeedContent() {
                       <Link href={`/profile/${post.author?.id}`} className="cursor-pointer hover:opacity-80 transition">
                         {post.author?.profileImage ? (
                           <img 
-                            src={`http://localhost:4000${post.author.profileImage}`} 
+                            src={`\${post.author.profileImage}`} 
                             alt={post.author.name}
                             className="w-10 h-10 rounded-full object-cover"
                           />
@@ -2224,7 +2224,7 @@ function CommunityFeedContent() {
                                 {editImages.map((image, index) => (
                                   <div key={index} className={`relative ${imagesToRemove.includes(image) ? 'opacity-50' : ''}`}>
                                     <img
-                                      src={`http://localhost:4000${image}`}
+                                      src={`\${image}`}
                                       alt={`תמונה ${index + 1}`}
                                       className="w-20 h-20 object-cover rounded-lg border-2 border-purple-200"
                                     />
@@ -2516,7 +2516,7 @@ function CommunityFeedContent() {
                                 }`}
                               >
                                 <img
-                                  src={`http://localhost:4000${image}`}
+                                  src={`\${image}`}
                                   alt={`תמונה ${index + 1}`}
                                   className={`w-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition ${
                                     post.images!.length === 1 ? 'max-h-[500px]' :
@@ -2549,7 +2549,7 @@ function CommunityFeedContent() {
                               <button
                                 key={index}
                                 onClick={() => handleDownload(
-                                  `http://localhost:4000${file.url}`,
+                                  `\${file.url}`,
                                   file.name || 'file'
                                 )}
                                 className="w-full flex items-center gap-3 bg-orange-50 rounded-lg px-4 py-3 border border-orange-200 hover:bg-orange-100 transition text-right"
@@ -2651,7 +2651,7 @@ function CommunityFeedContent() {
                                   <Link href={`/profile/${comment.user?.id}`} className="flex-shrink-0">
                                     {comment.user?.profileImage ? (
                                       <img 
-                                        src={`http://localhost:4000${comment.user.profileImage}`} 
+                                        src={`\${comment.user.profileImage}`} 
                                         alt={comment.user.name}
                                         className="w-8 h-8 rounded-full object-cover hover:opacity-80 transition"
                                       />
@@ -2798,7 +2798,7 @@ function CommunityFeedContent() {
                                     >
                                       {user.profileImage ? (
                                         <img 
-                                          src={`http://localhost:4000${user.profileImage}`}
+                                          src={`\${user.profileImage}`}
                                           alt={user.name}
                                           className="w-6 h-6 rounded-full object-cover"
                                         />
@@ -2815,7 +2815,7 @@ function CommunityFeedContent() {
                             </div>
                             {userProfile?.profileImage ? (
                               <img 
-                                src={`http://localhost:4000${userProfile.profileImage}`}
+                                src={`\${userProfile.profileImage}`}
                                 alt={userProfile.name || 'User'}
                                 className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                               />
@@ -3006,7 +3006,7 @@ function CommunityFeedContent() {
                         <Link href={`/profile/${member.userId}`} className="flex-shrink-0">
                           {member.profileImage ? (
                             <img
-                              src={`http://localhost:4000${member.profileImage}`}
+                              src={`\${member.profileImage}`}
                               alt={member.name}
                               className="w-10 h-10 rounded-full object-cover hover:opacity-80 transition"
                             />
@@ -3083,7 +3083,7 @@ function CommunityFeedContent() {
 
           {/* Main image */}
           <img
-            src={`http://localhost:4000${lightboxImages[lightboxIndex]}`}
+            src={`\${lightboxImages[lightboxIndex]}`}
             alt={`תמונה ${lightboxIndex + 1}`}
             className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -3101,7 +3101,7 @@ function CommunityFeedContent() {
                   }`}
                 >
                   <img
-                    src={`http://localhost:4000${img}`}
+                    src={`\${img}`}
                     alt={`תמונה ${idx + 1}`}
                     className="w-full h-full object-cover"
                   />
