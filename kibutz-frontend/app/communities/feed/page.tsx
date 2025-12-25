@@ -140,6 +140,7 @@ function CommunityFeedContent() {
   const searchParams = useSearchParams();
   const initialCommunityId = searchParams.get('communityId');
 
+  const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
@@ -271,6 +272,14 @@ function CommunityFeedContent() {
   }, [showLightbox, lightboxImages.length]);
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
       try {
@@ -284,7 +293,11 @@ function CommunityFeedContent() {
         })
           .then(res => res.ok ? res.json() : null)
           .then(data => {
-            if (data) setUserProfile({ name: data.name, profileImage: data.profileImage });
+            if (data) {
+              const profile = { name: data.name, profileImage: data.profileImage };
+              setUserProfile(profile);
+              localStorage.setItem('userProfileCache', JSON.stringify(profile));
+            }
           });
         
         // Fetch user's community memberships
@@ -540,8 +553,8 @@ function CommunityFeedContent() {
               [link]: {
                 url: link,
                 title: url.hostname.replace('www.', ''),
-                description: null,
-                image: null,
+                description: undefined,
+                image: undefined,
               }
             }));
           }
@@ -554,8 +567,8 @@ function CommunityFeedContent() {
               [link]: {
                 url: link,
                 title: url.hostname.replace('www.', ''),
-                description: null,
-                image: null,
+                description: undefined,
+                image: undefined,
               }
             }));
           } catch {
@@ -1478,6 +1491,7 @@ function CommunityFeedContent() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         location.reload();
                       }}
@@ -1787,6 +1801,7 @@ function CommunityFeedContent() {
                       placeholder="שתפו משהו עם הקהילה..."
                       className="w-full text-right text-gray-600 placeholder-gray-400 focus:outline-none resize-none"
                       rows={3}
+                      style={{ direction: 'ltr' }}
                     />
                   </div>
                 </div>
@@ -2196,6 +2211,7 @@ function CommunityFeedContent() {
                           onChange={(e) => setEditContent(e.target.value)}
                           className="w-full p-3 border border-gray-200 rounded-lg text-right resize-none focus:outline-none focus:ring-2 focus:ring-black"
                           rows={4}
+                          style={{ direction: 'ltr' }}
                         />
                         
                         {/* Attachments in Edit Mode - Full editing */}

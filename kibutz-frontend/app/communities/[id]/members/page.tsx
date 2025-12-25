@@ -62,6 +62,7 @@ export default function CommunityMembersPage() {
   const [bannedUsers, setBannedUsers] = useState<BannedUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
@@ -70,6 +71,14 @@ export default function CommunityMembersPage() {
   const [showBanned, setShowBanned] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
       try {
@@ -82,7 +91,11 @@ export default function CommunityMembersPage() {
         })
           .then(res => res.ok ? res.json() : null)
           .then(data => {
-            if (data) setUserProfile({ name: data.name, profileImage: data.profileImage });
+            if (data) {
+              const profile = { name: data.name, profileImage: data.profileImage };
+              setUserProfile(profile);
+              localStorage.setItem('userProfileCache', JSON.stringify(profile));
+            }
           })
           .catch(console.error);
       } catch (e) {
@@ -408,6 +421,7 @@ export default function CommunityMembersPage() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         location.reload();
                       }}

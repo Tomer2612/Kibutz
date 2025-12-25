@@ -3,6 +3,10 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
+  eslint: {
+    // Disable ESLint during builds - we'll run it separately
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       {

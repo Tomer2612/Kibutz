@@ -52,6 +52,30 @@ const getTopicColor = (topic: string) => {
   return TOPIC_COLORS[topic] || { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' };
 };
 
+// Helper function to get visible page numbers (max 10, sliding window)
+const getVisiblePages = (currentPage: number, totalPages: number): number[] => {
+  const maxVisible = 10;
+  let start = 1;
+  let end = Math.min(totalPages, maxVisible);
+  
+  if (totalPages > maxVisible) {
+    const halfWindow = Math.floor(maxVisible / 2);
+    start = Math.max(1, currentPage - halfWindow);
+    end = start + maxVisible - 1;
+    
+    if (end > totalPages) {
+      end = totalPages;
+      start = Math.max(1, end - maxVisible + 1);
+    }
+  }
+  
+  const pages: number[] = [];
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+  return pages;
+};
+
 const COMMUNITY_SIZES = [
   { value: 'small', label: 'קטנה (0-100)' },
   { value: 'medium', label: 'בינונית (100+)' },
@@ -88,6 +112,7 @@ interface JwtPayload {
 }
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
@@ -102,7 +127,19 @@ export default function Home() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const router = useRouter();
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const communitiesPerPage = 9;
+
   useEffect(() => {
+    setMounted(true);
+    
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+    
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
       try {
@@ -116,7 +153,11 @@ export default function Home() {
         })
           .then(res => res.ok ? res.json() : null)
           .then(data => {
-            if (data) setUserProfile({ name: data.name, profileImage: data.profileImage });
+            if (data) {
+              const profile = { name: data.name, profileImage: data.profileImage };
+              setUserProfile(profile);
+              localStorage.setItem('userProfileCache', JSON.stringify(profile));
+            }
           })
           .catch(console.error);
 
@@ -141,8 +182,12 @@ export default function Home() {
         const res = await fetch('http://localhost:4000/communities');
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
-        setCommunities(data);
-        setFilteredCommunities(data);
+        // Sort by oldest first (ascending by createdAt)
+        const sorted = data.sort((a: Community, b: Community) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        setCommunities(sorted);
+        setFilteredCommunities(sorted);
       } catch (err) {
         console.error('Error fetching communities:', err);
       } finally {
@@ -181,6 +226,7 @@ export default function Home() {
     });
 
     setFilteredCommunities(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [searchTerm, communities, selectedTopic, selectedSize, selectedPrice]);
 
   const handleCardClick = (community: Community) => {
@@ -203,6 +249,7 @@ export default function Home() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userProfileCache');
     router.push('/');
     location.reload();
   };
@@ -220,10 +267,18 @@ export default function Home() {
             מחירון
           </Link>
           <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            תמיכה ושאלות
+            שאלות ותשובות
+          </Link>
+          <Link href="/contact" className="text-gray-600 hover:text-black transition text-sm font-medium">
+            צרו קשר
+          </Link>
+          <Link href="/terms" className="text-gray-600 hover:text-black transition text-sm font-medium">
+            תנאי שימוש
           </Link>
           
-          {!userEmail ? (
+          {!mounted ? (
+            <div className="w-10 h-10" /> /* Placeholder during SSR */
+          ) : !userEmail ? (
             <>
               <Link
                 href="/login"
@@ -294,6 +349,7 @@ export default function Home() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         location.reload();
                       }}
@@ -422,13 +478,15 @@ export default function Home() {
       )}
 
       {/* Community Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl px-4 mx-auto pb-16">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl px-4 mx-auto pb-8">
         {loading ? (
           <div className="col-span-full text-center py-12">
             <p className="text-gray-500 text-lg">טוען קהילות...</p>
           </div>
         ) : filteredCommunities.length > 0 ? (
-          filteredCommunities.map((community) => {
+          filteredCommunities
+            .slice((currentPage - 1) * communitiesPerPage, currentPage * communitiesPerPage)
+            .map((community) => {
             // Format member count: under 100 show exact, 100+ show +100, 1000+ show +1,000, etc
             const formatMemberCount = (count: number) => {
               if (count >= 10000) {
@@ -537,6 +595,43 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && filteredCommunities.length > communitiesPerPage && (() => {
+        const totalPages = Math.ceil(filteredCommunities.length / communitiesPerPage);
+        const visiblePages = getVisiblePages(currentPage, totalPages);
+        return (
+          <div className="flex items-center justify-center gap-2 pb-16">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className={`text-2xl transition ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              &lt;
+            </button>
+            {visiblePages.map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition ${
+                  page === currentPage
+                    ? 'bg-gray-200 text-gray-600'
+                    : 'bg-white text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className={`text-2xl transition ${currentPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              &gt;
+            </button>
+          </div>
+        );
+      })()}
     </main>
   );
 }

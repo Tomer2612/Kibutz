@@ -35,6 +35,7 @@ export default function LeaderboardPage() {
   const params = useParams();
   const communityId = params.id as string;
 
+  const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
@@ -46,6 +47,14 @@ export default function LeaderboardPage() {
   const [isManager, setIsManager] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (!token || token.split('.').length !== 3) {
       router.push('/login');
@@ -63,7 +72,11 @@ export default function LeaderboardPage() {
       })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data) setUserProfile({ name: data.name, profileImage: data.profileImage });
+          if (data) {
+            const profile = { name: data.name, profileImage: data.profileImage };
+            setUserProfile(profile);
+            localStorage.setItem('userProfileCache', JSON.stringify(profile));
+          }
         })
         .catch(console.error);
     } catch (e) {
@@ -244,6 +257,7 @@ export default function LeaderboardPage() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         location.reload();
                       }}

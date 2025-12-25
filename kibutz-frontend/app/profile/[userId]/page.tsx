@@ -130,6 +130,7 @@ export default function MemberProfilePage() {
   const communitiesPerPage = 3;
 
   // Current user state (for navbar)
+  const [mounted, setMounted] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
@@ -138,6 +139,14 @@ export default function MemberProfilePage() {
 
   // Fetch current user for navbar
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setCurrentUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
       try {
@@ -152,7 +161,9 @@ export default function MemberProfilePage() {
           .then(data => {
             if (data) {
               setCurrentUserId(data.userId);
-              setCurrentUserProfile({ name: data.name, profileImage: data.profileImage });
+              const profile = { name: data.name, profileImage: data.profileImage };
+              setCurrentUserProfile(profile);
+              localStorage.setItem('userProfileCache', JSON.stringify(profile));
             }
           })
           .catch(console.error);
@@ -312,11 +323,19 @@ export default function MemberProfilePage() {
               מחירון
             </Link>
             <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              תמיכה ושאלות
+              שאלות ותשובות
+            </Link>
+            <Link href="/contact" className="text-gray-600 hover:text-black transition text-sm font-medium">
+              צרו קשר
+            </Link>
+            <Link href="/terms" className="text-gray-600 hover:text-black transition text-sm font-medium">
+              תנאי שימוש
             </Link>
           </nav>
 
-          {!currentUserEmail ? (
+          {!mounted ? (
+            <div className="w-10 h-10" />
+          ) : !currentUserEmail ? (
             <div className="flex items-center gap-3">
               <Link
                 href="/login"
@@ -386,6 +405,7 @@ export default function MemberProfilePage() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         location.reload();
                       }}

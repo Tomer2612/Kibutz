@@ -96,6 +96,7 @@ function CourseViewerContent() {
   const [unenrolling, setUnenrolling] = useState(false);
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const [completingLesson, setCompletingLesson] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
@@ -120,6 +121,14 @@ function CourseViewerContent() {
   const playerRef = useRef<{ destroy: () => void } | null>(null);
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -128,7 +137,13 @@ function CourseViewerContent() {
         setUserEmail(payload.email);
         fetch('http://localhost:4000/users/me', { headers: { Authorization: `Bearer ${token}` } })
           .then(res => res.ok ? res.json() : null)
-          .then(data => { if (data) setUserProfile({ name: data.name, profileImage: data.profileImage }); })
+          .then(data => {
+            if (data) {
+              const profile = { name: data.name, profileImage: data.profileImage };
+              setUserProfile(profile);
+              localStorage.setItem('userProfileCache', JSON.stringify(profile));
+            }
+          })
           .catch(console.error);
       } catch (e) { console.error('Failed to decode token'); }
     }
@@ -547,7 +562,7 @@ function CourseViewerContent() {
                   <button onClick={() => { setProfileMenuOpen(false); if (userId) router.push(`/profile/${userId}`); }} className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"><FaUser className="w-4 h-4" />הפרופיל שלי</button>
                   <button onClick={() => { setProfileMenuOpen(false); router.push('/settings'); }} className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"><FaCog className="w-4 h-4" />הגדרות</button>
                   <div className="border-t border-gray-100 my-1"></div>
-                  <button onClick={() => { localStorage.removeItem('token'); router.push('/'); location.reload(); }} className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"><FaSignOutAlt className="w-4 h-4" />התנתקות</button>
+                  <button onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('userProfileCache'); router.push('/'); location.reload(); }} className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"><FaSignOutAlt className="w-4 h-4" />התנתקות</button>
                 </div>
               </>
             )}

@@ -59,6 +59,7 @@ export default function ManageCommunityPage() {
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
@@ -124,6 +125,14 @@ export default function ManageCommunityPage() {
   ];
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (!token || token.split('.').length !== 3) {
       router.push('/login');
@@ -141,7 +150,11 @@ export default function ManageCommunityPage() {
       })
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data) setUserProfile({ name: data.name, profileImage: data.profileImage });
+          if (data) {
+            const profile = { name: data.name, profileImage: data.profileImage };
+            setUserProfile(profile);
+            localStorage.setItem('userProfileCache', JSON.stringify(profile));
+          }
         })
         .catch(console.error);
     } catch (e) {
@@ -573,6 +586,7 @@ export default function ManageCommunityPage() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         location.reload();
                       }}
@@ -771,12 +785,13 @@ export default function ManageCommunityPage() {
                   <div className="flex-1">
                     <textarea
                       placeholder="תארו את הקהילה, מה הם הנושאים המרכזיים, מי יכול להצטרף..."
-                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right resize-vertical text-base"
+                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right resize-none text-base"
                       rows={6}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       required
                       maxLength={1000}
+                      style={{ direction: 'ltr' }}
                     />
                     <p className="text-sm text-gray-500 mt-1">
                       {description.length}/1000 תווים
@@ -1190,9 +1205,19 @@ export default function ManageCommunityPage() {
                           type="text"
                           value={newCardExpiry}
                           onChange={(e) => {
-                            let val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                            if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2);
-                            setNewCardExpiry(val);
+                            const newValue = e.target.value;
+                            const rawValue = newValue.replace(/\D/g, '').slice(0, 4);
+                            
+                            if (rawValue.length > 2) {
+                              // 3-4 digits: always show with slash (MM/Y or MM/YY)
+                              setNewCardExpiry(rawValue.slice(0, 2) + '/' + rawValue.slice(2));
+                            } else if (rawValue.length === 2 && newValue.length > newCardExpiry.length) {
+                              // Exactly 2 digits AND typing forward: add slash
+                              setNewCardExpiry(rawValue + '/');
+                            } else {
+                              // 0-2 digits while deleting: just show raw
+                              setNewCardExpiry(rawValue);
+                            }
                           }}
                           className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
                             newCardExpiry.length > 0 && (newCardExpiry.length < 5 || (() => {

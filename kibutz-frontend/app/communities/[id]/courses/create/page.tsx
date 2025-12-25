@@ -75,6 +75,7 @@ export default function CreateCoursePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [mounted, setMounted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
@@ -89,6 +90,14 @@ export default function CreateCoursePage() {
   const MIN_LESSON_DURATION = 1;
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (!token) {
       router.push('/login');
@@ -106,7 +115,11 @@ export default function CreateCoursePage() {
       })
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data) setUserProfile({ name: data.name, profileImage: data.profileImage });
+          if (data) {
+            const profile = { name: data.name, profileImage: data.profileImage };
+            setUserProfile(profile);
+            localStorage.setItem('userProfileCache', JSON.stringify(profile));
+          }
         })
         .catch(console.error);
     } catch (e) {
@@ -545,6 +558,7 @@ export default function CreateCoursePage() {
                 <button
                   onClick={() => {
                     localStorage.removeItem('token');
+                    localStorage.removeItem('userProfileCache');
                     router.push('/');
                     location.reload();
                   }}
@@ -624,11 +638,12 @@ export default function CreateCoursePage() {
                       }
                     }}
                     rows={4}
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-right ${
                       errors.description ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="תאר את הקורס בכמה משפטים..."
                     maxLength={MAX_DESCRIPTION_LENGTH}
+                    style={{ direction: 'ltr' }}
                   />
                   <div className="flex justify-between mt-1">
                     {errors.description && <span className="text-xs text-red-500">{errors.description}</span>}
@@ -980,8 +995,9 @@ export default function CreateCoursePage() {
                                       value={lesson.content}
                                       onChange={(e) => updateLesson(chapterIndex, lessonIndex, { content: e.target.value })}
                                       rows={3}
-                                      className="w-full p-2 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500"
+                                      className="w-full p-2 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 text-right"
                                       placeholder="תוכן טקסט לשיעור..."
+                                      style={{ direction: 'ltr' }}
                                     />
                                   </div>
                                   

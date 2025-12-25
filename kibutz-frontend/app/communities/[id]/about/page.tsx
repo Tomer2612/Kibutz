@@ -128,6 +128,7 @@ export default function CommunityAboutPage() {
   const [community, setCommunity] = useState<Community | null>(null);
   const [ownerData, setOwnerData] = useState<{ id: string; name: string; profileImage?: string | null; coverImage?: string | null; bio?: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -168,6 +169,14 @@ export default function CommunityAboutPage() {
   };
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
       try {
@@ -180,7 +189,10 @@ export default function CommunityAboutPage() {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then((res) => res.json())
-          .then((data) => setUserProfile(data))
+          .then((data) => {
+            setUserProfile(data);
+            localStorage.setItem('userProfileCache', JSON.stringify({ name: data.name, profileImage: data.profileImage }));
+          })
           .catch((err) => console.error('Error fetching user profile:', err));
       } catch (e) {
         console.error('Invalid token:', e);
@@ -369,6 +381,7 @@ export default function CommunityAboutPage() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         location.reload();
                       }}

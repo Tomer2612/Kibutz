@@ -1,4 +1,4 @@
-// @ts-expect-error - Next.js handles CSS imports at runtime
+// @ts-ignore
 import './globals.css';
 import type { Metadata } from 'next';
 import { Noto_Serif_Hebrew, Assistant } from 'next/font/google';

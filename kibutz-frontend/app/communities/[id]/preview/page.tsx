@@ -126,6 +126,7 @@ function CommunityPreviewContent() {
   const [ownerData, setOwnerData] = useState<{ id: string; name: string; profileImage?: string | null; coverImage?: string | null; bio?: string | null } | null>(null);
   const [similarCommunities, setSimilarCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -148,6 +149,14 @@ function CommunityPreviewContent() {
   }, [searchParams, community, communityId, router]);
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
       try {
@@ -159,7 +168,10 @@ function CommunityPreviewContent() {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then((res) => res.json())
-          .then((data) => setUserProfile(data))
+          .then((data) => {
+            setUserProfile(data);
+            localStorage.setItem('userProfileCache', JSON.stringify({ name: data.name, profileImage: data.profileImage }));
+          })
           .catch((err) => console.error('Error fetching user profile:', err));
       } catch (e) {
         console.error('Invalid token:', e);
@@ -366,10 +378,18 @@ function CommunityPreviewContent() {
             מחירון
           </Link>
           <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            תמיכה ושאלות
+            שאלות ותשובות
+          </Link>
+          <Link href="/contact" className="text-gray-600 hover:text-black transition text-sm font-medium">
+            צרו קשר
+          </Link>
+          <Link href="/terms" className="text-gray-600 hover:text-black transition text-sm font-medium">
+            תנאי שימוש
           </Link>
           
-          {!userEmail ? (
+          {!mounted ? (
+            <div className="w-10 h-10" />
+          ) : !userEmail ? (
             <>
               <a
                 href="/login"
@@ -437,6 +457,7 @@ function CommunityPreviewContent() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         location.reload();
                       }}
@@ -758,9 +779,19 @@ function CommunityPreviewContent() {
                       type="text"
                       value={cardExpiry}
                       onChange={(e) => {
-                        let val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                        if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2);
-                        setCardExpiry(val);
+                        const newValue = e.target.value;
+                        const rawValue = newValue.replace(/\D/g, '').slice(0, 4);
+                        
+                        if (rawValue.length > 2) {
+                          // 3-4 digits: always show with slash (MM/Y or MM/YY)
+                          setCardExpiry(rawValue.slice(0, 2) + '/' + rawValue.slice(2));
+                        } else if (rawValue.length === 2 && newValue.length > cardExpiry.length) {
+                          // Exactly 2 digits AND typing forward: add slash
+                          setCardExpiry(rawValue + '/');
+                        } else {
+                          // 0-2 digits while deleting: just show raw
+                          setCardExpiry(rawValue);
+                        }
                       }}
                       className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
                         getExpiryError() ? 'border-red-400' : 'border-gray-300'

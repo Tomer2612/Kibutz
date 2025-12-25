@@ -97,6 +97,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [activeTab, setActiveTab] = useState<TabType>('profile');
+  const [mounted, setMounted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -189,6 +190,14 @@ export default function SettingsPage() {
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (!token || token.split('.').length !== 3) {
       router.push('/login');
@@ -210,6 +219,7 @@ export default function SettingsPage() {
         })
         .then((data: UserProfile) => {
           setUserProfile(data);
+          localStorage.setItem('userProfileCache', JSON.stringify({ name: data.name, profileImage: data.profileImage }));
           setName(data.name || '');
           setBio(data.bio || '');
           setLocation(data.location || '');
@@ -514,6 +524,7 @@ export default function SettingsPage() {
       }
 
       localStorage.removeItem('token');
+      localStorage.removeItem('userProfileCache');
       setMessage('מחיקת המשתמש עברה בהצלחה');
       setMessageType('success');
       setDeletingAccount(false);
@@ -546,7 +557,13 @@ export default function SettingsPage() {
               מחירון
             </Link>
             <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              תמיכה ושאלות
+              שאלות ותשובות
+            </Link>
+            <Link href="/contact" className="text-gray-600 hover:text-black transition text-sm font-medium">
+              צרו קשר
+            </Link>
+            <Link href="/terms" className="text-gray-600 hover:text-black transition text-sm font-medium">
+              תנאי שימוש
             </Link>
           </nav>
 
@@ -601,6 +618,7 @@ export default function SettingsPage() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         window.location.reload();
                       }}
@@ -774,9 +792,8 @@ export default function SettingsPage() {
                       placeholder="ספרו על עצמכם"
                       maxLength={300}
                       rows={5}
-                      dir="rtl"
-                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black text-sm resize-none overflow-y-auto"
-                      style={{ direction: 'rtl' }}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black text-sm resize-none overflow-y-auto text-right"
+                      style={{ direction: 'ltr' }}
                     />
                     <span className="absolute left-3 bottom-3 text-xs text-gray-400">{bio.length}/300</span>
                   </div>
@@ -1290,9 +1307,19 @@ export default function SettingsPage() {
                             type="text"
                             value={cardExpiry}
                             onChange={(e) => {
-                              let val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                              if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2);
-                              setCardExpiry(val);
+                              const newValue = e.target.value;
+                              const rawValue = newValue.replace(/\D/g, '').slice(0, 4);
+                              
+                              if (rawValue.length > 2) {
+                                // 3-4 digits: always show with slash (MM/Y or MM/YY)
+                                setCardExpiry(rawValue.slice(0, 2) + '/' + rawValue.slice(2));
+                              } else if (rawValue.length === 2 && newValue.length > cardExpiry.length) {
+                                // Exactly 2 digits AND typing forward: add slash
+                                setCardExpiry(rawValue + '/');
+                              } else {
+                                // 0-2 digits while deleting: just show raw
+                                setCardExpiry(rawValue);
+                              }
                             }}
                             className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
                               getExpiryError() ? 'border-red-400' : 'border-gray-300'

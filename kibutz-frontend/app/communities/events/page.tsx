@@ -377,7 +377,7 @@ const HEBREW_MONTHS = [
   'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'
 ];
 
-const HEBREW_DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+const HEBREW_DAYS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
 
 function EventsPageContent() {
   const searchParams = useSearchParams();
@@ -388,6 +388,7 @@ function EventsPageContent() {
   const [community, setCommunity] = useState<Community | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
@@ -409,6 +410,14 @@ function EventsPageContent() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -421,7 +430,11 @@ function EventsPageContent() {
           headers: { Authorization: `Bearer ${token}` }
         }).then(res => res.ok ? res.json() : null)
           .then(data => {
-            if (data) setUserProfile({ name: data.name, profileImage: data.profileImage });
+            if (data) {
+              const profile = { name: data.name, profileImage: data.profileImage };
+              setUserProfile(profile);
+              localStorage.setItem('userProfileCache', JSON.stringify(profile));
+            }
           });
           
         // Fetch communities user is member of
@@ -657,11 +670,11 @@ function EventsPageContent() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('he-IL', { 
-      weekday: 'short', 
-      day: 'numeric', 
-      month: 'short'
-    });
+    const dayNames = ['יום א', 'יום ב', 'יום ג', 'יום ד', 'יום ה', 'יום ו', 'שבת'];
+    const dayName = dayNames[date.getDay()];
+    const day = date.getDate();
+    const monthName = HEBREW_MONTHS[date.getMonth()];
+    return `${dayName}, ${day} ב${monthName}`;
   };
 
   const formatDateFull = (dateString: string) => {
@@ -729,10 +742,10 @@ function EventsPageContent() {
             }
           }}
           className={`h-24 p-1 cursor-pointer transition hover:bg-gray-50 ${
-            isToday ? 'bg-blue-50' : ''
+            isSelected ? 'bg-gray-200' : isToday ? 'bg-blue-50' : ''
           } ${isSelected ? 'border-2 border-black' : 'border border-gray-100'}`}
         >
-          <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
+          <div className={`text-sm font-medium mb-1 pr-2 pt-1 ${isToday && !isSelected ? 'text-blue-600' : 'text-gray-700'}`}>
             {day}
           </div>
           <div className="space-y-0.5">
@@ -824,39 +837,6 @@ function EventsPageContent() {
 
         {/* Left side of screen (RTL last): User Avatar */}
         <div className="flex items-center gap-3">
-          {/* View Toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('calendar')}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
-                viewMode === 'calendar' ? 'bg-white shadow text-black' : 'text-gray-600'
-              }`}
-            >
-              לוח שנה
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
-                viewMode === 'list' ? 'bg-white shadow text-black' : 'text-gray-600'
-              }`}
-            >
-              רשימה
-            </button>
-          </div>
-
-          {isManager && (
-            <button
-              onClick={() => {
-                setAddEventDate(null);
-                setShowAddModal(true);
-              }}
-              className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition"
-            >
-              <span>הוסף אירוע</span>
-              <FaPlus className="w-4 h-4" />
-            </button>
-          )}
-          
           {/* Notification Bell */}
           {userId && <NotificationBell />}
           
@@ -913,6 +893,7 @@ function EventsPageContent() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         location.reload();
                       }}
@@ -936,9 +917,9 @@ function EventsPageContent() {
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               {/* Month Navigation */}
               <div className="flex items-center justify-between p-4 border-b border-gray-100">
-                {/* Right arrow (next month - RTL) */}
+                {/* Right arrow (prev month - RTL) */}
                 <button
-                  onClick={() => handleMonthChange('next')}
+                  onClick={() => handleMonthChange('prev')}
                   className="p-2 hover:bg-gray-100 rounded-lg transition"
                 >
                   <FaChevronRight className="w-4 h-4" />
@@ -1029,9 +1010,9 @@ function EventsPageContent() {
                   </button>
                 </div>
                 
-                {/* Left arrow (prev month - RTL) */}
+                {/* Left arrow (next month - RTL) */}
                 <button
-                  onClick={() => handleMonthChange('prev')}
+                  onClick={() => handleMonthChange('next')}
                   className="p-2 hover:bg-gray-100 rounded-lg transition"
                 >
                   <FaChevronLeft className="w-4 h-4" />
@@ -1053,39 +1034,80 @@ function EventsPageContent() {
               </div>
             </div>
 
-            {/* Selected Date Events */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 h-fit max-h-[calc(100vh-200px)] flex flex-col">
-              <h3 className="font-bold text-black mb-4 flex-shrink-0">
-                {selectedDate 
-                  ? formatDate(selectedDate.toISOString())
-                  : 'בחרו תאריך'
-                }
-              </h3>
-              
-              {selectedDate ? (
-                selectedDateEvents.length > 0 ? (
-                  <div className="space-y-3 overflow-y-auto flex-1" dir="ltr">
-                    <div dir="rtl" className="space-y-3">
-                      {selectedDateEvents.map(event => (
-                        <EventCard 
-                          key={event.id} 
-                          event={event} 
-                          onRsvp={handleRsvp}
-                          onEdit={handleEditEvent}
-                          onDelete={(id) => setDeleteEventId(id)}
-                          rsvpLoading={rsvpLoading}
-                          isManager={isManager}
-                          compact
-                        />
-                      ))}
-                    </div>
+            {/* Sidebar Controls */}
+            <div className="space-y-4">
+              {/* View Toggle & Add Event */}
+              <div className="bg-white rounded-2xl border border-gray-200 p-4">
+                <div className="flex items-center gap-3">
+                  {/* View Toggle */}
+                  <div className="flex bg-gray-100 rounded-lg p-1 flex-1">
+                    <button
+                      onClick={() => setViewMode('calendar')}
+                      className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition ${
+                        viewMode === 'calendar' ? 'bg-white shadow text-black' : 'text-gray-600'
+                      }`}
+                    >
+                      לוח שנה
+                    </button>
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition ${
+                        viewMode === 'list' ? 'bg-white shadow text-black' : 'text-gray-600'
+                      }`}
+                    >
+                      רשימה
+                    </button>
                   </div>
+
+                  {isManager && (
+                    <button
+                      onClick={() => {
+                        setAddEventDate(null);
+                        setShowAddModal(true);
+                      }}
+                      className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition whitespace-nowrap"
+                    >
+                      <span>הוסף אירוע</span>
+                      <FaPlus className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Selected Date Events */}
+              <div className="bg-white rounded-2xl border border-gray-200 p-4 h-fit max-h-[calc(100vh-280px)] flex flex-col">
+                <h3 className="font-bold text-black mb-4 flex-shrink-0">
+                  {selectedDate 
+                    ? formatDate(selectedDate.toISOString())
+                    : 'בחרו תאריך'
+                  }
+                </h3>
+                
+                {selectedDate ? (
+                  selectedDateEvents.length > 0 ? (
+                    <div className="space-y-3 overflow-y-auto flex-1" dir="ltr">
+                      <div dir="rtl" className="space-y-3">
+                        {selectedDateEvents.map(event => (
+                          <EventCard 
+                            key={event.id} 
+                            event={event} 
+                            onRsvp={handleRsvp}
+                            onEdit={handleEditEvent}
+                            onDelete={(id) => setDeleteEventId(id)}
+                            rsvpLoading={rsvpLoading}
+                            isManager={isManager}
+                            compact
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">אין אירועים בתאריך זה</p>
+                  )
                 ) : (
-                  <p className="text-gray-500 text-center py-8">אין אירועים בתאריך זה</p>
-                )
-              ) : (
-                <p className="text-gray-500 text-center py-8">לחצו על תאריך בלוח השנה</p>
-              )}
+                  <p className="text-gray-500 text-sm">לחצו על תאריך בלוח השנה</p>
+                )}
+              </div>
             </div>
           </div>
         ) : (
@@ -1731,7 +1753,8 @@ function AddEventModal({
               placeholder="בואו להנות מחברה טובה."
               rows={3}
               maxLength={300}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none text-black"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none text-black text-right"
+              style={{ direction: 'ltr' }}
             />
             <div className="text-xs text-gray-400 text-left mt-1">{description.length} / 300</div>
           </div>
@@ -2179,7 +2202,8 @@ function EditEventModal({
               placeholder="בואו להנות מחברה טובה."
               rows={3}
               maxLength={300}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none text-black"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none text-black text-right"
+              style={{ direction: 'ltr' }}
             />
             <div className="text-xs text-gray-400 text-left mt-1">{description.length} / 300</div>
           </div>

@@ -70,6 +70,7 @@ export default function CoursesPage() {
   const [community, setCommunity] = useState<Community | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'in-progress' | 'completed'>('all');
+  const [mounted, setMounted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
@@ -86,6 +87,14 @@ export default function CoursesPage() {
   const coursesPerPage = 3;
 
   useEffect(() => {
+    setMounted(true);
+
+    // Read cached profile immediately
+    const cached = localStorage.getItem('userProfileCache');
+    if (cached) {
+      try { setUserProfile(JSON.parse(cached)); } catch {}
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -99,7 +108,11 @@ export default function CoursesPage() {
         })
           .then(res => res.ok ? res.json() : null)
           .then(data => {
-            if (data) setUserProfile({ name: data.name, profileImage: data.profileImage });
+            if (data) {
+              const profile = { name: data.name, profileImage: data.profileImage };
+              setUserProfile(profile);
+              localStorage.setItem('userProfileCache', JSON.stringify(profile));
+            }
           })
           .catch(console.error);
       } catch (e) {
@@ -353,6 +366,7 @@ export default function CoursesPage() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('userProfileCache');
                         router.push('/');
                         location.reload();
                       }}

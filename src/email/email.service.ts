@@ -17,7 +17,7 @@ export class EmailService {
       },
     });
     this.fromEmail = this.configService.get<string>('EMAIL_FROM') || 'noreply@kibutz.com';
-    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
   }
 
   async sendVerificationEmail(email: string, name: string, token: string): Promise<void> {

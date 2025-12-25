@@ -1,5 +1,40 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600&display=swap");
+
+:root {
+  --font-primary: 'Assistant', sans-serif;
+  
+  /* Design System Colors */
+  --color-black: #000000;
+  --color-white: #FFFFFF;
+  --color-gray-1: #FCFCFC;
+  --color-gray-2: #F4F4F5;
+  --color-gray-3: #E1E1E2;
+  --color-gray-4: #D0D0D4;
+  --color-gray-5: #A1A1AA;
+  --color-gray-6: #7A7A83;
+  --color-gray-7: #52525B;
+  --color-gray-8: #3F3F46;
+  --color-gray-9: #27272A;
+  --color-gray-10: #1D1D20;
+  --color-green-light: #A7EA7B;
+  --color-green-dark: #163300;
+  --color-blue-light: #91DCED;
+  --color-blue-dark: #003233;
+  --color-error: #B3261E;
+}
+
+body {
+  font-family: var(--font-primary);
+}
+
+/* Design System Utility Classes */
+.bg-green-light { background-color: var(--color-green-light) !important; }
+.text-green-dark { color: var(--color-green-dark) !important; }
+.bg-blue-light { background-color: var(--color-blue-light) !important; }
+.text-blue-dark { color: var(--color-blue-dark) !important; }
+.bg-error { background-color: var(--color-error) !important; }
+.text-error { color: var(--color-error) !important; }
 
 /* Base DatePicker Styles (required since we don't import react-datepicker CSS) */
 .react-datepicker-wrapper {
