@@ -133,7 +133,7 @@ export default function EditCoursePage() {
   const fetchCourse = async () => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`\/courses/${courseId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (res.ok) {
@@ -144,7 +144,7 @@ export default function EditCoursePage() {
           description: data.description || '',
           image: data.image,
           newImage: null,
-          imagePreview: data.image ? `\${data.image}` : null,
+          imagePreview: data.image ? `${process.env.NEXT_PUBLIC_API_URL}${data.image}` : null,
           isPublished: data.isPublished,
           chapters: data.chapters.map((c: any) => ({
             id: c.id,
@@ -523,7 +523,7 @@ export default function EditCoursePage() {
         formData.append('image', course.newImage);
       }
 
-      await fetch(`\/courses/${courseId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -533,13 +533,13 @@ export default function EditCoursePage() {
       for (const chapter of course.chapters) {
         if (chapter.isDeleted && chapter.id) {
           // Delete chapter
-          await fetch(`\/courses/chapters/${chapter.id}`, {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/chapters/${chapter.id}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
           });
         } else if (chapter.isNew) {
           // Create new chapter
-          const chapterRes = await fetch(`\/courses/${courseId}/chapters`, {
+          const chapterRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}/chapters`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -573,7 +573,7 @@ export default function EditCoursePage() {
                 })),
               } : null;
 
-              await fetch(`\/courses/chapters/${newChapter.id}/lessons`, {
+              await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/chapters/${newChapter.id}/lessons`, {
                 method: 'POST',
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -597,7 +597,7 @@ export default function EditCoursePage() {
           }
         } else if (chapter.id) {
           // Update existing chapter
-          await fetch(`\/courses/chapters/${chapter.id}`, {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/chapters/${chapter.id}`, {
             method: 'PATCH',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -612,7 +612,7 @@ export default function EditCoursePage() {
           // Process lessons
           for (const lesson of chapter.lessons) {
             if (lesson.isDeleted && lesson.id) {
-              await fetch(`\/courses/lessons/${lesson.id}`, {
+              await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/lessons/${lesson.id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
               });
@@ -634,7 +634,7 @@ export default function EditCoursePage() {
                 })),
               } : null;
 
-              await fetch(`\/courses/chapters/${chapter.id}/lessons`, {
+              await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/chapters/${chapter.id}/lessons`, {
                 method: 'POST',
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -672,7 +672,7 @@ export default function EditCoursePage() {
                 })),
               } : null;
 
-              await fetch(`\/courses/lessons/${lesson.id}`, {
+              await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/lessons/${lesson.id}`, {
                 method: 'PATCH',
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -734,7 +734,7 @@ export default function EditCoursePage() {
             >
               {userProfile?.profileImage ? (
                 <img 
-                  src={`\${userProfile.profileImage}`}
+                  src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                   alt={userProfile.name || 'User'}
                   className="w-10 h-10 rounded-full object-cover"
                 />
@@ -1229,7 +1229,7 @@ export default function EditCoursePage() {
                                             {(lesson.images || []).map((imageUrl, imgIndex) => (
                                               <div key={`saved-${imgIndex}`} className="relative group">
                                                 <img
-                                                  src={`\${imageUrl}`}
+                                                  src={`${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`}
                                                   alt={`תמונה ${imgIndex + 1}`}
                                                   className="w-full h-24 object-cover rounded border border-gray-200"
                                                 />

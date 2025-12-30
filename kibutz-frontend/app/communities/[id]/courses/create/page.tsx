@@ -414,7 +414,7 @@ export default function CreateCoursePage() {
 
       // Create chapters and lessons
       for (const chapter of course.chapters) {
-        const chapterRes = await fetch(`\/courses/${newCourse.id}/chapters`, {
+        const chapterRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${newCourse.id}/chapters`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -466,7 +466,7 @@ export default function CreateCoursePage() {
             })),
           } : null;
 
-          await fetch(`\/courses/chapters/${newChapter.id}/lessons`, {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/chapters/${newChapter.id}/lessons`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -515,7 +515,7 @@ export default function CreateCoursePage() {
             >
               {userProfile?.profileImage ? (
                 <img 
-                  src={`\${userProfile.profileImage}`}
+                  src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                   alt={userProfile.name || 'User'}
                   className="w-10 h-10 rounded-full object-cover"
                 />

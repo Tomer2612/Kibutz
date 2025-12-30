@@ -94,7 +94,7 @@ export default function LeaderboardPage() {
 
       try {
         // Fetch community details
-        const communityRes = await fetch(`\/communities/${communityId}`);
+        const communityRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`);
         if (communityRes.ok) {
           const communityData = await communityRes.json();
           setCommunity(communityData);
@@ -102,7 +102,7 @@ export default function LeaderboardPage() {
 
         // Check membership and permissions
         const membershipRes = await fetch(
-          `\/communities/${communityId}/membership`,
+          `${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/membership`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (membershipRes.ok) {
@@ -113,7 +113,7 @@ export default function LeaderboardPage() {
 
         // Fetch leaderboard (top 10 members)
         const leaderboardRes = await fetch(
-          `\/communities/${communityId}/top-members?limit=10`,
+          `${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/top-members?limit=10`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (leaderboardRes.ok) {
@@ -168,7 +168,7 @@ export default function LeaderboardPage() {
           <div className="flex items-center gap-2">
             {community?.logo ? (
               <img
-                src={`\${community.logo}`}
+                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
                 alt={community.name}
                 className="w-8 h-8 rounded-lg object-cover"
               />
@@ -217,7 +217,7 @@ export default function LeaderboardPage() {
               >
                 {userProfile?.profileImage ? (
                   <img
-                    src={`\${userProfile.profileImage}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -310,7 +310,7 @@ export default function LeaderboardPage() {
                   <Link href={`/profile/${member.userId}`}>
                     {member.profileImage ? (
                       <img
-                        src={`\${member.profileImage}`}
+                        src={`${process.env.NEXT_PUBLIC_API_URL}${member.profileImage}`}
                         alt={member.name}
                         className="w-12 h-12 rounded-full object-cover border-2 border-white shadow hover:opacity-80 transition"
                       />

@@ -174,7 +174,7 @@ export default function ManageCommunityPage() {
       try {
         // First check membership and permissions
         const membershipRes = await fetch(
-          `\/communities/${communityId}/membership`,
+          `${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/membership`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         
@@ -193,7 +193,7 @@ export default function ManageCommunityPage() {
           return;
         }
         
-        const res = await fetch(`\/communities/${communityId}`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`);
         if (!res.ok) throw new Error('Community not found');
         
         const data = await res.json();
@@ -224,7 +224,7 @@ export default function ManageCommunityPage() {
         // Load logo
         if (data.logo) {
           setLogo({
-            preview: `\${data.logo}`,
+            preview: `${process.env.NEXT_PUBLIC_API_URL}${data.logo}`,
             isExisting: true,
             existingPath: data.logo,
           });
@@ -236,7 +236,7 @@ export default function ManageCommunityPage() {
         // Primary image
         if (data.image) {
           loadedImages.push({
-            preview: `\${data.image}`,
+            preview: `${process.env.NEXT_PUBLIC_API_URL}${data.image}`,
             isPrimary: true,
             isExisting: true,
             existingPath: data.image,
@@ -247,7 +247,7 @@ export default function ManageCommunityPage() {
         if (data.galleryImages && Array.isArray(data.galleryImages)) {
           data.galleryImages.forEach((path: string) => {
             loadedImages.push({
-              preview: `\${path}`,
+              preview: `${process.env.NEXT_PUBLIC_API_URL}${path}`,
               isPrimary: false,
               isExisting: true,
               existingPath: path,
@@ -394,7 +394,7 @@ export default function ManageCommunityPage() {
         formData.append('galleryImages', img.file!);
       });
 
-      const res = await fetch(`\/communities/${communityId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -408,7 +408,7 @@ export default function ManageCommunityPage() {
       }
 
       // Also save rules
-      const rulesRes = await fetch(`\/communities/${communityId}/rules`, {
+      const rulesRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/rules`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -452,7 +452,7 @@ export default function ManageCommunityPage() {
 
     try {
       setDeleting(true);
-      const res = await fetch(`\/communities/${communityId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -494,7 +494,7 @@ export default function ManageCommunityPage() {
           <div className="flex items-center gap-2">
             {community?.logo ? (
               <img
-                src={`\${community.logo}`}
+                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
                 alt={community.name}
                 className="w-8 h-8 rounded-lg object-cover"
               />
@@ -543,7 +543,7 @@ export default function ManageCommunityPage() {
               >
                 {userProfile?.profileImage ? (
                   <img
-                    src={`\${userProfile.profileImage}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -1299,7 +1299,7 @@ export default function ManageCommunityPage() {
                       const lastFour = newCardNumber.slice(-4);
                       
                       // Save to community
-                      const res = await fetch(`\/communities/${communityId}`, {
+                      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`, {
                         method: 'PUT',
                         headers: {
                           'Content-Type': 'application/json',
@@ -1380,7 +1380,7 @@ export default function ManageCommunityPage() {
                       setCancellingTrial(true);
                       try {
                         const token = localStorage.getItem('token');
-                        const res = await fetch(`\/communities/${communityId}`, {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`, {
                           method: 'PATCH',
                           headers: {
                             'Content-Type': 'application/json',

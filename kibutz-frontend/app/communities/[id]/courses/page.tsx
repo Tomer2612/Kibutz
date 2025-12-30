@@ -132,7 +132,7 @@ export default function CoursesPage() {
 
   const fetchCommunity = async () => {
     try {
-      const res = await fetch(`\/communities/${communityId}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`);
       if (res.ok) {
         const data = await res.json();
         setCommunity(data);
@@ -154,7 +154,7 @@ export default function CoursesPage() {
 
     // Check if manager
     try {
-      const res = await fetch(`\/communities/${communityId}/membership`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/membership`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -171,7 +171,7 @@ export default function CoursesPage() {
   const fetchCourses = async () => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`\/courses/community/${communityId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/community/${communityId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (res.ok) {
@@ -207,7 +207,7 @@ export default function CoursesPage() {
 
     setDeleting(true);
     try {
-      const res = await fetch(`\/courses/${deleteModal.courseId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${deleteModal.courseId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -262,7 +262,7 @@ export default function CoursesPage() {
           <div className="flex items-center gap-2">
             {community?.logo ? (
               <img
-                src={`\${community.logo}`}
+                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
                 alt={community.name}
                 className="w-8 h-8 rounded-lg object-cover"
               />
@@ -323,7 +323,7 @@ export default function CoursesPage() {
               >
                 {userProfile?.profileImage ? (
                   <img 
-                    src={`\${userProfile.profileImage}`}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -496,7 +496,7 @@ export default function CoursesPage() {
                   <div className="relative h-48 bg-gray-200 overflow-hidden">
                     {course.image ? (
                       <Image
-                        src={course.image.startsWith('http') ? course.image : `\${course.image}`}
+                        src={course.image.startsWith('http') ? course.image : `${process.env.NEXT_PUBLIC_API_URL}${course.image}`}
                         alt={course.title}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
