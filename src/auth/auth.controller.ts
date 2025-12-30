@@ -1,11 +1,19 @@
 import { Controller, Post, Body, Get, Req, Res, UseGuards, Param, Query } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) { }
+  private frontendUrl: string;
+
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService,
+  ) {
+    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+  }
 
   @Post('signup')
   signup(@Body() body: { email: string; name: string; password: string }) {
@@ -36,13 +44,13 @@ export class AuthController {
   async googleAuthRedirect(@Req() req, @Res() res) {
     try {
       const token = await this.authService.loginWithGoogle(req.user);
-      res.redirect(`http://localhost:3000/google-success?token=${token}`);
+      res.redirect(`${this.frontendUrl}/google-success?token=${token}`);
     } catch (error) {
       if (error.message === 'ACCOUNT_EXISTS_USE_PASSWORD') {
         // User exists with email/password, redirect to login with message
-        res.redirect(`http://localhost:3000/login?error=account_exists`);
+        res.redirect(`${this.frontendUrl}/login?error=account_exists`);
       } else {
-        res.redirect(`http://localhost:3000/login?error=google_failed`);
+        res.redirect(`${this.frontendUrl}/login?error=google_failed`);
       }
     }
   }
