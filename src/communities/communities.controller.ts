@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, UseGuards, Req, Param, Put, Patch, Delete,
 import { FileInterceptor, FilesInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { Throttle } from '@nestjs/throttler';
 import { CommunitiesService } from './communities.service';
 import { AuthGuard } from '@nestjs/passport';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -161,6 +162,7 @@ export class CommunitiesController {
 
   @UseGuards(AuthGuard('jwt'))
   @Post(':id/join')
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 joins per minute
   async join(@Param('id') id: string, @Req() req) {
     const userId = req.user.userId;
     const result = await this.communitiesService.joinCommunity(id, userId);

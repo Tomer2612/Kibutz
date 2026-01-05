@@ -4,6 +4,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { createReadStream, existsSync } from 'fs';
 import { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { PostsService } from './posts.service';
 import { AuthGuard } from '@nestjs/passport';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -44,6 +45,7 @@ export class PostsController {
   // Create post in community
   @UseGuards(AuthGuard('jwt'))
   @Post('community/:communityId')
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 posts per minute
   @UseInterceptors(FilesInterceptor('files', 10, { storage })) // Max 5 images + 5 files = 10
   async createPost(
     @Param('communityId') communityId: string,
