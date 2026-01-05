@@ -16,6 +16,7 @@ interface JwtPayload {
 
 interface Community {
   id: string;
+  slug: string;
   name: string;
   topic: string | null;
   logo: string | null;

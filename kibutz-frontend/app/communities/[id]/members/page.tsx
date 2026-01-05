@@ -43,6 +43,7 @@ interface BannedUser {
 
 interface Community {
   id: string;
+  slug: string;
   name: string;
   description: string;
   image?: string | null;

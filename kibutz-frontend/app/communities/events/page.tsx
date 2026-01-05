@@ -358,6 +358,7 @@ interface Event {
 
 interface Community {
   id: string;
+  slug: string;
   name: string;
   image?: string;
   logo?: string;

@@ -86,6 +86,7 @@ interface UserProfile {
 
 interface Community {
   id: string;
+  slug: string;
   name: string;
   description: string;
   image?: string | null;
@@ -673,7 +674,7 @@ export default function MemberProfilePage() {
                         key={community.id}
                         className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
                       >
-                        <Link href={`/communities/feed?communityId=${community.id}`}>
+                        <Link href={`/communities/feed?communityId=${community.slug}`}>
                           {community.image ? (
                             <img
                               src={`${process.env.NEXT_PUBLIC_API_URL}${community.image}`}
@@ -684,7 +685,7 @@ export default function MemberProfilePage() {
                             <div className="w-full h-44 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
                               <span className="text-gray-400 font-medium">תמונת קהילה</span>
                             </div>
-                          )}n                        </Link>
+                          )}</Link>
                         <div className="p-5 text-right" dir="rtl">
                           {/* Logo + Name row */}
                           <div className="flex items-start gap-3 mb-2">
@@ -810,7 +811,7 @@ export default function MemberProfilePage() {
                         key={community.id}
                         className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
                       >
-                        <Link href={`/communities/feed?communityId=${community.id}`}>
+                        <Link href={`/communities/feed?communityId=${community.slug}`}>
                           {community.image ? (
                             <img
                               src={`${process.env.NEXT_PUBLIC_API_URL}${community.image}`}

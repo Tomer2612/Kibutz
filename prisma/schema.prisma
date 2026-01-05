@@ -109,6 +109,7 @@ enum NotificationType {
 model Community {
   id            String            @id @default(cuid())
   name          String
+  slug          String            @unique
   description   String
   ownerId       String
   createdAt     DateTime          @default(now())

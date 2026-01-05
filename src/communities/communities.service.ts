@@ -1,9 +1,40 @@
-import { Injectable, InternalServerErrorException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../users/prisma.service';
 
 @Injectable()
 export class CommunitiesService {
   constructor(private prisma: PrismaService) {}
+
+  // Generate URL-friendly slug from name
+  private generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
+      .replace(/\s+/g, '-')     // Replace spaces with hyphens
+      .replace(/-+/g, '-')      // Replace multiple hyphens with single
+      .replace(/^-|-$/g, '');   // Remove leading/trailing hyphens
+  }
+
+  // Ensure slug is unique by appending number if needed
+  private async ensureUniqueSlug(baseSlug: string, excludeId?: string): Promise<string> {
+    let slug = baseSlug;
+    let counter = 1;
+    
+    while (true) {
+      const existing = await this.prisma.community.findUnique({
+        where: { slug },
+        select: { id: true },
+      });
+      
+      if (!existing || existing.id === excludeId) {
+        return slug;
+      }
+      
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
 
   async create(
     name: string,
@@ -22,10 +53,15 @@ export class CommunitiesService {
     try {
       console.log('Creating community with:', { name, description, ownerId, image, logo, topic, youtubeUrl, whatsappUrl, facebookUrl, instagramUrl, galleryImages, price });
       
+      // Generate unique slug from name
+      const baseSlug = this.generateSlug(name);
+      const slug = await this.ensureUniqueSlug(baseSlug);
+      
       // Create community
       const community = await this.prisma.community.create({
         data: { 
-          name, 
+          name,
+          slug,
           description, 
           ownerId,
           image: image || null,
@@ -82,10 +118,15 @@ export class CommunitiesService {
     }
   }
 
-  async findById(id: string) {
+  async findById(idOrSlug: string) {
     try {
-      const community = await this.prisma.community.findUnique({
-        where: { id },
+      // Check if it's a cuid (starts with 'c' and is ~25 chars) or a slug
+      const isCuid = idOrSlug.length > 20 && idOrSlug.startsWith('c');
+      
+      const community = await this.prisma.community.findFirst({
+        where: isCuid 
+          ? { id: idOrSlug }
+          : { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
         include: {
           owner: {
             select: {
@@ -129,6 +170,7 @@ export class CommunitiesService {
     trialCancelled?: boolean,
     cardLastFour?: string | null,
     cardBrand?: string | null,
+    slug?: string,
   ) {
     try {
       const community = await this.prisma.community.findUnique({
@@ -151,6 +193,22 @@ export class CommunitiesService {
       const updateData: any = {};
       if (name !== undefined) {
         updateData.name = name;
+      }
+      if (slug !== undefined) {
+        // Validate slug format
+        const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+        if (!slugRegex.test(slug)) {
+          throw new BadRequestException('Slug must be lowercase letters, numbers, and hyphens only');
+        }
+        // Check if slug is already taken by another community
+        const existing = await this.prisma.community.findUnique({
+          where: { slug },
+          select: { id: true },
+        });
+        if (existing && existing.id !== id) {
+          throw new BadRequestException('This URL is already taken');
+        }
+        updateData.slug = slug;
       }
       if (description !== undefined) {
         updateData.description = description;
