@@ -438,6 +438,9 @@ function PricingContent() {
           <Link href="/terms" className="text-gray-600 hover:text-black transition text-sm font-medium">
             תנאי שימוש
           </Link>
+          <Link href="/privacy" className="text-gray-600 hover:text-black transition text-sm font-medium">
+            מדיניות פרטיות
+          </Link>
           
           {!mounted ? (
             <div className="w-10 h-10" />
