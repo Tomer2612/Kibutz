@@ -90,7 +90,6 @@ const getSizeCategory = (memberCount?: number | null) => {
 
 interface Community {
   id: string;
-  slug: string;
   name: string;
   description: string;
   image?: string | null;
@@ -233,7 +232,7 @@ export default function Home() {
   const handleCardClick = (community: Community) => {
     if (!userEmail) {
       // Not logged in - go to preview page (will redirect to login if needed)
-      router.push(`/communities/${community.slug}/preview`);
+      router.push(`/communities/${community.id}/preview`);
       return;
     }
     
@@ -241,10 +240,10 @@ export default function Home() {
     
     if (isMember) {
       // Member/Owner - go to feed
-      router.push(`/communities/feed?communityId=${community.slug}`);
+      router.push(`/communities/feed?communityId=${community.id}`);
     } else {
       // Logged in but not a member - go to preview page to join
-      router.push(`/communities/${community.slug}/preview`);
+      router.push(`/communities/${community.id}/preview`);
     }
   };
 

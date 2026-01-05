@@ -203,7 +203,7 @@ function PricingContent() {
         
         // Save credit card info to the new community
         const lastFour = cardNumber.slice(-4);
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${newCommunity.slug}`, {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${newCommunity.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -228,7 +228,7 @@ function PricingContent() {
           }),
         });
         
-        router.push(`/communities/feed?communityId=${newCommunity.slug}`);
+        router.push(`/communities/feed?communityId=${newCommunity.id}`);
       }
     } catch (err) {
       console.error('Failed to create community:', err);

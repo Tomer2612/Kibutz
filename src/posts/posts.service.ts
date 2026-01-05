@@ -1,14 +1,18 @@
 import { Injectable, InternalServerErrorException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../users/prisma.service';
+import { CommunitiesService } from '../communities/communities.service';
 
 @Injectable()
 export class PostsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private communitiesService: CommunitiesService,
+  ) {}
 
   async create(
     content: string, 
     authorId: string, 
-    communityId: string, 
+    communityIdOrSlug: string, 
     title?: string, 
     images?: string[],
     files?: { url: string; name: string }[],
@@ -16,6 +20,9 @@ export class PostsService {
     category?: string
   ) {
     try {
+      // Resolve slug to actual community ID
+      const communityId = await this.communitiesService.resolveId(communityIdOrSlug);
+      
       return await this.prisma.post.create({
         data: { 
           title, 
@@ -42,7 +49,10 @@ export class PostsService {
     }
   }
 
-  async findByCommunity(communityId: string, userId?: string) {
+  async findByCommunity(communityIdOrSlug: string, userId?: string) {
+    // Resolve slug to actual community ID
+    const communityId = await this.communitiesService.resolveId(communityIdOrSlug);
+    
     const posts = await this.prisma.post.findMany({
       where: { communityId },
       orderBy: [

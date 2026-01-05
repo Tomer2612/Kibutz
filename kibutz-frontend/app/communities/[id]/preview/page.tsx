@@ -9,7 +9,6 @@ import NotificationBell from '../../../components/NotificationBell';
 
 interface Community {
   id: string;
-  slug: string;
   name: string;
   description: string;
   image?: string | null;
@@ -655,7 +654,7 @@ function CommunityPreviewContent() {
                 return (
                   <Link
                     key={comm.id}
-                    href={`/communities/${comm.slug}/preview`}
+                    href={`/communities/${comm.id}/preview`}
                     className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
                   >
                     {comm.image ? (

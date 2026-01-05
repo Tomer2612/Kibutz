@@ -9,5 +9,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
   providers: [CommunitiesService, PrismaService],
   controllers: [CommunitiesController],
   imports: [UsersModule, NotificationsModule],
+  exports: [CommunitiesService],
 })
 export class CommunitiesModule {}

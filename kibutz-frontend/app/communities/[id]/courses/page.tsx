@@ -32,7 +32,6 @@ interface Course {
 
 interface Community {
   id: string;
-  slug: string;
   name: string;
   ownerId: string;
   logo?: string | null;

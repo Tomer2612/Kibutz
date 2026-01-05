@@ -16,8 +16,8 @@ interface JwtPayload {
 
 interface Community {
   id: string;
-  slug: string;
   name: string;
+  slug: string | null;
   description: string;
   topic: string | null;
   image: string | null;
@@ -68,6 +68,12 @@ export default function ManageCommunityPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  
+  // Slug
+  const [slug, setSlug] = useState('');
+  const [slugError, setSlugError] = useState('');
+  const [slugSuccess, setSlugSuccess] = useState('');
+  const [slugLoading, setSlugLoading] = useState(false);
   
   // Social links
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -203,6 +209,7 @@ export default function ManageCommunityPage() {
         setName(data.name);
         setDescription(data.description);
         setTopic(data.topic || '');
+        setSlug(data.slug || '');
         setYoutubeUrl(data.youtubeUrl || '');
         setWhatsappUrl(data.whatsappUrl || '');
         setFacebookUrl(data.facebookUrl || '');
@@ -433,6 +440,74 @@ export default function ManageCommunityPage() {
       setMessageType('error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Slug handlers
+  const handleSlugChange = (value: string) => {
+    // Only allow lowercase letters, numbers, and hyphens
+    const sanitized = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    setSlug(sanitized);
+    setSlugError('');
+    setSlugSuccess('');
+  };
+
+  const handleUpdateSlug = async () => {
+    if (!slug.trim()) {
+      setSlugError('יש להזין כתובת URL');
+      return;
+    }
+
+    if (slug.length < 3) {
+      setSlugError('הכתובת חייבת להכיל לפחות 3 תווים');
+      return;
+    }
+
+    if (slug.length > 50) {
+      setSlugError('הכתובת יכולה להכיל עד 50 תווים');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      setSlugLoading(true);
+      setSlugError('');
+      setSlugSuccess('');
+
+      // Check availability first
+      const checkRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/communities/check-slug/${slug}?excludeId=${communityId}`
+      );
+      const checkData = await checkRes.json();
+
+      if (!checkData.available) {
+        setSlugError('הכתובת הזו כבר תפוסה');
+        return;
+      }
+
+      // Update slug
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/slug`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ slug }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update slug');
+      }
+
+      setSlugSuccess('הכתובת עודכנה בהצלחה!');
+    } catch (err: any) {
+      console.error('Slug update error:', err);
+      setSlugError(err.message || 'שגיאה בעדכון הכתובת');
+    } finally {
+      setSlugLoading(false);
     }
   };
 
@@ -693,15 +768,41 @@ export default function ManageCommunityPage() {
                 <div className="flex gap-8">
                   <div className="w-48 flex-shrink-0 text-right">
                     <h3 className="font-medium text-gray-900 text-base">לינק (URL)</h3>
-                    <p className="text-sm text-gray-500 mt-1">הכתובת הציבורית של הקהילה</p>
+                    <p className="text-sm text-gray-500 mt-1">הכתובת הציבורית של הקהילה (אותיות באנגלית, מספרים ומקפים בלבד)</p>
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden" dir="ltr">
-                      <span className="px-4 py-3.5 bg-gray-50 text-gray-500 text-base border-r border-gray-300">kibutz.co.il/</span>
-                      <div className="flex-1 p-3.5 text-left text-gray-900 text-base bg-white">
-                        {communityId}
+                    <div className="flex items-center gap-2" dir="ltr">
+                      <div className="flex items-center flex-1 border border-gray-300 rounded-lg overflow-hidden">
+                        <span className="px-4 py-3.5 bg-gray-50 text-gray-500 text-base border-r border-gray-300 whitespace-nowrap">kibutz.co.il/communities/</span>
+                        <input
+                          type="text"
+                          placeholder={communityId}
+                          className="flex-1 p-3.5 text-left text-gray-900 text-base bg-white focus:outline-none"
+                          value={slug}
+                          onChange={(e) => handleSlugChange(e.target.value)}
+                          maxLength={50}
+                        />
                       </div>
+                      <button
+                        type="button"
+                        onClick={handleUpdateSlug}
+                        disabled={slugLoading || !slug.trim() || slug === community?.slug}
+                        className="px-4 py-3.5 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm whitespace-nowrap"
+                      >
+                        {slugLoading ? '...' : 'שמור'}
+                      </button>
                     </div>
+                    {!slug && (
+                      <p className="text-sm text-gray-500 mt-2" dir="rtl">
+                        הכתובת הנוכחית: kibutz.co.il/communities/{communityId}
+                      </p>
+                    )}
+                    {slugError && (
+                      <p className="text-sm text-red-500 mt-2" dir="rtl">{slugError}</p>
+                    )}
+                    {slugSuccess && (
+                      <p className="text-sm text-green-600 mt-2" dir="rtl">{slugSuccess}</p>
+                    )}
                   </div>
                 </div>
 

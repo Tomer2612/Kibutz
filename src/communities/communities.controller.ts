@@ -97,7 +97,6 @@ export class CommunitiesController {
       trialCancelled?: boolean;
       cardLastFour?: string;
       cardBrand?: string;
-      slug?: string;
     },
     @UploadedFiles() files?: { image?: any[]; logo?: any[]; galleryImages?: any[] },
   ) {
@@ -150,7 +149,6 @@ export class CommunitiesController {
       body.trialCancelled,
       body.cardLastFour,
       body.cardBrand,
-      body.slug,
     );
   }
 
@@ -277,5 +275,22 @@ export class CommunitiesController {
   ) {
     const userId = req.user.userId;
     return this.communitiesService.updateRules(id, userId, body.rules);
+  }
+
+  @Get('check-slug/:slug')
+  async checkSlug(@Param('slug') slug: string, @Query('excludeId') excludeId?: string) {
+    const isAvailable = await this.communitiesService.isSlugAvailable(slug, excludeId);
+    return { available: isAvailable };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':id/slug')
+  updateSlug(
+    @Param('id') id: string,
+    @Body() body: { slug: string },
+    @Req() req,
+  ) {
+    const userId = req.user.userId;
+    return this.communitiesService.updateSlug(id, userId, body.slug);
   }
 }

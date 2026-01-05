@@ -1,13 +1,17 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../users/prisma.service';
 import { RsvpStatus } from '@prisma/client';
+import { CommunitiesService } from '../communities/communities.service';
 
 @Injectable()
 export class EventsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private communitiesService: CommunitiesService,
+  ) {}
 
   async create(
-    communityId: string,
+    communityIdOrSlug: string,
     createdById: string,
     data: {
       title: string;
@@ -29,6 +33,9 @@ export class EventsService {
       attendeeType?: string;
     }
   ) {
+    // Resolve slug to actual community ID
+    const communityId = await this.communitiesService.resolveId(communityIdOrSlug);
+    
     // Verify user is owner or manager
     const membership = await this.prisma.communityMember.findUnique({
       where: {
@@ -60,7 +67,10 @@ export class EventsService {
     });
   }
 
-  async findByCommunity(communityId: string, userId?: string) {
+  async findByCommunity(communityIdOrSlug: string, userId?: string) {
+    // Resolve slug to actual community ID
+    const communityId = await this.communitiesService.resolveId(communityIdOrSlug);
+    
     const events = await this.prisma.event.findMany({
       where: { communityId },
       orderBy: { date: 'asc' },
@@ -88,7 +98,9 @@ export class EventsService {
     }));
   }
 
-  async findUpcoming(communityId: string, limit: number = 5, userId?: string) {
+  async findUpcoming(communityIdOrSlug: string, limit: number = 5, userId?: string) {
+    // Resolve slug to actual community ID
+    const communityId = await this.communitiesService.resolveId(communityIdOrSlug);
     const now = new Date();
     
     const events = await this.prisma.event.findMany({
@@ -320,7 +332,10 @@ export class EventsService {
     return { going, maybe, notGoing };
   }
 
-  async getEventsForMonth(communityId: string, year: number, month: number, userId?: string, isManager?: boolean) {
+  async getEventsForMonth(communityIdOrSlug: string, year: number, month: number, userId?: string, isManager?: boolean) {
+    // Resolve slug to actual community ID
+    const communityId = await this.communitiesService.resolveId(communityIdOrSlug);
+    
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 

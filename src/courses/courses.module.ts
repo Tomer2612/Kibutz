@@ -3,12 +3,14 @@ import { MulterModule } from '@nestjs/platform-express';
 import { CoursesController } from './courses.controller';
 import { CoursesService } from './courses.service';
 import { PrismaService } from '../users/prisma.service';
+import { CommunitiesModule } from '../communities/communities.module';
 
 @Module({
   imports: [
     MulterModule.register({
       dest: './uploads/courses',
     }),
+    CommunitiesModule,
   ],
   controllers: [CoursesController],
   providers: [CoursesService, PrismaService],

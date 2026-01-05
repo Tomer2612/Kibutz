@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../users/prisma.service';
+import { CommunitiesService } from '../communities/communities.service';
 
 @Injectable()
 export class CoursesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private communitiesService: CommunitiesService,
+  ) {}
 
   // Create a new course
   async createCourse(data: {
@@ -59,7 +63,10 @@ export class CoursesService {
   }
 
   // Get all courses for a community
-  async getCoursesByCommunity(communityId: string, userId?: string) {
+  async getCoursesByCommunity(communityIdOrSlug: string, userId?: string) {
+    // Resolve slug to actual community ID
+    const communityId = await this.communitiesService.resolveId(communityIdOrSlug);
+    
     // Build where clause - if user is logged in, show their unpublished courses too
     const whereClause: any = {
       communityId,

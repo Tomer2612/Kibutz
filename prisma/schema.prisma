@@ -8,60 +8,57 @@ datasource db {
 }
 
 model User {
-  id                       String            @id @default(cuid())
-  email                    String            @unique
+  id                       String              @id @default(cuid())
+  email                    String              @unique
   name                     String
   password                 String
+  createdAt                DateTime            @default(now())
   profileImage             String?
-  coverImage               String?
-  bio                      String?
-  location                 String?
-  googleId                 String?           @unique
-  createdAt                DateTime          @default(now())
-  lastActiveAt             DateTime?         @default(now())
-  showOnline               Boolean           @default(true)
-  isEmailVerified          Boolean           @default(false)
-  emailVerificationToken   String?           @unique
+  googleId                 String?             @unique
+  lastActiveAt             DateTime?           @default(now())
+  showOnline               Boolean             @default(true)
   emailVerificationExpires DateTime?
-  passwordResetToken       String?           @unique
+  emailVerificationToken   String?             @unique
+  isEmailVerified          Boolean             @default(false)
   passwordResetExpires     DateTime?
-  // Notification preferences
-  notifyLikes              Boolean           @default(true)
-  notifyComments           Boolean           @default(true)
-  notifyFollows            Boolean           @default(true)
-  notifyNewPosts           Boolean           @default(true)
-  notifyMentions           Boolean           @default(true)
-  notifyCommunityJoins     Boolean           @default(true)
-  notifyMessages           Boolean           @default(true)
+  passwordResetToken       String?             @unique
+  bio                      String?
+  coverImage               String?
+  location                 String?
+  notifyComments           Boolean             @default(true)
+  notifyCommunityJoins     Boolean             @default(true)
+  notifyFollows            Boolean             @default(true)
+  notifyLikes              Boolean             @default(true)
+  notifyMentions           Boolean             @default(true)
+  notifyNewPosts           Boolean             @default(true)
+  notifyMessages           Boolean             @default(true)
   posts                    Post[]
-  communities              Community[]
-  likes                    Like[]
   comments                 Comment[]
-  savedPosts               SavedPost[]
-  memberships              CommunityMember[]
+  communities              Community[]
   bans                     CommunityBan[]
-  followers                UserFollow[]      @relation("UserFollowers")
-  following                UserFollow[]      @relation("UserFollowing")
-  notifications            Notification[]    @relation("NotificationRecipient")
-  notificationsSent        Notification[]    @relation("NotificationActor")
-  // Direct messages
-  conversationsAsP1        Conversation[]    @relation("ConversationParticipant1")
-  conversationsAsP2        Conversation[]    @relation("ConversationParticipant2")
-  messagesSent             Message[]
-  // Courses
-  coursesCreated           Course[]
+  memberships              CommunityMember[]
+  conversationsAsP1        Conversation[]      @relation("ConversationParticipant1")
+  conversationsAsP2        Conversation[]      @relation("ConversationParticipant2")
   courseEnrollments        CourseEnrollment[]
+  coursesCreated           Course[]
   lessonProgress           LessonProgress[]
+  likes                    Like[]
+  messagesSent             Message[]
+  notificationsSent        Notification[]      @relation("NotificationActor")
+  notifications            Notification[]      @relation("NotificationRecipient")
+  savedPosts               SavedPost[]
+  following                UserFollow[]        @relation("UserFollowing")
+  followers                UserFollow[]        @relation("UserFollowers")
   paymentMethods           UserPaymentMethod[]
 }
 
 model UserPaymentMethod {
-  id          String   @id @default(cuid())
-  userId      String
+  id           String   @id @default(cuid())
+  userId       String
   cardLastFour String
-  cardBrand   String   @default("Visa")
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardBrand    String   @default("Visa")
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_payment_methods")
 }
@@ -89,64 +86,54 @@ model Notification {
   message     String?
   isRead      Boolean          @default(false)
   createdAt   DateTime         @default(now())
-  recipient   User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   actor       User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  recipient   User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
 
   @@index([recipientId, isRead])
   @@index([recipientId, createdAt])
   @@map("notifications")
 }
 
-enum NotificationType {
-  LIKE
-  COMMENT
-  FOLLOW
-  NEW_POST
-  MENTION
-  COMMUNITY_JOIN
-}
-
 model Community {
-  id            String            @id @default(cuid())
-  name          String
-  slug          String            @unique
-  description   String
-  ownerId       String
-  createdAt     DateTime          @default(now())
-  image         String?
-  logo          String?
-  topic         String?
-  memberCount   Int               @default(0)
-  price         Float?            @default(0)
-  youtubeUrl    String?
-  whatsappUrl   String?
-  facebookUrl   String?
-  instagramUrl  String?
-  galleryImages String[]
-  rules         String[]
-  // Trial and payment info
-  trialStartDate    DateTime?
-  trialCancelled    Boolean           @default(false)
-  cardLastFour      String?
-  cardBrand         String?
-  posts         Post[]
-  events        Event[]
-  courses       Course[]
-  owner         User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  members       CommunityMember[]
-  bans          CommunityBan[]
+  id             String            @id @default(cuid())
+  name           String
+  description    String
+  ownerId        String
+  createdAt      DateTime          @default(now())
+  image          String?
+  topic          String?
+  memberCount    Int               @default(0)
+  facebookUrl    String?
+  galleryImages  String[]
+  instagramUrl   String?
+  whatsappUrl    String?
+  youtubeUrl     String?
+  rules          String[]
+  price          Float?            @default(0)
+  logo           String?
+  cardBrand      String?
+  cardLastFour   String?
+  trialCancelled Boolean           @default(false)
+  trialStartDate DateTime?
+  slug           String?           @unique
+  posts          Post[]
+  owner          User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bans           CommunityBan[]
+  members        CommunityMember[]
+  courses        Course[]
+  events         Event[]
 
   @@map("communities")
 }
 
 model CommunityMember {
-  id          String         @id @default(cuid())
+  id          String     @id @default(cuid())
   userId      String
   communityId String
-  role        MemberRole     @default(USER)
-  joinedAt    DateTime       @default(now())
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  community   Community      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  joinedAt    DateTime   @default(now())
+  role        MemberRole @default(USER)
+  community   Community  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, communityId])
   @@map("community_members")
@@ -159,38 +146,32 @@ model CommunityBan {
   bannedAt    DateTime  @default(now())
   expiresAt   DateTime
   reason      String?
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, communityId])
   @@map("community_bans")
 }
 
-enum MemberRole {
-  OWNER
-  MANAGER
-  USER
-}
-
 model Post {
   id          String      @id @default(cuid())
-  title       String?
   content     String
-  images      String[]
-  files       Json[]
-  links       String[]
-  category    String?
-  isPinned    Boolean     @default(false)
-  pinnedAt    DateTime?
   createdAt   DateTime    @default(now())
   authorId    String
   communityId String
+  title       String?
+  isPinned    Boolean     @default(false)
+  pinnedAt    DateTime?
+  files       Json[]
+  images      String[]
+  links       String[]
+  category    String?
   author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   community   Community   @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  likes       Like[]
   comments    Comment[]
-  savedBy     SavedPost[]
+  likes       Like[]
   poll        Poll?
+  savedBy     SavedPost[]
 }
 
 model Poll {
@@ -199,8 +180,8 @@ model Poll {
   postId    String       @unique
   createdAt DateTime     @default(now())
   expiresAt DateTime?
-  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
   options   PollOption[]
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@map("polls")
 }
@@ -218,7 +199,7 @@ model PollOption {
 model PollVote {
   id        String     @id @default(cuid())
   optionId  String
-  oderId  String
+  oderId    String
   createdAt DateTime   @default(now())
   option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
@@ -231,8 +212,8 @@ model Like {
   createdAt DateTime @default(now())
   userId    String
   postId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@map("likes")
@@ -244,8 +225,8 @@ model Comment {
   createdAt DateTime @default(now())
   userId    String
   postId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("comments")
 }
@@ -255,39 +236,38 @@ model SavedPost {
   createdAt DateTime @default(now())
   userId    String
   postId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@map("saved_posts")
 }
 
-// Events System
 model Event {
-  id              String      @id @default(cuid())
-  title           String
-  description     String?
-  coverImage      String?
-  date            DateTime
-  endDate         DateTime?
-  duration        Int?        // Duration in minutes
-  timezone        String      @default("Asia/Jerusalem")
-  isRecurring     Boolean     @default(false)
-  recurringType   String?     // daily, weekly, monthly
-  locationType    String      @default("online") // online, in-person
-  locationName    String?     // Zoom, Google Meet, Physical address
-  locationUrl     String?     // Meeting link
-  category        String?     // workshop, meetup, webinar, q&a, etc.
-  capacity        Int?        // Max attendees (null = unlimited)
-  sendReminders   Boolean     @default(true)
-  reminderDays    Int         @default(1) // Days before event to send reminder
-  attendeeType    String      @default("all") // all, managers
-  communityId     String
-  createdById     String
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  community       Community   @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  rsvps           EventRsvp[]
+  id            String      @id @default(cuid())
+  title         String
+  description   String?
+  coverImage    String?
+  date          DateTime
+  endDate       DateTime?
+  duration      Int?
+  timezone      String      @default("Asia/Jerusalem")
+  isRecurring   Boolean     @default(false)
+  recurringType String?
+  locationType  String      @default("online")
+  locationName  String?
+  locationUrl   String?
+  category      String?
+  capacity      Int?
+  sendReminders Boolean     @default(true)
+  reminderDays  Int         @default(1)
+  attendeeType  String      @default("all")
+  communityId   String
+  createdById   String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  rsvps         EventRsvp[]
+  community     Community   @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
   @@map("events")
 }
@@ -305,30 +285,18 @@ model EventRsvp {
   @@map("event_rsvps")
 }
 
-enum RsvpStatus {
-  GOING
-  MAYBE
-  NOT_GOING
-}
-
-// Direct Messages
 model Conversation {
-  id           String    @id @default(cuid())
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  
-  // Participants (always 2 users for DMs)
-  participant1Id String
-  participant2Id String
-  participant1   User     @relation("ConversationParticipant1", fields: [participant1Id], references: [id], onDelete: Cascade)
-  participant2   User     @relation("ConversationParticipant2", fields: [participant2Id], references: [id], onDelete: Cascade)
-  
-  // Last message for preview
-  lastMessageAt  DateTime?
+  id              String    @id @default(cuid())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  participant1Id  String
+  participant2Id  String
+  lastMessageAt   DateTime?
   lastMessageText String?
-  
-  messages     Message[]
-  
+  participant1    User      @relation("ConversationParticipant1", fields: [participant1Id], references: [id], onDelete: Cascade)
+  participant2    User      @relation("ConversationParticipant2", fields: [participant2Id], references: [id], onDelete: Cascade)
+  messages        Message[]
+
   @@unique([participant1Id, participant2Id])
   @@index([participant1Id])
   @@index([participant2Id])
@@ -341,38 +309,32 @@ model Message {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   isRead         Boolean      @default(false)
-  
   senderId       String
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
   conversationId String
-  
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
   @@index([conversationId])
   @@index([senderId])
   @@map("messages")
 }
 
-// Courses System
 model Course {
   id          String             @id @default(cuid())
   title       String
   description String
   image       String?
-  duration    Int                @default(0) // Total duration in minutes
+  duration    Int                @default(0)
   isPublished Boolean            @default(false)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
-  
   communityId String
-  community   Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  
   authorId    String
-  author      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  
   chapters    Chapter[]
   enrollments CourseEnrollment[]
-  
+  author      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  community   Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
   @@index([communityId])
   @@map("courses")
 }
@@ -381,75 +343,65 @@ model Chapter {
   id       String   @id @default(cuid())
   title    String
   order    Int      @default(0)
-  
   courseId String
   course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
   lessons  Lesson[]
-  
+
   @@index([courseId])
   @@map("chapters")
 }
 
 model Lesson {
-  id          String           @id @default(cuid())
-  title       String
-  content     String?          // Rich text content
-  videoUrl    String?
-  duration    Int              @default(0) // Duration in minutes
-  order       Int              @default(0)
-  
-  // Lesson type: 'content' (mixed content), 'quiz' (quiz only)
-  lessonType  String           @default("content")
-  
-  // Content display order for combined lessons (e.g., ["video", "text", "images", "links"])
-  contentOrder String[]        @default(["video", "text", "links", "images"])
-  
-  // Attachments (like posts)
-  images      String[]
-  files       Json[]           // Array of {name, url, size}
-  links       String[]
-  
-  chapterId   String
-  chapter     Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  
-  progress    LessonProgress[]
-  quiz        LessonQuiz?
-  
+  id           String           @id @default(cuid())
+  title        String
+  content      String?
+  videoUrl     String?
+  duration     Int              @default(0)
+  order        Int              @default(0)
+  chapterId    String
+  files        Json[]
+  images       String[]
+  lessonType   String           @default("content")
+  links        String[]
+  contentOrder String[]         @default(["video", "text", "links", "images"])
+  progress     LessonProgress[]
+  quiz         LessonQuiz?
+  chapter      Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
   @@index([chapterId])
   @@map("lessons")
 }
 
 model LessonQuiz {
-  id          String              @id @default(cuid())
-  lessonId    String              @unique
-  lesson      Lesson              @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  questions   LessonQuizQuestion[]
-  
+  id        String               @id @default(cuid())
+  lessonId  String               @unique
+  questions LessonQuizQuestion[]
+  lesson    Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
   @@map("lesson_quizzes")
 }
 
 model LessonQuizQuestion {
-  id            String              @id @default(cuid())
-  question      String
-  questionType  String              @default("radio") // 'radio' or 'checkbox'
-  order         Int                 @default(0)
-  quizId        String
-  quiz          LessonQuiz          @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  options       LessonQuizOption[]
-  
+  id           String             @id @default(cuid())
+  question     String
+  questionType String             @default("radio")
+  order        Int                @default(0)
+  quizId       String
+  options      LessonQuizOption[]
+  quiz         LessonQuiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
   @@index([quizId])
   @@map("lesson_quiz_questions")
 }
 
 model LessonQuizOption {
-  id          String              @id @default(cuid())
-  text        String
-  isCorrect   Boolean             @default(false)
-  order       Int                 @default(0)
-  questionId  String
-  question    LessonQuizQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  
+  id         String             @id @default(cuid())
+  text       String
+  isCorrect  Boolean            @default(false)
+  order      Int                @default(0)
+  questionId String
+  question   LessonQuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
   @@index([questionId])
   @@map("lesson_quiz_options")
 }
@@ -458,13 +410,12 @@ model CourseEnrollment {
   id          String    @id @default(cuid())
   userId      String
   courseId    String
-  progress    Float     @default(0) // Percentage 0-100
+  progress    Float     @default(0)
   enrolledAt  DateTime  @default(now())
   completedAt DateTime?
-  
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, courseId])
   @@index([userId])
   @@index([courseId])
@@ -477,12 +428,32 @@ model LessonProgress {
   lessonId    String
   completed   Boolean   @default(false)
   completedAt DateTime?
-  
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, lessonId])
   @@index([userId])
   @@index([lessonId])
   @@map("lesson_progress")
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  NEW_POST
+  MENTION
+  COMMUNITY_JOIN
+}
+
+enum MemberRole {
+  OWNER
+  MANAGER
+  USER
+}
+
+enum RsvpStatus {
+  GOING
+  MAYBE
+  NOT_GOING
 }

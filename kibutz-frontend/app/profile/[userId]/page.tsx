@@ -86,7 +86,6 @@ interface UserProfile {
 
 interface Community {
   id: string;
-  slug: string;
   name: string;
   description: string;
   image?: string | null;
@@ -674,7 +673,7 @@ export default function MemberProfilePage() {
                         key={community.id}
                         className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
                       >
-                        <Link href={`/communities/feed?communityId=${community.slug}`}>
+                        <Link href={`/communities/feed?communityId=${community.id}`}>
                           {community.image ? (
                             <img
                               src={`${process.env.NEXT_PUBLIC_API_URL}${community.image}`}
@@ -811,7 +810,7 @@ export default function MemberProfilePage() {
                         key={community.id}
                         className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
                       >
-                        <Link href={`/communities/feed?communityId=${community.slug}`}>
+                        <Link href={`/communities/feed?communityId=${community.id}`}>
                           {community.image ? (
                             <img
                               src={`${process.env.NEXT_PUBLIC_API_URL}${community.image}`}
