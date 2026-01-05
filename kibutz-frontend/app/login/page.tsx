@@ -71,7 +71,35 @@ function LoginContent() {
 
       if (res.ok && data.access_token) {
         localStorage.setItem('token', data.access_token);
-        router.push(returnUrl || '/');
+        
+        // Check for pending community join
+        const pendingJoinCommunity = localStorage.getItem('pendingJoinCommunity');
+        if (pendingJoinCommunity) {
+          localStorage.removeItem('pendingJoinCommunity');
+          const pendingPayment = localStorage.getItem('pendingPayment');
+          localStorage.removeItem('pendingPayment');
+          
+          if (pendingPayment) {
+            router.push(`/communities/${pendingJoinCommunity}/preview?showPayment=true`);
+          } else {
+            // Try to join directly
+            try {
+              const joinRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${pendingJoinCommunity}/join`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${data.access_token}` },
+              });
+              if (joinRes.ok) {
+                router.push(`/communities/${pendingJoinCommunity}/feed`);
+              } else {
+                router.push(`/communities/${pendingJoinCommunity}/preview`);
+              }
+            } catch {
+              router.push(`/communities/${pendingJoinCommunity}/preview`);
+            }
+          }
+        } else {
+          router.push(returnUrl || '/');
+        }
       } else {
         // Parse specific error messages and show inline
         const errorMsg = data.message || '';

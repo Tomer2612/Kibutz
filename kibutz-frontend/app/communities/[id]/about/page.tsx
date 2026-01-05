@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaUsers, FaCalendarAlt, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaUser } from 'react-icons/fa';
+import { FaUsers, FaCalendarAlt, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaUser, FaLink } from 'react-icons/fa';
 import NotificationBell from '../../../components/NotificationBell';
 
 interface Community {
@@ -138,6 +138,7 @@ export default function CommunityAboutPage() {
   const [managerCount, setManagerCount] = useState(0);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leavingCommunity, setLeavingCommunity] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   // Leave community handler
   const handleLeaveCommunity = async () => {
@@ -534,6 +535,33 @@ export default function CommunityAboutPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Invite Link */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-5">
+              <h4 className="text-sm font-medium text-gray-500 mb-3">הזמנת חברים</h4>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  readOnly
+                  value={typeof window !== 'undefined' ? `${window.location.origin}/communities/${community?.slug || communityId}/preview` : ''}
+                  className="w-full px-3 py-2.5 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg"
+                  dir="ltr"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const inviteUrl = `${window.location.origin}/communities/${community?.slug || communityId}/preview`;
+                    navigator.clipboard.writeText(inviteUrl);
+                    setInviteCopied(true);
+                    setTimeout(() => setInviteCopied(false), 2000);
+                  }}
+                  className="w-full py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition text-sm flex items-center justify-center gap-2"
+                >
+                  <span>{inviteCopied ? 'הועתק!' : 'העתק לינק'}</span>
+                  <FaLink className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Leave Community Button - only for non-owners */}

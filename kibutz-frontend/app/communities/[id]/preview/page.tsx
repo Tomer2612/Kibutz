@@ -192,7 +192,7 @@ function CommunityPreviewContent() {
       try {
         setLoading(true);
         
-        // Check membership - if member, redirect to about page
+        // Check membership - if member, redirect to feed
         if (token) {
           const membershipRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/membership`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -200,8 +200,8 @@ function CommunityPreviewContent() {
           if (membershipRes.ok) {
             const membershipData = await membershipRes.json();
             if (membershipData.role) {
-              // User is a member, redirect to about page
-              router.push(`/communities/${communityId}/about`);
+              // User is a member, redirect to feed
+              router.push(`/communities/${communityId}/feed`);
               return;
             }
           }
@@ -290,7 +290,9 @@ function CommunityPreviewContent() {
       });
       
       if (res.ok) {
-        router.push(`/communities/${communityId}/feed`);
+        // Redirect using slug if available
+        const redirectId = community?.slug || communityId;
+        router.push(`/communities/${redirectId}/feed`);
       }
     } catch (err) {
       console.error('Failed to join community:', err);
@@ -365,6 +367,14 @@ function CommunityPreviewContent() {
                          cardExpiry.length === 5 && 
                          !getExpiryError() && 
                          cardCvv.length === 3;
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+      </main>
+    );
+  }
 
   if (!community) {
     return (
