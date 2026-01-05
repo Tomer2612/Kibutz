@@ -6,7 +6,7 @@
 
 */
 -- AlterTable
-ALTER TABLE "public"."communities" ADD COLUMN     "slug" TEXT NOT NULL;
+ALTER TABLE "public"."communities" ADD COLUMN     "slug" TEXT;
 
 -- CreateIndex
 CREATE UNIQUE INDEX "communities_slug_key" ON "public"."communities"("slug");
