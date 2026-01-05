@@ -114,6 +114,63 @@ export class EmailService {
     await this.sendEmail(email, 'איפוס סיסמה לחשבון Kibutz שלך', htmlBody, textBody);
   }
 
+  async sendContactEmail(name: string, email: string, subject: string, message: string): Promise<void> {
+    const supportEmail = 'support@kibutz.co.il';
+    
+    const htmlBody = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="he">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .header h1 { color: #000; margin: 0; }
+          .content { text-align: right; line-height: 1.8; }
+          .field { margin-bottom: 15px; }
+          .label { font-weight: bold; color: #333; }
+          .value { color: #666; }
+          .message-box { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 10px; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📩 פנייה חדשה מטופס יצירת קשר</h1>
+          </div>
+          <div class="content">
+            <div class="field">
+              <span class="label">שם:</span>
+              <span class="value">${name}</span>
+            </div>
+            <div class="field">
+              <span class="label">אימייל:</span>
+              <span class="value">${email}</span>
+            </div>
+            <div class="field">
+              <span class="label">נושא:</span>
+              <span class="value">${subject}</span>
+            </div>
+            <div class="field">
+              <span class="label">הודעה:</span>
+              <div class="message-box">${message.replace(/\n/g, '<br>')}</div>
+            </div>
+          </div>
+          <div class="footer">
+            <p>הודעה זו נשלחה מטופס יצירת קשר באתר Kibutz</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const textBody = `פנייה חדשה מטופס יצירת קשר\n\nשם: ${name}\nאימייל: ${email}\nנושא: ${subject}\n\nהודעה:\n${message}`;
+
+    await this.sendEmail(supportEmail, `צור קשר: ${subject}`, htmlBody, textBody);
+  }
+
   private async sendEmail(to: string, subject: string, htmlBody: string, textBody: string): Promise<void> {
     const command = new SendEmailCommand({
       Source: this.fromEmail,

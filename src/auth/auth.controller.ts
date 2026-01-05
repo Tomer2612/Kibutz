@@ -88,4 +88,11 @@ export class AuthController {
   resetPassword(@Body() body: { token: string; password: string }) {
     return this.authService.resetPassword(body.token, body.password);
   }
+
+  // Contact form - rate limit: 3 per minute
+  @Post('contact')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  contact(@Body() body: { name: string; email: string; subject: string; message: string }) {
+    return this.authService.sendContactForm(body.name, body.email, body.subject, body.message);
+  }
 }

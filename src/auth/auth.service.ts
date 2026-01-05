@@ -220,6 +220,17 @@ export class AuthService {
     return { message: 'Password reset successfully' };
   }
 
+  async sendContactForm(name: string, email: string, subject: string, message: string) {
+    try {
+      await this.emailService.sendContactEmail(name, email, subject, message);
+      return { message: 'Contact form submitted successfully' };
+    } catch (error) {
+      console.error('Failed to send contact email:', error);
+      // Still return success to user - we don't want to expose email issues
+      return { message: 'Contact form submitted successfully' };
+    }
+  }
+
   private signToken(userId: string, email: string) {
     const payload = { sub: userId, email };
 
