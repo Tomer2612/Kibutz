@@ -10,7 +10,7 @@ export default function CommunityRedirectPage() {
 
   useEffect(() => {
     // Redirect to the feed page with the community ID
-    router.replace(`/communities/feed?communityId=${communityId}`);
+    router.replace(`/communities/${communityId}/feed`);
   }, [communityId, router]);
 
   return (

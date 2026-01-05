@@ -210,7 +210,7 @@ function SignupContent() {
               headers: { Authorization: `Bearer ${data.access_token}` },
             });
             if (joinRes.ok) {
-              router.push(`/communities/feed?communityId=${pendingJoinCommunity}`);
+              router.push(`/communities/${pendingJoinCommunity}/feed`);
             } else {
               router.push(`/communities/${pendingJoinCommunity}/preview`);
             }

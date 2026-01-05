@@ -288,9 +288,7 @@ export class CommunitiesController {
   updateSlug(
     @Param('id') id: string,
     @Body() body: { slug: string },
-    @Req() req,
   ) {
-    const userId = req.user.userId;
-    return this.communitiesService.updateSlug(id, userId, body.slug);
+    return this.communitiesService.updateSlug(id, body.slug);
   }
 }

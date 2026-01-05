@@ -121,7 +121,7 @@ const getGroupedNotificationLink = (group: GroupedNotification) => {
     case 'COMMENT':
     case 'MENTION':
       if (group.communityId && group.postId) {
-        return `/communities/feed?communityId=${group.communityId}&postId=${group.postId}`;
+        return `/communities/${group.communityId}/feed?postId=${group.postId}`;
       }
       return null;
     case 'FOLLOW':
@@ -133,7 +133,7 @@ const getGroupedNotificationLink = (group: GroupedNotification) => {
     case 'NEW_POST':
     case 'COMMUNITY_JOIN':
       if (group.communityId) {
-        return `/communities/feed?communityId=${group.communityId}`;
+        return `/communities/${group.communityId}/feed`;
       }
       return null;
     default:

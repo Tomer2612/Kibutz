@@ -10,6 +10,7 @@ import NotificationBell from '../../../components/NotificationBell';
 interface Community {
   id: string;
   name: string;
+  slug?: string | null;
   description: string;
   image?: string | null;
   logo?: string | null;
@@ -235,6 +236,13 @@ export default function CommunityAboutPage() {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`);
         if (!res.ok) throw new Error('Failed to fetch community');
         const data = await res.json();
+        
+        // Redirect to slug URL if community has a slug and we're using ID
+        if (data.slug && communityId !== data.slug) {
+          router.replace(`/communities/${data.slug}/about`);
+          return;
+        }
+        
         setCommunity(data);
 
         // Fetch owner data separately
@@ -303,10 +311,10 @@ export default function CommunityAboutPage() {
         {/* Center: Nav links */}
         <nav className="flex items-center gap-4">
           {[
-            { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
+            { label: 'עמוד בית', href: `/communities/${communityId}/feed` },
             { label: 'קורסים', href: `/communities/${communityId}/courses` },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן אירועים', href: `/communities/events?communityId=${communityId}` },
+            { label: 'יומן אירועים', href: `/communities/${communityId}/events` },
             { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${communityId}/about`, active: true },
             ...(userRole === 'OWNER' || userRole === 'MANAGER' 

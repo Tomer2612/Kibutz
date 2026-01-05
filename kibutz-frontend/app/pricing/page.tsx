@@ -228,7 +228,7 @@ function PricingContent() {
           }),
         });
         
-        router.push(`/communities/feed?communityId=${newCommunity.id}`);
+        router.push(`/communities/${newCommunity.slug || newCommunity.id}/feed`);
       }
     } catch (err) {
       console.error('Failed to create community:', err);

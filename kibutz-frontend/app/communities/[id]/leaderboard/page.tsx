@@ -17,6 +17,7 @@ interface JwtPayload {
 interface Community {
   id: string;
   name: string;
+  slug?: string | null;
   topic: string | null;
   logo: string | null;
 }
@@ -97,6 +98,13 @@ export default function LeaderboardPage() {
         const communityRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`);
         if (communityRes.ok) {
           const communityData = await communityRes.json();
+          
+          // Redirect to slug URL if community has a slug and we're using ID
+          if (communityData.slug && communityId !== communityData.slug) {
+            router.replace(`/communities/${communityData.slug}/leaderboard`);
+            return;
+          }
+          
           setCommunity(communityData);
         }
 
@@ -184,10 +192,10 @@ export default function LeaderboardPage() {
         {/* Center: Nav links */}
         <nav className="flex items-center gap-4">
           {[
-            { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
+            { label: 'עמוד בית', href: `/communities/${communityId}/feed` },
             { label: 'קורסים', href: `/communities/${communityId}/courses` },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן אירועים', href: `/communities/events?communityId=${communityId}` },
+            { label: 'יומן אירועים', href: `/communities/${communityId}/events` },
             { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard`, active: true },
             { label: 'אודות', href: `/communities/${communityId}/about` },
             ...((isOwner || isManager) ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] : []),

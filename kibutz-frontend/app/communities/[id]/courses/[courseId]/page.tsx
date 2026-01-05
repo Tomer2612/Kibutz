@@ -527,15 +527,15 @@ function CourseViewerContent() {
           ) : (
             <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center"><FaUsers className="w-4 h-4 text-gray-400" /></div>
           )}
-          <Link href={`/communities/feed?communityId=${communityId}`} className="font-medium text-black hover:underline">{course.community.name}</Link>
+          <Link href={`/communities/${communityId}/feed`} className="font-medium text-black hover:underline">{course.community.name}</Link>
         </div>
       </div>
       <nav className="flex items-center gap-4">
         {[
-          { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
+          { label: 'עמוד בית', href: `/communities/${communityId}/feed` },
           { label: 'קורסים', href: `/communities/${communityId}/courses` },
           { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-          { label: 'יומן אירועים', href: `/communities/events?communityId=${communityId}` },
+          { label: 'יומן אירועים', href: `/communities/${communityId}/events` },
           { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
           { label: 'אודות', href: `/communities/${communityId}/about` },
           ...(isOwnerOrAuthor ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] : []),

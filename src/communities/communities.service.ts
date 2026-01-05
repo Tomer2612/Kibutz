@@ -131,7 +131,7 @@ export class CommunitiesService {
   }
 
   async update(
-    id: string,
+    idOrSlug: string,
     userId: string,
     name?: string,
     description?: string,
@@ -149,6 +149,8 @@ export class CommunitiesService {
     cardBrand?: string | null,
   ) {
     try {
+      const id = await this.resolveId(idOrSlug);
+      
       const community = await this.prisma.community.findUnique({
         where: { id },
       });
@@ -223,8 +225,9 @@ export class CommunitiesService {
     }
   }
 
-  async delete(id: string, userId: string) {
+  async delete(idOrSlug: string, userId: string) {
     try {
+      const id = await this.resolveId(idOrSlug);
       console.log(`Delete request - Community ID: ${id}, User ID: ${userId}`);
       
       const community = await this.prisma.community.findUnique({
@@ -261,8 +264,10 @@ export class CommunitiesService {
     }
   }
 
-  async joinCommunity(communityId: string, userId: string) {
+  async joinCommunity(communityIdOrSlug: string, userId: string) {
     try {
+      const communityId = await this.resolveId(communityIdOrSlug);
+      
       // Check if user is banned from this community
       const activeBan = await this.prisma.communityBan.findUnique({
         where: { userId_communityId: { userId, communityId } },
@@ -312,8 +317,10 @@ export class CommunitiesService {
     }
   }
 
-  async leaveCommunity(communityId: string, userId: string) {
+  async leaveCommunity(communityIdOrSlug: string, userId: string) {
     try {
+      const communityId = await this.resolveId(communityIdOrSlug);
+      
       // Check if community owner
       const community = await this.prisma.community.findUnique({
         where: { id: communityId },
@@ -346,7 +353,9 @@ export class CommunitiesService {
     }
   }
 
-  async checkMembership(communityId: string, userId: string) {
+  async checkMembership(communityIdOrSlug: string, userId: string) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+    
     const membership = await this.prisma.communityMember.findUnique({
       where: {
         userId_communityId: { userId, communityId },
@@ -376,7 +385,9 @@ export class CommunitiesService {
     };
   }
 
-  async updateMemberRole(communityId: string, targetUserId: string, newRole: 'MANAGER' | 'USER', requesterId: string) {
+  async updateMemberRole(communityIdOrSlug: string, targetUserId: string, newRole: 'MANAGER' | 'USER', requesterId: string) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+    
     // Check if requester is owner
     const requesterMembership = await this.prisma.communityMember.findUnique({
       where: { userId_communityId: { userId: requesterId, communityId } },
@@ -414,7 +425,9 @@ export class CommunitiesService {
     return { message: 'Role updated', member: updated };
   }
 
-  async removeMember(communityId: string, targetUserId: string, requesterId: string, banDays: number = 7) {
+  async removeMember(communityIdOrSlug: string, targetUserId: string, requesterId: string, banDays: number = 7) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+    
     // Check if requester is owner or manager
     const requesterMembership = await this.prisma.communityMember.findUnique({
       where: { userId_communityId: { userId: requesterId, communityId } },
@@ -485,7 +498,9 @@ export class CommunitiesService {
     return memberships.map(m => m.communityId);
   }
 
-  async getCommunityMembers(communityId: string) {
+  async getCommunityMembers(communityIdOrSlug: string) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+    
     // Get the community
     const community = await this.prisma.community.findUnique({
       where: { id: communityId },
@@ -530,7 +545,9 @@ export class CommunitiesService {
     }));
   }
 
-  async getTopMembers(communityId: string, limit: number = 3) {
+  async getTopMembers(communityIdOrSlug: string, limit: number = 3) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+    
     // Get the community to find the owner
     const community = await this.prisma.community.findUnique({
       where: { id: communityId },
@@ -657,7 +674,9 @@ export class CommunitiesService {
     });
   }
 
-  async getBannedUsers(communityId: string, requesterId: string) {
+  async getBannedUsers(communityIdOrSlug: string, requesterId: string) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+    
     // Check if requester is owner or manager
     const requesterMembership = await this.prisma.communityMember.findUnique({
       where: { userId_communityId: { userId: requesterId, communityId } },
@@ -697,7 +716,9 @@ export class CommunitiesService {
     }));
   }
 
-  async liftBan(communityId: string, oderId: string, requesterId: string) {
+  async liftBan(communityIdOrSlug: string, oderId: string, requesterId: string) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+    
     // Check if requester is owner or manager
     const requesterMembership = await this.prisma.communityMember.findUnique({
       where: { userId_communityId: { userId: requesterId, communityId } },
@@ -724,7 +745,9 @@ export class CommunitiesService {
     return { message: 'Ban lifted successfully' };
   }
 
-  async getCommunityManagers(communityId: string) {
+  async getCommunityManagers(communityIdOrSlug: string) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+    
     // Get the community
     const community = await this.prisma.community.findUnique({
       where: { id: communityId },
@@ -759,7 +782,9 @@ export class CommunitiesService {
     }));
   }
 
-  async getOnlineMembersCount(communityId: string) {
+  async getOnlineMembersCount(communityIdOrSlug: string) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+    
     // Consider users "online" if they were active in the last 5 minutes AND showOnline is true
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
@@ -779,8 +804,10 @@ export class CommunitiesService {
     return { onlineCount };
   }
 
-  async updateRules(communityId: string, userId: string, rules: string[]) {
+  async updateRules(communityIdOrSlug: string, userId: string, rules: string[]) {
     try {
+      const communityId = await this.resolveId(communityIdOrSlug);
+      
       const community = await this.prisma.community.findUnique({
         where: { id: communityId },
       });
@@ -811,7 +838,9 @@ export class CommunitiesService {
     }
   }
 
-  async getRules(communityId: string) {
+  async getRules(communityIdOrSlug: string) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+    
     const community = await this.prisma.community.findUnique({
       where: { id: communityId },
       select: { rules: true },
@@ -869,7 +898,17 @@ export class CommunitiesService {
   }
 
   // Update community slug
-  async updateSlug(communityId: string, userId: string, slug: string) {
+  async updateSlug(communityIdOrSlug: string, slug: string | null) {
+    const communityId = await this.resolveId(communityIdOrSlug);
+
+    // If slug is null, clear it
+    if (slug === null) {
+      return await this.prisma.community.update({
+        where: { id: communityId },
+        data: { slug: null },
+      });
+    }
+
     // Validate slug format (only lowercase letters, numbers, hyphens)
     const slugRegex = /^[a-z0-9-]+$/;
     if (!slugRegex.test(slug)) {
@@ -878,19 +917,6 @@ export class CommunitiesService {
 
     if (slug.length < 3 || slug.length > 50) {
       throw new ForbiddenException('Slug must be between 3 and 50 characters');
-    }
-
-    // Check user permission
-    const member = await this.prisma.communityMember.findFirst({
-      where: {
-        communityId,
-        userId,
-        role: { in: ['OWNER', 'MANAGER'] },
-      },
-    });
-
-    if (!member) {
-      throw new ForbiddenException('Only owners and managers can update the community slug');
     }
 
     // Check if slug is available

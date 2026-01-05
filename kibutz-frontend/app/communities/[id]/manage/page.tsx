@@ -190,7 +190,7 @@ export default function ManageCommunityPage() {
           
           // Only owners and managers can access manage page
           if (!membershipData.canEdit) {
-            router.push(`/communities/feed?communityId=${communityId}`);
+            router.push(`/communities/${communityId}/feed`);
             return;
           }
           
@@ -204,6 +204,12 @@ export default function ManageCommunityPage() {
         if (!res.ok) throw new Error('Community not found');
         
         const data = await res.json();
+        
+        // Redirect to slug URL if community has a slug and we're using ID
+        if (data.slug && communityId !== data.slug) {
+          router.replace(`/communities/${data.slug}/manage`);
+          return;
+        }
         
         setCommunity(data);
         setName(data.name);
@@ -432,7 +438,7 @@ export default function ManageCommunityPage() {
       setMessage('הקהילה עודכנה בהצלחה!');
       setMessageType('success');
       setTimeout(() => {
-        router.push(`/communities/feed?communityId=${communityId}`);
+        router.push(`/communities/${communityId}/feed`);
       }, 1500);
     } catch (err: any) {
       console.error('Community update error:', err);
@@ -502,7 +508,12 @@ export default function ManageCommunityPage() {
         throw new Error(errorData.message || 'Failed to update slug');
       }
 
-      setSlugSuccess('הכתובת עודכנה בהצלחה!');
+      setSlugSuccess('הכתובת עודכנה בהצלחה! מעביר...');
+      
+      // Redirect to new slug URL after short delay
+      setTimeout(() => {
+        router.push(`/communities/${slug}/manage`);
+      }, 1000);
     } catch (err: any) {
       console.error('Slug update error:', err);
       setSlugError(err.message || 'שגיאה בעדכון הכתובת');
@@ -586,10 +597,10 @@ export default function ManageCommunityPage() {
         {/* Center: Nav links */}
         <nav className="flex items-center gap-4">
           {[
-            { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
+            { label: 'עמוד בית', href: `/communities/${communityId}/feed` },
             { label: 'קורסים', href: `/communities/${communityId}/courses` },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן אירועים', href: `/communities/events?communityId=${communityId}` },
+            { label: 'יומן אירועים', href: `/communities/${communityId}/events` },
             { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${communityId}/about` },
             { label: 'ניהול קהילה', href: `/communities/${communityId}/manage`, active: true },
@@ -771,12 +782,13 @@ export default function ManageCommunityPage() {
                     <p className="text-sm text-gray-500 mt-1">הכתובת הציבורית של הקהילה (אותיות באנגלית, מספרים ומקפים בלבד)</p>
                   </div>
                   <div className="flex-1">
+                    {/* Slug input */}
                     <div className="flex items-center gap-2" dir="ltr">
                       <div className="flex items-center flex-1 border border-gray-300 rounded-lg overflow-hidden">
                         <span className="px-4 py-3.5 bg-gray-50 text-gray-500 text-base border-r border-gray-300 whitespace-nowrap">kibutz.co.il/communities/</span>
                         <input
                           type="text"
-                          placeholder={communityId}
+                          placeholder="הזן כתובת מותאמת אישית"
                           className="flex-1 p-3.5 text-left text-gray-900 text-base bg-white focus:outline-none"
                           value={slug}
                           onChange={(e) => handleSlugChange(e.target.value)}
@@ -792,11 +804,6 @@ export default function ManageCommunityPage() {
                         {slugLoading ? '...' : 'שמור'}
                       </button>
                     </div>
-                    {!slug && (
-                      <p className="text-sm text-gray-500 mt-2" dir="rtl">
-                        הכתובת הנוכחית: kibutz.co.il/communities/{communityId}
-                      </p>
-                    )}
                     {slugError && (
                       <p className="text-sm text-red-500 mt-2" dir="rtl">{slugError}</p>
                     )}
@@ -1240,7 +1247,7 @@ export default function ManageCommunityPage() {
             {/* Save Button */}
             <div className="flex gap-3 justify-end mt-8 pt-6 border-t border-gray-200">
               <Link
-                href={`/communities/feed?communityId=${communityId}`}
+                href={`/communities/${communityId}/feed`}
                 className="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
               >
                 ביטול

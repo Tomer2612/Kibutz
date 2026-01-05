@@ -33,6 +33,7 @@ interface Course {
 interface Community {
   id: string;
   name: string;
+  slug?: string | null;
   ownerId: string;
   logo?: string | null;
 }
@@ -135,6 +136,13 @@ export default function CoursesPage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`);
       if (res.ok) {
         const data = await res.json();
+        
+        // Redirect to slug URL if community has a slug and we're using ID
+        if (data.slug && communityId !== data.slug) {
+          router.replace(`/communities/${data.slug}/courses`);
+          return;
+        }
+        
         setCommunity(data);
       }
     } catch (err) {
@@ -278,10 +286,10 @@ export default function CoursesPage() {
         {/* Center: Nav links */}
         <nav className="flex items-center gap-4">
           {[
-            { label: 'עמוד בית', href: `/communities/feed?communityId=${communityId}` },
+            { label: 'עמוד בית', href: `/communities/${communityId}/feed` },
             { label: 'קורסים', href: `/communities/${communityId}/courses`, active: true },
             { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן אירועים', href: `/communities/events?communityId=${communityId}` },
+            { label: 'יומן אירועים', href: `/communities/${communityId}/events` },
             { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
             { label: 'אודות', href: `/communities/${communityId}/about` },
             ...(isOwnerOrManager ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] : []),

@@ -10,6 +10,7 @@ import NotificationBell from '../../../components/NotificationBell';
 interface Community {
   id: string;
   name: string;
+  slug?: string | null;
   description: string;
   image?: string | null;
   logo?: string | null;
@@ -209,6 +210,13 @@ function CommunityPreviewContent() {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`);
         if (!res.ok) throw new Error('Failed to fetch community');
         const data = await res.json();
+        
+        // Redirect to slug URL if community has a slug and we're using ID
+        if (data.slug && communityId !== data.slug) {
+          router.replace(`/communities/${data.slug}/preview`);
+          return;
+        }
+        
         setCommunity(data);
 
         // Fetch owner data separately
@@ -282,7 +290,7 @@ function CommunityPreviewContent() {
       });
       
       if (res.ok) {
-        router.push(`/communities/feed?communityId=${communityId}`);
+        router.push(`/communities/${communityId}/feed`);
       }
     } catch (err) {
       console.error('Failed to join community:', err);

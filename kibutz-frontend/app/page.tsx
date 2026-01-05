@@ -91,6 +91,7 @@ const getSizeCategory = (memberCount?: number | null) => {
 interface Community {
   id: string;
   name: string;
+  slug?: string | null;
   description: string;
   image?: string | null;
   logo?: string | null;
@@ -240,7 +241,7 @@ export default function Home() {
     
     if (isMember) {
       // Member/Owner - go to feed
-      router.push(`/communities/feed?communityId=${community.id}`);
+      router.push(`/communities/${community.slug || community.id}/feed`);
     } else {
       // Logged in but not a member - go to preview page to join
       router.push(`/communities/${community.id}/preview`);
