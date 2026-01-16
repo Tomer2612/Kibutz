@@ -17,8 +17,41 @@ const assistant = Assistant({
 });
 
 export const metadata: Metadata = {
-  title: 'Kibutz',
-  description: 'מאגר הקהילות הגדול בארץ',
+  title: {
+    default: 'Kibutz - מאגר הקהילות הגדול בארץ',
+    template: '%s | Kibutz',
+  },
+  description: 'הצטרפו לקהילות מקצועיות, למדו מהמומחים הטובים ביותר, והתחברו עם אנשים בעלי תחומי עניין משותפים. Kibutz - הבית של הקהילות המובילות בישראל.',
+  keywords: ['קהילות', 'קורסים', 'לימודים', 'רשת חברתית', 'ישראל', 'community', 'courses'],
+  authors: [{ name: 'Kibutz' }],
+  creator: 'Kibutz',
+  metadataBase: new URL('https://kibutz.co.il'),
+  openGraph: {
+    type: 'website',
+    locale: 'he_IL',
+    url: 'https://kibutz.co.il',
+    siteName: 'Kibutz',
+    title: 'Kibutz - מאגר הקהילות הגדול בארץ',
+    description: 'הצטרפו לקהילות מקצועיות, למדו מהמומחים הטובים ביותר, והתחברו עם אנשים בעלי תחומי עניין משותפים.',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Kibutz - מאגר הקהילות הגדול בארץ',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Kibutz - מאגר הקהילות הגדול בארץ',
+    description: 'הצטרפו לקהילות מקצועיות, למדו מהמומחים הטובים ביותר, והתחברו עם אנשים בעלי תחומי עניין משותפים.',
+    images: ['/og-image.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

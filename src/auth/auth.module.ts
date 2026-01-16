@@ -14,7 +14,7 @@ import { EmailModule } from '../email/email.module';
     ConfigModule.forRoot({ isGlobal: true }),
     JwtModule.register({
       secret: 'supersecret',
-      signOptions: { expiresIn: '1d' },
+      signOptions: { expiresIn: '30d' },
     }),
     EmailModule,
   ],

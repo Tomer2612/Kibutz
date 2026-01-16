@@ -31,10 +31,20 @@ function LoginContent() {
       setMessageType('error');
     }
 
+    // Check for expired session
+    const expiredParam = searchParams.get('expired');
+    if (expiredParam === 'true') {
+      setMessage('פג תוקף ההתחברות. אנא התחבר מחדש.');
+      setMessageType('info');
+    }
+
     // Check URL param first, then localStorage
     const returnParam = searchParams.get('returnUrl');
+    const redirectParam = searchParams.get('redirect');
     if (returnParam) {
       setReturnUrl(returnParam);
+    } else if (redirectParam) {
+      setReturnUrl(redirectParam);
     } else {
       // Check localStorage (set by signup page before email verification)
       const storedReturnUrl = localStorage.getItem('returnUrl');

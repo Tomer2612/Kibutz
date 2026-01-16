@@ -1,22 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { Resend } from 'resend';
 
 @Injectable()
 export class EmailService {
-  private sesClient: SESClient;
+  private resend: Resend;
   private fromEmail: string;
   private frontendUrl: string;
 
   constructor(private configService: ConfigService) {
-    this.sesClient = new SESClient({
-      region: this.configService.get<string>('AWS_REGION') || 'us-east-1',
-      credentials: {
-        accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID') || '',
-        secretAccessKey: this.configService.get<string>('AWS_SECRET_ACCESS_KEY') || '',
-      },
-    });
-    this.fromEmail = this.configService.get<string>('EMAIL_FROM') || 'noreply@kibutz.com';
+    this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
+    this.fromEmail = this.configService.get<string>('EMAIL_FROM') || 'noreply@kibutz.co.il';
     this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
   }
 
@@ -172,38 +166,21 @@ export class EmailService {
   }
 
   private async sendEmail(to: string, subject: string, htmlBody: string, textBody: string): Promise<void> {
-    const command = new SendEmailCommand({
-      Source: this.fromEmail,
-      Destination: {
-        ToAddresses: [to],
-      },
-      Message: {
-        Subject: {
-          Data: subject,
-          Charset: 'UTF-8',
-        },
-        Body: {
-          Html: {
-            Data: htmlBody,
-            Charset: 'UTF-8',
-          },
-          Text: {
-            Data: textBody,
-            Charset: 'UTF-8',
-          },
-        },
-      },
-    });
-
     try {
-      await this.sesClient.send(command);
+      const { error } = await this.resend.emails.send({
+        from: this.fromEmail,
+        to: [to],
+        subject: subject,
+        html: htmlBody,
+        text: textBody,
+      });
+
+      if (error) {
+        console.error('Failed to send email:', error);
+        throw error;
+      }
     } catch (error: any) {
       console.error('Failed to send email:', error);
-      // Don't throw for sandbox mode - recipient not verified
-      if (error.Code === 'MessageRejected' && error.message?.includes('not verified')) {
-        console.warn('SES Sandbox: Recipient email not verified. Email not sent.');
-        return; // Silently fail for unverified recipients in sandbox
-      }
       throw error;
     }
   }
