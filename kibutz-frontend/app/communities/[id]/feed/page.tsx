@@ -1428,7 +1428,7 @@ function CommunityFeedContent() {
               >
                 {userProfile?.profileImage ? (
                   <img 
-                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
+                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -1708,7 +1708,7 @@ function CommunityFeedContent() {
                 <div className="flex items-center gap-3 mb-3">
                   {userProfile?.profileImage ? (
                     <img 
-                      src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
+                      src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                       alt={userProfile.name || 'User'}
                       className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                     />
@@ -2023,7 +2023,7 @@ function CommunityFeedContent() {
                       <Link href={`/profile/${post.author?.id}`} className="cursor-pointer hover:opacity-80 transition">
                         {post.author?.profileImage ? (
                           <img 
-                            src={`${process.env.NEXT_PUBLIC_API_URL}${post.author.profileImage}`} 
+                            src={post.author.profileImage.startsWith('http') ? post.author.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${post.author.profileImage}`} 
                             alt={post.author.name}
                             className="w-10 h-10 rounded-full object-cover"
                           />
@@ -2592,7 +2592,7 @@ function CommunityFeedContent() {
                                   <Link href={`/profile/${comment.user?.id}`} className="flex-shrink-0">
                                     {comment.user?.profileImage ? (
                                       <img 
-                                        src={`${process.env.NEXT_PUBLIC_API_URL}${comment.user.profileImage}`} 
+                                        src={comment.user.profileImage.startsWith('http') ? comment.user.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${comment.user.profileImage}`} 
                                         alt={comment.user.name}
                                         className="w-8 h-8 rounded-full object-cover hover:opacity-80 transition"
                                       />
@@ -2739,7 +2739,7 @@ function CommunityFeedContent() {
                                     >
                                       {user.profileImage ? (
                                         <img 
-                                          src={`${process.env.NEXT_PUBLIC_API_URL}${user.profileImage}`}
+                                          src={user.profileImage.startsWith('http') ? user.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${user.profileImage}`}
                                           alt={user.name}
                                           className="w-6 h-6 rounded-full object-cover"
                                         />
@@ -2756,7 +2756,7 @@ function CommunityFeedContent() {
                             </div>
                             {userProfile?.profileImage ? (
                               <img 
-                                src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
+                                src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                                 alt={userProfile.name || 'User'}
                                 className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                               />
@@ -2947,7 +2947,7 @@ function CommunityFeedContent() {
                         <Link href={`/profile/${member.userId}`} className="flex-shrink-0">
                           {member.profileImage ? (
                             <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL}${member.profileImage}`}
+                              src={member.profileImage.startsWith('http') ? member.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${member.profileImage}`}
                               alt={member.name}
                               className="w-10 h-10 rounded-full object-cover hover:opacity-80 transition"
                             />

@@ -435,7 +435,7 @@ function CommunityPreviewContent() {
                 >
                   {userProfile?.profileImage ? (
                     <img
-                      src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
+                      src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                       alt={userProfile.name || 'User'}
                       className="w-10 h-10 rounded-full object-cover"
                     />
@@ -519,7 +519,7 @@ function CommunityPreviewContent() {
                 <div className="flex justify-center mb-3">
                   {ownerData?.profileImage ? (
                     <img
-                      src={`${process.env.NEXT_PUBLIC_API_URL}${ownerData.profileImage}`}
+                      src={ownerData.profileImage.startsWith('http') ? ownerData.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${ownerData.profileImage}`}
                       alt={ownerData.name}
                       className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
                     />

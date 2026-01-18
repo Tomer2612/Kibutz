@@ -225,7 +225,7 @@ export default function LeaderboardPage() {
               >
                 {userProfile?.profileImage ? (
                   <img
-                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
+                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -318,7 +318,7 @@ export default function LeaderboardPage() {
                   <Link href={`/profile/${member.userId}`}>
                     {member.profileImage ? (
                       <img
-                        src={`${process.env.NEXT_PUBLIC_API_URL}${member.profileImage}`}
+                        src={member.profileImage.startsWith('http') ? member.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${member.profileImage}`}
                         alt={member.name}
                         className="w-12 h-12 rounded-full object-cover border-2 border-white shadow hover:opacity-80 transition"
                       />

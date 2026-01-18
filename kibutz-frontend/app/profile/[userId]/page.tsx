@@ -366,7 +366,7 @@ export default function MemberProfilePage() {
               >
                 {currentUserProfile?.profileImage ? (
                   <img
-                    src={`${process.env.NEXT_PUBLIC_API_URL}${currentUserProfile.profileImage}`}
+                    src={currentUserProfile.profileImage.startsWith('http') ? currentUserProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${currentUserProfile.profileImage}`}
                     alt={currentUserProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -491,7 +491,7 @@ export default function MemberProfilePage() {
             {/* Profile Picture */}
             {profile?.profileImage ? (
               <img
-                src={`${process.env.NEXT_PUBLIC_API_URL}${profile.profileImage}`}
+                src={profile.profileImage.startsWith('http') ? profile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${profile.profileImage}`}
                 alt={profile.name}
                 className="w-36 h-36 rounded-full object-cover border-4 border-white shadow-lg"
               />

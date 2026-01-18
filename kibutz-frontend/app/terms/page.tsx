@@ -115,7 +115,7 @@ export default function TermsPage() {
               >
                 {userProfile?.profileImage ? (
                   <img 
-                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
+                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />

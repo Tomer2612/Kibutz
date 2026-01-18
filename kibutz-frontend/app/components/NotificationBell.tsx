@@ -362,7 +362,7 @@ export default function NotificationBell() {
                         >
                           {actor?.profileImage ? (
                             <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL}${actor.profileImage}`}
+                              src={actor.profileImage.startsWith('http') ? actor.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${actor.profileImage}`}
                               alt={actor.name}
                               className="w-9 h-9 rounded-full object-cover"
                             />

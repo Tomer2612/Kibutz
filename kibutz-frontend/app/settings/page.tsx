@@ -224,7 +224,7 @@ export default function SettingsPage() {
           setBio(data.bio || '');
           setLocation(data.location || '');
           if (data.profileImage) {
-            setImagePreview(`${process.env.NEXT_PUBLIC_API_URL}${data.profileImage}`);
+            setImagePreview(data.profileImage.startsWith('http') ? data.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${data.profileImage}`);
           }
         })
         .catch(console.error)
@@ -324,7 +324,7 @@ export default function SettingsPage() {
       setProfileImage(null);
       
       if (updatedProfile.profileImage) {
-        setImagePreview(`${process.env.NEXT_PUBLIC_API_URL}${updatedProfile.profileImage}`);
+        setImagePreview(updatedProfile.profileImage.startsWith('http') ? updatedProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${updatedProfile.profileImage}`);
       }
       
       // Redirect to profile page after successful save

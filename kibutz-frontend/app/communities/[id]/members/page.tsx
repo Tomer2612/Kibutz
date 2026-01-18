@@ -387,7 +387,7 @@ export default function CommunityMembersPage() {
               >
                 {userProfile?.profileImage ? (
                   <img
-                    src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
+                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
                     alt={userProfile.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                   />
@@ -476,7 +476,7 @@ export default function CommunityMembersPage() {
                 <Link href={`/profile/${member.id}`} className="relative flex-shrink-0">
                   {member.profileImage ? (
                     <img
-                      src={`${process.env.NEXT_PUBLIC_API_URL}${member.profileImage}`}
+                      src={member.profileImage.startsWith('http') ? member.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${member.profileImage}`}
                       alt={member.name}
                       className="w-12 h-12 rounded-full object-cover hover:opacity-80 transition"
                     />
@@ -572,7 +572,7 @@ export default function CommunityMembersPage() {
                     <div className="relative flex-shrink-0">
                       {ban.user.profileImage ? (
                         <img
-                          src={`${process.env.NEXT_PUBLIC_API_URL}${ban.user.profileImage}`}
+                          src={ban.user.profileImage.startsWith('http') ? ban.user.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${ban.user.profileImage}`}
                           alt={ban.user.name}
                           className="w-12 h-12 rounded-full object-cover opacity-50"
                         />

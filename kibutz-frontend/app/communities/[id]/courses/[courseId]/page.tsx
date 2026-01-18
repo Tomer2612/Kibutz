@@ -549,7 +549,7 @@ function CourseViewerContent() {
           <div className="relative">
             <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="relative focus:outline-none">
               {userProfile?.profileImage ? (
-                <img src={`${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`} alt={userProfile.name || 'User'} className="w-10 h-10 rounded-full object-cover" />
+                <img src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`} alt={userProfile.name || 'User'} className="w-10 h-10 rounded-full object-cover" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">{userProfile?.name?.charAt(0) || userEmail.charAt(0).toUpperCase()}</div>
               )}
