@@ -18,6 +18,22 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
         port: '4000',
       },
+      {
+        protocol: 'https',
+        hostname: 'kibutz.co.il',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.kibutz.co.il',
+      },
+      {
+        protocol: 'http',
+        hostname: 'kibutz.co.il',
+      },
+      {
+        protocol: 'http',
+        hostname: 'www.kibutz.co.il',
+      },
     ],
   },
 };
