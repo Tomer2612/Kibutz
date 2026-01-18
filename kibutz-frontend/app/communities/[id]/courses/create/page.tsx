@@ -400,14 +400,25 @@ export default function CreateCoursePage() {
         formData.append('image', course.image);
       }
 
+      console.log('Creating course with:', { title: course.title, description: course.description, communityId });
+      
       const courseRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
+      console.log('Course response status:', courseRes.status);
+      
       if (!courseRes.ok) {
-        throw new Error('Failed to create course');
+        const errorText = await courseRes.text();
+        console.error('Course creation error:', errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.message || 'Failed to create course');
+        } catch {
+          throw new Error(`Failed to create course: ${errorText}`);
+        }
       }
 
       const newCourse = await courseRes.json();
@@ -507,7 +518,8 @@ export default function CreateCoursePage() {
           Kibutz
         </Link>
         <div className="flex items-center gap-3">
-          <NotificationBell />
+          {mounted && <NotificationBell />}
+          {mounted ? (
           <div className="relative">
             <button
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
@@ -571,6 +583,9 @@ export default function CreateCoursePage() {
             </>
           )}
           </div>
+          ) : (
+            <div className="w-10 h-10" />
+          )}
         </div>
       </header>
 
@@ -643,7 +658,6 @@ export default function CreateCoursePage() {
                     }`}
                     placeholder="תאר את הקורס בכמה משפטים..."
                     maxLength={MAX_DESCRIPTION_LENGTH}
-                    style={{ direction: 'ltr' }}
                   />
                   <div className="flex justify-between mt-1">
                     {errors.description && <span className="text-xs text-red-500">{errors.description}</span>}
@@ -997,7 +1011,6 @@ export default function CreateCoursePage() {
                                       rows={3}
                                       className="w-full p-2 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 text-right"
                                       placeholder="תוכן טקסט לשיעור..."
-                                      style={{ direction: 'ltr' }}
                                     />
                                   </div>
                                   

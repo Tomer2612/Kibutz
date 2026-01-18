@@ -50,8 +50,8 @@ const hebrewMonths = [
   'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'
 ];
 
-// Years range
-const years = Array.from({ length: 20 }, (_, i) => getYear(new Date()) - 5 + i);
+// Years range - only current year and future (for event creation)
+const years = Array.from({ length: 10 }, (_, i) => getYear(new Date()) + i);
 
 // Generate time options with 15-minute intervals
 const generateTimeOptions = () => {
@@ -163,7 +163,13 @@ function DateInput({
       const year = parseInt(digitsOnly.slice(4, 8));
       const currentYear = new Date().getFullYear();
       
-      if (isValidDate(day, month, year) && year >= currentYear - 5 && year <= currentYear + 14) {
+      // Check if date is valid and not in the past
+      const enteredDate = new Date(year, month - 1, day);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isPastDate = enteredDate < today;
+      
+      if (isValidDate(day, month, year) && year >= currentYear && year <= currentYear + 10 && !isPastDate) {
         const isoDate = `${year}-${digitsOnly.slice(2, 4)}-${digitsOnly.slice(0, 2)}`;
         onChange(isoDate, formatted);
       } else {
@@ -197,9 +203,11 @@ function DateInput({
 function TimePicker({
   value,
   onChange,
+  selectedDate,
 }: {
   value: string;
   onChange: (time: string) => void;
+  selectedDate?: string; // ISO date string to filter past times on today
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -296,22 +304,32 @@ function TimePicker({
             ref={dropdownRef}
             className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
           >
-            {timeOptions.map((time) => (
-              <button
-                key={time}
-                type="button"
-                onClick={() => {
-                  onChange(time);
-                  setInputValue(time);
-                  setIsOpen(false);
-                }}
-                className={`w-full px-4 py-2 text-right hover:bg-gray-100 transition ${
-                  value === time ? 'bg-black text-white hover:bg-black' : 'text-black'
-                }`}
-              >
-                {time}
-              </button>
-            ))}
+            {timeOptions.map((time) => {
+              // Check if this time is in the past (only for today)
+              const isToday = selectedDate === new Date().toISOString().split('T')[0];
+              const now = new Date();
+              const [hours, minutes] = time.split(':').map(Number);
+              const isPastTime = isToday && (hours < now.getHours() || (hours === now.getHours() && minutes <= now.getMinutes()));
+              
+              if (isPastTime) return null;
+              
+              return (
+                <button
+                  key={time}
+                  type="button"
+                  onClick={() => {
+                    onChange(time);
+                    setInputValue(time);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full px-4 py-2 text-right hover:bg-gray-100 transition ${
+                    value === time ? 'bg-black text-white hover:bg-black' : 'text-black'
+                  }`}
+                >
+                  {time}
+                </button>
+              );
+            })}
           </div>
         </>
       )}
@@ -736,34 +754,44 @@ function EventsPageContent() {
       const isToday = new Date().toDateString() === date.toDateString();
       const isSelected = selectedDate?.toDateString() === date.toDateString();
       
+      // Check if this day is in the past
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isPastDay = date < today;
+      
       days.push(
         <div
           key={day}
           onClick={() => setSelectedDate(date)}
           onDoubleClick={() => {
-            if (isManager) {
+            if (isManager && !isPastDay) {
               // Create date at noon to avoid timezone issues
               const eventDate = new Date(year, month, day, 12, 0, 0);
               setAddEventDate(eventDate);
               setShowAddModal(true);
             }
           }}
-          className={`h-24 p-1 cursor-pointer transition hover:bg-gray-50 ${
+          className={`h-24 p-1 transition ${isPastDay ? 'bg-gray-100 cursor-default' : 'cursor-pointer hover:bg-gray-50'} ${
             isSelected ? 'bg-gray-200' : isToday ? 'bg-blue-50' : ''
           } ${isSelected ? 'border-2 border-black' : 'border border-gray-100'}`}
         >
-          <div className={`text-sm font-medium mb-1 pr-2 pt-1 ${isToday && !isSelected ? 'text-blue-600' : 'text-gray-700'}`}>
+          <div className={`text-sm font-medium mb-1 pr-2 pt-1 ${
+            isPastDay ? 'text-gray-400' : isToday && !isSelected ? 'text-blue-600' : 'text-gray-700'
+          }`}>
             {day}
           </div>
           <div className="space-y-0.5">
-            {dayEvents.slice(0, 2).map(event => (
-              <div
-                key={event.id}
-                className={`text-xs px-1 py-0.5 rounded truncate ${getEventStyle(event)}`}
-              >
-                {formatTime(event.date)} {event.title}
-              </div>
-            ))}
+            {dayEvents.slice(0, 2).map(event => {
+              const isEventPast = new Date(event.date) < new Date();
+              return (
+                <div
+                  key={event.id}
+                  className={`text-xs px-1 py-0.5 rounded truncate ${isEventPast ? 'bg-gray-200 text-gray-400 opacity-60' : getEventStyle(event)}`}
+                >
+                  {formatTime(event.date)} {event.title}
+                </div>
+              );
+            })}
             {dayEvents.length > 2 && (
               <div className="text-xs text-gray-500 px-1">
                 +{dayEvents.length - 2} נוספים
@@ -1272,6 +1300,9 @@ function EventCard({
   compact?: boolean;
 }) {
   const [showMenu, setShowMenu] = useState(false);
+  
+  // Check if event is in the past
+  const isPastEvent = new Date(event.date) < new Date();
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -1301,9 +1332,20 @@ function EventCard({
   const isLoading = rsvpLoading === event.id;
 
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden ${compact ? '' : 'hover:shadow-md transition'} relative`}>
+    <div className={`rounded-xl border overflow-hidden relative ${
+      isPastEvent 
+        ? 'bg-gray-100 border-gray-300 opacity-50 grayscale pointer-events-none' 
+        : 'bg-white border-gray-200 hover:shadow-md transition'
+    } ${compact ? '' : ''}`}>
+      {/* Past Event Badge */}
+      {isPastEvent && (
+        <div className="absolute top-2 left-2 z-10 bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full border border-gray-300">
+          אירוע שעבר
+        </div>
+      )}
+      
       {/* Manager Menu */}
-      {isManager && (
+      {isManager && !isPastEvent && (
         <div className="absolute top-2 left-2 z-10">
           <button
             onClick={() => setShowMenu(!showMenu)}
@@ -1320,20 +1362,20 @@ function EventCard({
                     setShowMenu(false);
                     onEdit?.(event);
                   }}
-                  className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 justify-end"
                 >
-                  <FaPen className="w-3 h-3" />
                   ערוך
+                  <FaPen className="w-3 h-3" />
                 </button>
                 <button
                   onClick={() => {
                     setShowMenu(false);
                     onDelete?.(event.id);
                   }}
-                  className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                  className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 justify-end"
                 >
-                  <FaTrashAlt className="w-3 h-3" />
                   מחק
+                  <FaTrashAlt className="w-3 h-3" />
                 </button>
               </div>
             </>
@@ -1483,6 +1525,7 @@ function AddEventModal({
   onSuccess: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(initialDate ? initialDate.toISOString().split('T')[0] : '');
@@ -1516,14 +1559,24 @@ function AddEventModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    
     if (!title || !date || !time) {
-      alert('אנא מלאו את כל השדות הנדרשים');
+      setError('אנא מלאו את כל השדות הנדרשים');
+      return;
+    }
+
+    // Validate that the event is not in the past
+    const eventDateTime = new Date(`${date}T${time}`);
+    const now = new Date();
+    if (eventDateTime < now) {
+      setError('לא ניתן ליצור אירוע בשעה שעברה');
       return;
     }
 
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('אנא התחברו');
+      setError('אנא התחברו');
       return;
     }
 
@@ -1617,6 +1670,7 @@ function AddEventModal({
                         setDate(d ? d.toISOString().split('T')[0] : '');
                         setShowDatePicker(false);
                       }}
+                      minDate={new Date()}
                       inline
                       locale="he"
                       formatWeekDay={formatWeekDay}
@@ -1675,7 +1729,7 @@ function AddEventModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">שעה <span className="text-red-500">*</span></label>
-              <TimePicker value={time} onChange={setTime} />
+              <TimePicker value={time} onChange={setTime} selectedDate={date} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">משך</label>
@@ -1795,7 +1849,6 @@ function AddEventModal({
               rows={3}
               maxLength={300}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none text-black text-right"
-              style={{ direction: 'ltr' }}
             />
             <div className="text-xs text-gray-400 text-left mt-1">{description.length} / 300</div>
           </div>
@@ -1895,6 +1948,13 @@ function AddEventModal({
             )}
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-gray-100">
             <button
@@ -1932,6 +1992,7 @@ function EditEventModal({
   onSuccess: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const eventDate = new Date(event.date);
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description || '');
@@ -1964,15 +2025,24 @@ function EditEventModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
     if (!title || !date || !time) {
-      alert('אנא מלאו את כל השדות הנדרשים');
+      setError('אנא מלאו את כל השדות הנדרשים');
+      return;
+    }
+
+    // Validate that the event is not in the past
+    const eventDateTime = new Date(`${date}T${time}`);
+    const now = new Date();
+    if (eventDateTime < now) {
+      setError('לא ניתן לעדכן אירוע לשעה שעברה');
       return;
     }
 
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('אנא התחברו');
+      setError('אנא התחברו');
       return;
     }
 
@@ -2066,6 +2136,7 @@ function EditEventModal({
                         setDate(d ? d.toISOString().split('T')[0] : '');
                         setShowDatePicker(false);
                       }}
+                      minDate={new Date()}
                       inline
                       locale="he"
                       formatWeekDay={formatWeekDay}
@@ -2124,7 +2195,7 @@ function EditEventModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">שעה <span className="text-red-500">*</span></label>
-              <TimePicker value={time} onChange={setTime} />
+              <TimePicker value={time} onChange={setTime} selectedDate={date} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">משך</label>
@@ -2244,7 +2315,6 @@ function EditEventModal({
               rows={3}
               maxLength={300}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none text-black text-right"
-              style={{ direction: 'ltr' }}
             />
             <div className="text-xs text-gray-400 text-left mt-1">{description.length} / 300</div>
           </div>
@@ -2343,6 +2413,13 @@ function EditEventModal({
               </select>
             )}
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-gray-100">

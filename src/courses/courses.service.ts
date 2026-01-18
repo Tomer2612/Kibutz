@@ -17,18 +17,21 @@ export class CoursesService {
     communityId: string;
     authorId: string;
   }) {
+    // Resolve slug to actual community ID
+    const communityId = await this.communitiesService.resolveId(data.communityId);
+    
     // Verify user is owner/manager of community
     const membership = await this.prisma.communityMember.findUnique({
       where: {
         userId_communityId: {
           userId: data.authorId,
-          communityId: data.communityId,
+          communityId: communityId,
         },
       },
     });
 
     const community = await this.prisma.community.findUnique({
-      where: { id: data.communityId },
+      where: { id: communityId },
     });
 
     if (!community) {
@@ -47,7 +50,7 @@ export class CoursesService {
         title: data.title,
         description: data.description,
         image: data.image,
-        communityId: data.communityId,
+        communityId: communityId,
         authorId: data.authorId,
         isPublished: true, // Publish by default
       },
@@ -181,7 +184,7 @@ export class CoursesService {
           select: { id: true, name: true, profileImage: true },
         },
         community: {
-          select: { id: true, name: true, ownerId: true },
+          select: { id: true, name: true, ownerId: true, logo: true },
         },
         chapters: {
           include: {

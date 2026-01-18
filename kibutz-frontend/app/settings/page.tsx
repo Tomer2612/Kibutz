@@ -796,7 +796,6 @@ export default function SettingsPage() {
                       maxLength={300}
                       rows={5}
                       className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black text-sm resize-none overflow-y-auto text-right"
-                      style={{ direction: 'ltr' }}
                     />
                     <span className="absolute left-3 bottom-3 text-xs text-gray-400">{bio.length}/300</span>
                   </div>

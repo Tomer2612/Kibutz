@@ -527,7 +527,7 @@ function CourseViewerContent() {
           ) : (
             <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center"><FaUsers className="w-4 h-4 text-gray-400" /></div>
           )}
-          <Link href={`/communities/${communityId}/feed`} className="font-medium text-black hover:underline">{course.community.name}</Link>
+          <span className="font-medium text-black">{course.community.name}</span>
         </div>
       </div>
       <nav className="flex items-center gap-4">
@@ -544,8 +544,8 @@ function CourseViewerContent() {
         ))}
       </nav>
       <div className="flex items-center gap-3">
-        {userEmail && <NotificationBell />}
-        {userEmail ? (
+        {mounted && userEmail && <NotificationBell />}
+        {mounted && userEmail ? (
           <div className="relative">
             <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="relative focus:outline-none">
               {userProfile?.profileImage ? (
@@ -567,8 +567,10 @@ function CourseViewerContent() {
               </>
             )}
           </div>
-        ) : (
+        ) : mounted ? (
           <Link href="/login" className="px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-800 transition">התחברות</Link>
+        ) : (
+          <div className="w-10 h-10" />
         )}
       </div>
     </header>

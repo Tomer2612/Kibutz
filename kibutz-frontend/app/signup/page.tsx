@@ -246,10 +246,10 @@ function SignupContent() {
       if (res.ok) {
         setMessage('מייל אימות נשלח שוב!');
       } else {
-        setMessage('שגיאה בשליחת המייל');
+        setMessage('שגיאה בשליחת מייל');
       }
     } catch (error) {
-      setMessage('שגיאה בשליחת המייל');
+      setMessage('שגיאה בשליחת מייל');
     } finally {
       setResending(false);
     }
@@ -283,7 +283,7 @@ function SignupContent() {
             </div>
             
             {message && (
-              <p className="text-sm text-green-600">{message}</p>
+              <p className={`text-sm ${message.includes('שגיאה') ? 'text-red-600' : 'text-green-600'}`}>{message}</p>
             )}
             
             <button

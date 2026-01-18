@@ -900,7 +900,6 @@ export default function ManageCommunityPage() {
                       onChange={(e) => setDescription(e.target.value)}
                       required
                       maxLength={1000}
-                      style={{ direction: 'ltr' }}
                     />
                     <p className="text-sm text-gray-500 mt-1">
                       {description.length}/1000 תווים

@@ -28,6 +28,25 @@ body {
   font-family: var(--font-primary);
 }
 
+/* Make all buttons and interactive elements have pointer cursor by default */
+button,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+label[for],
+select,
+a {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+[disabled] {
+  cursor: not-allowed;
+}
+
 /* Design System Utility Classes */
 .bg-green-light { background-color: var(--color-green-light) !important; }
 .text-green-dark { color: var(--color-green-dark) !important; }

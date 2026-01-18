@@ -726,7 +726,8 @@ export default function EditCoursePage() {
           Kibutz
         </Link>
         <div className="flex items-center gap-3">
-          <NotificationBell />
+          {mounted && <NotificationBell />}
+          {mounted ? (
           <div className="relative">
             <button
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
@@ -790,6 +791,9 @@ export default function EditCoursePage() {
             </>
           )}
           </div>
+          ) : (
+            <div className="w-10 h-10" />
+          )}
         </div>
       </header>
 
@@ -862,7 +866,6 @@ export default function EditCoursePage() {
                       errors.description ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="תאר את הקורס בכמה משפטים..."
-                    style={{ direction: 'ltr' }}
                   />
                   <div className="flex justify-between mt-1">
                     {errors.description && <span className="text-xs text-red-500">{errors.description}</span>}
@@ -1215,7 +1218,6 @@ export default function EditCoursePage() {
                                             rows={3}
                                             className="w-full p-2 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 text-right"
                                             placeholder="תוכן טקסט לשיעור..."
-                                            style={{ direction: 'ltr' }}
                                           />
                                         </div>
                                         

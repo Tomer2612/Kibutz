@@ -1744,7 +1744,6 @@ function CommunityFeedContent() {
                       placeholder="שתפו משהו עם הקהילה..."
                       className="w-full text-right text-gray-600 placeholder-gray-400 focus:outline-none resize-none"
                       rows={3}
-                      style={{ direction: 'ltr' }}
                     />
                   </div>
                 </div>
@@ -2154,7 +2153,6 @@ function CommunityFeedContent() {
                           onChange={(e) => setEditContent(e.target.value)}
                           className="w-full p-3 border border-gray-200 rounded-lg text-right resize-none focus:outline-none focus:ring-2 focus:ring-black"
                           rows={4}
-                          style={{ direction: 'ltr' }}
                         />
                         
                         {/* Attachments in Edit Mode - Full editing */}
