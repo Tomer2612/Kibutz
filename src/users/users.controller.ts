@@ -6,6 +6,14 @@ import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
+// Image file filter - only allow image files
+const imageFileFilter = (req: any, file: Express.Multer.File, cb: any) => {
+  if (!file.mimetype.startsWith('image/')) {
+    return cb(new BadRequestException('אפשר להעלות רק קבצי תמונה'), false);
+  }
+  cb(null, true);
+};
+
 const storage = diskStorage({
   destination: './uploads/profiles',
   filename: (req, file, cb) => {
@@ -52,7 +60,7 @@ export class UsersController {
   @UseInterceptors(FileFieldsInterceptor([
     { name: 'profileImage', maxCount: 1 },
     { name: 'coverImage', maxCount: 1 },
-  ], { storage }))
+  ], { storage, fileFilter: imageFileFilter }))
   async updateProfile(
     @Req() req,
     @Body() body: { name?: string; bio?: string; location?: string },

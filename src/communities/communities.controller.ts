@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req, Param, Put, Patch, Delete, Query, UseInterceptors, UploadedFile, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Param, Put, Patch, Delete, Query, UseInterceptors, UploadedFile, UploadedFiles, BadRequestException } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -6,6 +6,14 @@ import { Throttle } from '@nestjs/throttler';
 import { CommunitiesService } from './communities.service';
 import { AuthGuard } from '@nestjs/passport';
 import { NotificationsService } from '../notifications/notifications.service';
+
+// Image file filter - only allow image files
+const imageFileFilter = (req: any, file: Express.Multer.File, cb: any) => {
+  if (!file.mimetype.startsWith('image/')) {
+    return cb(new BadRequestException('אפשר להעלות רק קבצי תמונה'), false);
+  }
+  cb(null, true);
+};
 
 // Configure multer storage
 const storage = diskStorage({
@@ -32,7 +40,7 @@ export class CommunitiesController {
     { name: 'image', maxCount: 1 },
     { name: 'logo', maxCount: 1 },
     { name: 'galleryImages', maxCount: 10 },
-  ], { storage }))
+  ], { storage, fileFilter: imageFileFilter }))
   create(
     @Req() req,
     @Body() body: any,
@@ -77,7 +85,7 @@ export class CommunitiesController {
     { name: 'image', maxCount: 1 },
     { name: 'logo', maxCount: 1 },
     { name: 'galleryImages', maxCount: 10 },
-  ], { storage }))
+  ], { storage, fileFilter: imageFileFilter }))
   update(
     @Param('id') id: string,
     @Req() req,

@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Headers,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -19,6 +20,14 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import * as jwt from 'jsonwebtoken';
 import { CoursesService } from './courses.service';
+
+// Image file filter - only allow image files
+const imageFileFilter = (req: any, file: Express.Multer.File, cb: any) => {
+  if (!file.mimetype.startsWith('image/')) {
+    return cb(new BadRequestException('אפשר להעלות רק קבצי תמונה'), false);
+  }
+  cb(null, true);
+};
 
 // Helper to extract userId from optional JWT token
 function getUserIdFromToken(authHeader?: string): string | undefined {
@@ -48,6 +57,7 @@ export class CoursesController {
           cb(null, `course-${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),
+      fileFilter: imageFileFilter,
     }),
   )
   async createCourse(
@@ -115,6 +125,7 @@ export class CoursesController {
           cb(null, `course-${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),
+      fileFilter: imageFileFilter,
     }),
   )
   async updateCourse(
@@ -205,6 +216,7 @@ export class CoursesController {
           cb(null, `lesson-${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),
+      fileFilter: imageFileFilter,
     }),
   )
   async uploadLessonImage(

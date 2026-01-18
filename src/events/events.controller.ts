@@ -11,6 +11,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -19,6 +20,14 @@ import { extname } from 'path';
 import { EventsService } from './events.service';
 import { RsvpStatus } from '@prisma/client';
 import { PrismaService } from '../users/prisma.service';
+
+// Image file filter - only allow image files
+const imageFileFilter = (req: any, file: Express.Multer.File, cb: any) => {
+  if (!file.mimetype.startsWith('image/')) {
+    return cb(new BadRequestException('אפשר להעלות רק קבצי תמונה'), false);
+  }
+  cb(null, true);
+};
 
 @Controller('events')
 export class EventsController {
@@ -39,6 +48,7 @@ export class EventsController {
           callback(null, `event-${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),
+      fileFilter: imageFileFilter,
     }),
   )
   async create(
@@ -168,6 +178,7 @@ export class EventsController {
           callback(null, `event-${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),
+      fileFilter: imageFileFilter,
     }),
   )
   async update(
