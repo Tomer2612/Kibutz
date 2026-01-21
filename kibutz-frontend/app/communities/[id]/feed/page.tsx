@@ -2,7 +2,6 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import {
   FaPlus,
@@ -22,19 +21,32 @@ import {
   FaFilePdf,
   FaCheck,
   FaExternalLinkAlt,
-  FaCog,
-  FaSignOutAlt,
-  FaSearch,
   FaThumbtack,
   FaTrophy,
   FaMedal,
   FaPoll,
-  FaCalendarAlt,
   FaVideo,
   FaMapMarkerAlt,
   FaUser,
 } from 'react-icons/fa';
-import NotificationBell from '../../../components/NotificationBell';
+import { useCommunityContext } from '../CommunityContext';
+import FormSelect from '../../../components/FormSelect';
+import FilterDropdown from '../../../components/FilterDropdown';
+import SearchXIcon from '../../../components/SearchXIcon';
+import ClipboardCheckIcon from '../../../components/ClipboardCheckIcon';
+import CalendarIcon from '../../../components/CalendarIcon';
+import AwardIcon from '../../../components/AwardIcon';
+import CheckIcon from '../../../components/CheckIcon';
+import UsersIcon from '../../../components/UsersIcon';
+import CloseIcon from '../../../components/CloseIcon';
+import TrashCircleIcon from '../../../components/TrashCircleIcon';
+import TrashIcon from '../../../components/TrashIcon';
+import MoreDotsIcon from '../../../components/MoreDotsIcon';
+import BookmarkIcon from '../../../components/BookmarkIcon';
+import BookmarkFilledIcon from '../../../components/BookmarkFilledIcon';
+import HeartIcon from '../../../components/HeartIcon';
+import HeartFilledIcon from '../../../components/HeartFilledIcon';
+import CommentIcon from '../../../components/CommentIcon';
 
 interface Community {
   id: string;
@@ -109,13 +121,6 @@ const POST_CATEGORIES = [
   { value: 'פרסום', label: 'פרסום', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
 ];
 
-interface JwtPayload {
-  email: string;
-  sub: string;
-  iat: number;
-  exp: number;
-}
-
 interface TopMember {
   rank: number;
   userId: string;
@@ -142,15 +147,12 @@ function CommunityFeedContent() {
   const communityId = params.id as string;
 
   const [mounted, setMounted] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [community, setCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostTitle, setNewPostTitle] = useState('');
-  const [newPostCategory, setNewPostCategory] = useState<string>('');
+  const [newPostCategory, setNewPostCategory] = useState<string>('הודעות');
   const [newPostImages, setNewPostImages] = useState<File[]>([]);
   const [newPostFiles, setNewPostFiles] = useState<File[]>([]);
   const [newPostLinks, setNewPostLinks] = useState<string[]>([]);
@@ -182,11 +184,19 @@ function CommunityFeedContent() {
   const [imagesToRemove, setImagesToRemove] = useState<string[]>([]);
   const [filesToRemove, setFilesToRemove] = useState<string[]>([]);
   const [linksToRemove, setLinksToRemove] = useState<string[]>([]);
+  const [pollToRemove, setPollToRemove] = useState(false);
+  const [editPollQuestion, setEditPollQuestion] = useState('');
+  const [editPollOptions, setEditPollOptions] = useState<{ id: string; text: string }[]>([]);
+  const [showEditPollCreator, setShowEditPollCreator] = useState(false);
+  const [newEditPollQuestion, setNewEditPollQuestion] = useState('');
+  const [newEditPollOptions, setNewEditPollOptions] = useState<string[]>(['', '']);
   const [menuOpenPostId, setMenuOpenPostId] = useState<string | null>(null);
   
   // Filter state
   const [showSavedOnly, setShowSavedOnly] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Get searchQuery and user data from layout context
+  const { searchQuery, setSearchQuery, userEmail, userId, userProfile, isOwner, isManager, isMember: contextIsMember, community: layoutCommunity } = useCommunityContext();
   
   // Comments state
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
@@ -217,9 +227,7 @@ function CommunityFeedContent() {
   const [votingPollId, setVotingPollId] = useState<string | null>(null);
   
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [isMember, setIsMember] = useState<boolean | null>(null);
-  const [isOwner, setIsOwner] = useState(false);
-  const [isManager, setIsManager] = useState(false);
+  const [isMember, setIsMember] = useState<boolean | null>(contextIsMember);
   const [, setCanEdit] = useState(false);
   const [, setCanDelete] = useState(false);
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
@@ -274,44 +282,17 @@ function CommunityFeedContent() {
   useEffect(() => {
     setMounted(true);
 
-    // Read cached profile immediately
-    const cached = localStorage.getItem('userProfileCache');
-    if (cached) {
-      try { setUserProfile(JSON.parse(cached)); } catch {}
-    }
-
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
-      try {
-        const decoded = jwtDecode<JwtPayload>(token);
-        setUserEmail(decoded.email);
-        setUserId(decoded.sub);
-        
-        // Fetch user profile and memberships
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` }
+      // Fetch user's community memberships
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/user/memberships`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+          setUserMemberships(data);
         })
-          .then(res => res.ok ? res.json() : null)
-          .then(data => {
-            if (data) {
-              const profile = { name: data.name, profileImage: data.profileImage };
-              setUserProfile(profile);
-              localStorage.setItem('userProfileCache', JSON.stringify(profile));
-            }
-          });
-        
-        // Fetch user's community memberships
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/user/memberships`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-          .then(res => res.ok ? res.json() : [])
-          .then(data => {
-            setUserMemberships(data);
-          })
-          .catch(console.error);
-      } catch (e) {
-        console.error('Invalid token:', e);
-      }
+        .catch(console.error);
     }
   }, []);
 
@@ -352,8 +333,6 @@ function CommunityFeedContent() {
           if (membershipRes.ok) {
             const membershipData = await membershipRes.json();
             setIsMember(membershipData.isMember);
-            setIsOwner(membershipData.isOwner || false);
-            setIsManager(membershipData.isManager || false);
             setCanEdit(membershipData.canEdit || false);
             setCanDelete(membershipData.canDelete || false);
             
@@ -371,8 +350,6 @@ function CommunityFeedContent() {
         } else {
           // Not logged in - can't be a member
           setIsMember(false);
-          setIsOwner(false);
-          setIsManager(false);
           setCanEdit(false);
           setCanDelete(false);
           const communityRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`);
@@ -588,6 +565,19 @@ function CommunityFeedContent() {
       return;
     }
 
+    // Validate poll if poll creator is open
+    if (showPollCreator) {
+      if (!pollQuestion.trim()) {
+        alert('נא להזין שאלה לסקר');
+        return;
+      }
+      const validOptions = pollOptions.filter(o => o.trim());
+      if (validOptions.length < 2) {
+        alert('נא להזין לפחות 2 אפשרויות לסקר');
+        return;
+      }
+    }
+
     const token = localStorage.getItem('token');
     if (!token) {
       alert('אנא התחברו כדי לפרסם פוסט');
@@ -653,7 +643,7 @@ function CommunityFeedContent() {
       setPosts((prev) => [newPost, ...prev]);
       setNewPostContent('');
       setNewPostTitle('');
-      setNewPostCategory('');
+      setNewPostCategory('הודעות');
       setNewPostImages([]);
       setNewPostFiles([]);
       setNewPostLinks([]);
@@ -674,10 +664,15 @@ function CommunityFeedContent() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    const inputAccept = e.target.accept;
     
     for (const file of files) {
-      if (file.type.startsWith('image/')) {
-        // Check image limit
+      // If image input, only accept images
+      if (inputAccept?.includes('image/*')) {
+        if (!file.type.startsWith('image/')) {
+          alert('נא להעלות רק קבצי תמונה');
+          continue;
+        }
         if (newPostImages.length >= 5) {
           alert('ניתן להעלות עד 5 תמונות');
           continue;
@@ -690,7 +685,11 @@ function CommunityFeedContent() {
         };
         reader.readAsDataURL(file);
       } else {
-        // Check file limit
+        // File input - don't accept images
+        if (file.type.startsWith('image/')) {
+          alert('להעלאת תמונות השתמשו בכפתור התמונות');
+          continue;
+        }
         if (newPostFiles.length >= 5) {
           alert('ניתן להעלות עד 5 קבצים');
           continue;
@@ -714,10 +713,40 @@ function CommunityFeedContent() {
     setFilePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  const isValidUrl = (string: string) => {
+    try {
+      const url = new URL(string);
+      // Must be http or https
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return false;
+      }
+      // Allow localhost for development
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        return true;
+      }
+      // Must have a valid hostname (at least one dot for domain)
+      if (!url.hostname || !url.hostname.includes('.')) {
+        return false;
+      }
+      // Hostname should not be just numbers (unless IP)
+      const isIP = /^\d{1,3}(\.\d{1,3}){3}$/.test(url.hostname);
+      if (!isIP && !/[a-zA-Z]/.test(url.hostname)) {
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const addLink = () => {
     if (addingLink) return;
     const trimmedLink = newLinkInput.trim();
     if (trimmedLink) {
+      if (!isValidUrl(trimmedLink)) {
+        alert('נא להזין קישור תקין (כולל https://)');
+        return;
+      }
       if (newPostLinks.length >= 10) {
         alert('ניתן להוסיף עד 10 קישורים');
         return;
@@ -729,6 +758,7 @@ function CommunityFeedContent() {
       setAddingLink(true);
       setNewPostLinks(prev => [...prev, trimmedLink]);
       setNewLinkInput('');
+      setShowLinkInput(false);
       setAddingLink(false);
     }
   };
@@ -750,10 +780,15 @@ function CommunityFeedContent() {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
-      if (!res.ok) throw new Error('Failed to toggle like');
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Like toggle failed:', res.status, errorText);
+        throw new Error('Failed to toggle like');
+      }
       const { liked } = await res.json();
 
       setPosts((prev) =>
@@ -809,6 +844,12 @@ function CommunityFeedContent() {
         formData.append('linksToRemove', JSON.stringify(linksToRemove));
       }
       
+      // Poll updates for existing poll only
+      if (editPollQuestion && editPollOptions.length > 0) {
+        formData.append('pollQuestion', editPollQuestion);
+        formData.append('pollOptions', JSON.stringify(editPollOptions));
+      }
+      
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`, {
         method: 'PATCH',
         headers: {
@@ -819,6 +860,20 @@ function CommunityFeedContent() {
 
       if (!res.ok) throw new Error('Failed to update post');
       const updatedPost = await res.json();
+      
+      // Delete poll if marked for removal
+      if (pollToRemove) {
+        const postToEdit = posts.find(p => p.id === postId);
+        if (postToEdit?.poll) {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/polls/${postToEdit.poll.id}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          updatedPost.poll = null;
+        }
+      }
 
       setPosts((prev) =>
         prev.map((post) => (post.id === postId ? { 
@@ -851,6 +906,12 @@ function CommunityFeedContent() {
     setImagesToRemove([]);
     setFilesToRemove([]);
     setLinksToRemove([]);
+    setPollToRemove(false);
+    setEditPollQuestion('');
+    setEditPollOptions([]);
+    setShowEditPollCreator(false);
+    setNewEditPollQuestion('');
+    setNewEditPollOptions(['', '']);
   };
 
   const handleEditFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1263,6 +1324,44 @@ function CommunityFeedContent() {
     }
   };
 
+  // Delete poll handler
+  const handleDeletePoll = async (pollId: string, postId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('אנא התחברו כדי למחוק סקר');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/polls/${pollId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        // Remove poll from the post
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === postId ? { ...p, poll: null } : p
+          )
+        );
+        // Reset poll creator state so user can create a new poll
+        setEditPollQuestion('');
+        setEditPollOptions([]);
+        setShowEditPollCreator(false);
+        setNewEditPollQuestion('');
+        setNewEditPollOptions(['', '']);
+      } else {
+        alert('שגיאה במחיקת הסקר');
+      }
+    } catch (err) {
+      console.error('Delete poll error:', err);
+      alert('שגיאה במחיקת הסקר');
+    }
+  };
+
   // Delete comment handler
   const handleDeleteComment = async (commentId: string, postId: string) => {
     const token = localStorage.getItem('token');
@@ -1355,259 +1454,78 @@ function CommunityFeedContent() {
 
   return (
     <main className="min-h-screen bg-gray-100 text-right">
-      {/* Header */}
-      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        {/* Right side of screen (RTL first): Kibutz Logo + Community name */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-            Kibutz
-          </Link>
-          <div className="flex items-center gap-2">
-            {community?.logo ? (
-              <img
-                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
-                alt={community.name}
-                className="w-8 h-8 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                <FaUsers className="w-4 h-4 text-gray-400" />
-              </div>
-            )}
-            <span className="font-medium text-black">{community?.name}</span>
-          </div>
-        </div>
-
-        {/* Center: Nav links */}
-        <nav className="flex items-center gap-4">
-          {[
-            { label: 'עמוד בית', href: `/communities/${communityId}/feed`, active: true },
-            { label: 'קורסים', href: `/communities/${communityId}/courses` },
-            { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן אירועים', href: `/communities/${communityId}/events` },
-            { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
-            { label: 'אודות', href: `/communities/${communityId}/about` },
-            ...((isOwner || isManager) ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] : []),
-          ].map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className={`text-sm transition px-3 py-1.5 rounded-full ${
-                link.active
-                  ? 'bg-gray-200 text-black font-medium'
-                  : 'text-gray-500 hover:text-black hover:bg-gray-50'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Left side of screen (RTL last): Search + User Avatar */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="חיפוש"
-              className="pl-4 pr-10 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:border-gray-400 w-32"
-            />
-          </div>
-          
-          {/* Notification Bell */}
-          {userEmail && <NotificationBell />}
-          
-          {/* User Avatar with Dropdown */}
-          {userEmail && (
-            <div className="relative">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="relative focus:outline-none"
-              >
-                {userProfile?.profileImage ? (
-                  <img 
-                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
-                    alt={userProfile.name || 'User'}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                    {userProfile?.name?.charAt(0) || userEmail.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-              </button>
-              
-              {/* Dropdown Menu */}
-              {profileMenuOpen && (
-                <>
-                  {/* Backdrop to close menu */}
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setProfileMenuOpen(false)}
-                  />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        if (userId) router.push(`/profile/${userId}`);
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaUser className="w-4 h-4" />
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        router.push('/settings');
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaCog className="w-4 h-4" />
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('userProfileCache');
-                        router.push('/');
-                        location.reload();
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
-                    >
-                      <FaSignOutAlt className="w-4 h-4" />
-                      התנתקות
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-
       {/* Main 3-column layout - only show if member */}
       {isMember !== false && (
       <section className="flex">
         {/* LEFT: Fixed sidebar attached to left edge */}
-        <div className="hidden lg:block w-[240px] flex-shrink-0 bg-white border-l border-gray-200 min-h-[calc(100vh-64px)]">
+        <div className="hidden lg:block w-[240px] flex-shrink-0 bg-white border-l border-gray-200 min-h-[calc(100vh-64px)]" style={{ padding: '16px' }}>
           {/* Recent Posts button */}
-          <div className="p-2">
+          <div className="mb-2">
             <button 
               onClick={() => setShowSavedOnly(false)}
               className={`w-full px-4 py-3 flex items-center gap-3 rounded-xl ${
                 !showSavedOnly 
-                  ? 'bg-gray-900 text-white' 
+                  ? 'bg-gray-950 text-white' 
                   : 'bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="3" y="3" width="7" height="7" rx="1.5" opacity="1"/>
-                <rect x="14" y="3" width="7" height="7" rx="1.5" opacity="0.6"/>
-                <rect x="3" y="14" width="7" height="7" rx="1.5" opacity="0.6"/>
-                <rect x="14" y="14" width="7" height="7" rx="1.5" opacity="0.3"/>
+              <svg 
+                viewBox="0 0 16 16" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4 flex-shrink-0"
+              >
+                <path 
+                  d="M4.66675 1.33203H11.3334" 
+                  stroke="currentColor" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+                <path 
+                  d="M3.33325 4H12.6666" 
+                  stroke="currentColor" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+                <path 
+                  d="M12.6667 6.66797H3.33333C2.59695 6.66797 2 7.26492 2 8.0013V13.3346C2 14.071 2.59695 14.668 3.33333 14.668H12.6667C13.403 14.668 14 14.071 14 13.3346V8.0013C14 7.26492 13.403 6.66797 12.6667 6.66797Z" 
+                  stroke="currentColor" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
               </svg>
-              <span className="text-sm font-medium">פוסטים אחרונים</span>
+              <span style={{ fontSize: '16px' }} className="font-normal">פוסטים אחרונים</span>
             </button>
           </div>
 
           {/* Saved Posts button */}
           {userEmail && (
-            <div className="px-2 pb-2">
+            <div className="mb-2">
               <button 
                 onClick={() => setShowSavedOnly(true)}
                 className={`w-full px-4 py-3 flex items-center gap-3 rounded-xl ${
                   showSavedOnly 
-                    ? 'bg-gray-900 text-white' 
+                    ? 'bg-gray-950 text-white' 
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <FaBookmark className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm font-medium">פוסטים שמורים</span>
+                <svg 
+                  viewBox="0 0 16 16" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4 flex-shrink-0"
+                >
+                  <path 
+                    d="M12.6666 14L7.99992 11.3333L3.33325 14V3.33333C3.33325 2.97971 3.47373 2.64057 3.72378 2.39052C3.97382 2.14048 4.31296 2 4.66659 2H11.3333C11.6869 2 12.026 2.14048 12.2761 2.39052C12.5261 2.64057 12.6666 2.97971 12.6666 3.33333V14Z" 
+                    stroke="currentColor" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span style={{ fontSize: '16px' }} className="font-normal">פוסטים שמורים</span>
               </button>
             </div>
           )}
-
-          {/* Category filter pills */}
-          <div className="px-4 py-3 border-t border-b border-gray-200">
-            <h3 className="font-semibold text-gray-900 text-xs mb-2">סינון לפי קטגוריה</h3>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setCategoryFilter('')}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
-                  categoryFilter === '' 
-                    ? 'bg-gray-900 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                הכל
-              </button>
-              {POST_CATEGORIES.map(cat => (
-                <button
-                  key={cat.value}
-                  onClick={() => setCategoryFilter(cat.value)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
-                    categoryFilter === cat.value 
-                      ? cat.color + ' ring-1 ring-gray-400'
-                      : cat.color + ' opacity-60 hover:opacity-100'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Sorting options */}
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h3 className="font-semibold text-gray-900 text-xs mb-2">מיון לפי</h3>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setSortBy('newest')}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
-                  sortBy === 'newest' 
-                    ? 'bg-gray-900 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                חדש ביותר
-              </button>
-              <button
-                onClick={() => setSortBy('oldest')}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
-                  sortBy === 'oldest' 
-                    ? 'bg-gray-900 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                ישן ביותר
-              </button>
-              <button
-                onClick={() => setSortBy('mostLiked')}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
-                  sortBy === 'mostLiked' 
-                    ? 'bg-gray-900 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                הכי אהוב
-              </button>
-              <button
-                onClick={() => setSortBy('mostCommented')}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
-                  sortBy === 'mostCommented' 
-                    ? 'bg-gray-900 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                הכי מדובר
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Main content area */}
@@ -1616,27 +1534,58 @@ function CommunityFeedContent() {
           <div className="lg:hidden mb-4 space-y-2">
             <button 
               onClick={() => setShowSavedOnly(false)}
-              className={`w-full rounded-xl px-4 py-2.5 text-sm flex items-center gap-3 ${
-                !showSavedOnly ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200'
+              className={`w-full rounded-xl px-4 py-2.5 flex items-center gap-3 ${
+                !showSavedOnly ? 'bg-gray-950 text-white' : 'bg-white text-gray-600 border border-gray-200'
               }`}
             >
-              <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="3" y="3" width="7" height="7" rx="1.5" opacity="1"/>
-                <rect x="14" y="3" width="7" height="7" rx="1.5" opacity="0.6"/>
-                <rect x="3" y="14" width="7" height="7" rx="1.5" opacity="0.6"/>
-                <rect x="14" y="14" width="7" height="7" rx="1.5" opacity="0.3"/>
+              <svg 
+                viewBox="0 0 16 16" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4 flex-shrink-0"
+              >
+                <path 
+                  d="M4.66675 1.33203H11.3334" 
+                  stroke="currentColor" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+                <path 
+                  d="M3.33325 4H12.6666" 
+                  stroke="currentColor" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+                <path 
+                  d="M12.6667 6.66797H3.33333C2.59695 6.66797 2 7.26492 2 8.0013V13.3346C2 14.071 2.59695 14.668 3.33333 14.668H12.6667C13.403 14.668 14 14.071 14 13.3346V8.0013C14 7.26492 13.403 6.66797 12.6667 6.66797Z" 
+                  stroke="currentColor" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
               </svg>
-              <span className="font-medium">פוסטים אחרונים</span>
+              <span style={{ fontSize: '16px' }} className="font-normal">פוסטים אחרונים</span>
             </button>
             {userEmail && (
               <button 
                 onClick={() => setShowSavedOnly(true)}
-                className={`w-full rounded-xl px-4 py-2.5 text-sm flex items-center gap-3 ${
-                  showSavedOnly ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200'
+                className={`w-full rounded-xl px-4 py-2.5 flex items-center gap-3 ${
+                  showSavedOnly ? 'bg-gray-950 text-white' : 'bg-white text-gray-600 border border-gray-200'
                 }`}
               >
-                <FaBookmark className="w-4 h-4 flex-shrink-0" />
-                <span className="font-medium">פוסטים שמורים</span>
+                <svg 
+                  viewBox="0 0 16 16" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4 flex-shrink-0"
+                >
+                  <path 
+                    d="M12.6666 14L7.99992 11.3333L3.33325 14V3.33333C3.33325 2.97971 3.47373 2.64057 3.72378 2.39052C3.97382 2.14048 4.31296 2 4.66659 2H11.3333C11.6869 2 12.026 2.14048 12.2761 2.39052C12.5261 2.64057 12.6666 2.97971 12.6666 3.33333V14Z" 
+                    stroke="currentColor" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span style={{ fontSize: '16px' }} className="font-normal">פוסטים שמורים</span>
               </button>
             )}
             <div className="flex flex-wrap gap-1.5 pt-1">
@@ -1705,7 +1654,7 @@ function CommunityFeedContent() {
             {/* Post composer - hide when viewing saved posts */}
             {userEmail && !showSavedOnly && (
               <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-2 mb-3">
                   {userProfile?.profileImage ? (
                     <img 
                       src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
@@ -1721,20 +1670,18 @@ function CommunityFeedContent() {
                     type="text"
                     value={newPostTitle}
                     onChange={(e) => setNewPostTitle(e.target.value)}
-                    placeholder="כותרת (אופציונלי)"
-                    className="flex-1 text-right text-black font-medium placeholder-gray-400 focus:outline-none"
+                    placeholder="כותרת אופציונלית"
+                    className="flex-1 text-right font-normal placeholder-gray-500 focus:outline-none"
+                    style={{ fontSize: '16px', color: '#374151' }}
                   />
                   {/* Category selector */}
-                  <select
+                  <FilterDropdown
                     value={newPostCategory}
-                    onChange={(e) => setNewPostCategory(e.target.value)}
-                    className="px-3 py-1 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-black"
-                  >
-                    <option value="">קטגוריה</option>
-                    {POST_CATEGORIES.map(cat => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
-                    ))}
-                  </select>
+                    onChange={setNewPostCategory}
+                    placeholder="קטגוריה"
+                    options={POST_CATEGORIES.map(cat => ({ value: cat.value, label: cat.label }))}
+                    size="small"
+                  />
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
@@ -1756,7 +1703,7 @@ function CommunityFeedContent() {
                         <img
                           src={preview}
                           alt={`Preview ${index + 1}`}
-                          className="h-24 w-24 object-cover rounded-lg border-2 border-purple-200"
+                          className="h-24 w-24 object-cover rounded-lg border border-gray-200"
                         />
                         <button
                           onClick={() => removeSelectedImage(index)}
@@ -1776,13 +1723,13 @@ function CommunityFeedContent() {
                 {filePreviews.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {filePreviews.map((file, index) => (
-                      <div key={index} className="relative flex items-center gap-2 bg-orange-50 rounded-lg px-3 py-2 border border-orange-200">
+                      <div key={index} className="relative flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
                         {file.name.endsWith('.pdf') ? (
-                          <FaFilePdf className="w-5 h-5 text-orange-500" />
+                          <FaFilePdf className="w-5 h-5 text-gray-500" />
                         ) : (
-                          <FaFile className="w-5 h-5 text-orange-500" />
+                          <FaFile className="w-5 h-5 text-gray-500" />
                         )}
-                        <span className="text-sm text-orange-700 max-w-[150px] truncate">{file.name}</span>
+                        <span className="text-sm text-gray-700 max-w-[150px] truncate">{file.name}</span>
                         <button
                           onClick={() => removeSelectedFile(index)}
                           className="text-red-500 hover:text-red-600"
@@ -1791,7 +1738,7 @@ function CommunityFeedContent() {
                         </button>
                       </div>
                     ))}
-                    {newPostFiles.length < 3 && (
+                    {newPostFiles.length < 5 && (
                       <span className="text-xs text-gray-400 self-center">({newPostFiles.length}/5)</span>
                     )}
                   </div>
@@ -1800,20 +1747,26 @@ function CommunityFeedContent() {
                 {/* Link Input and List */}
                 {showLinkInput && (
                   <div className="mt-3">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-4 mb-2">
                       <input
                         type="url"
                         value={newLinkInput}
                         onChange={(e) => setNewLinkInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLink(); } }}
                         placeholder="https://example.com"
-                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                        className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black placeholder:text-[#7A7A83] placeholder:font-normal ${newLinkInput.trim() ? 'text-black' : 'text-[#7A7A83]'}`}
+                        style={{ fontSize: '14px', fontWeight: 400 }}
                         disabled={addingLink}
                       />
                       <button
                         onClick={addLink}
                         disabled={!newLinkInput.trim() || addingLink}
-                        className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={`px-3 py-2 rounded-lg text-sm transition ${
+                          newLinkInput.trim() 
+                            ? 'bg-[#91DCED] text-black hover:bg-[#7ad0e3]' 
+                            : 'bg-[#c4ebf5] text-[#A1A1AA] cursor-not-allowed'
+                        }`}
+                        style={{ fontSize: '14px', fontWeight: 400 }}
                       >
                         {addingLink ? '...' : 'הוסף'}
                       </button>
@@ -1824,53 +1777,58 @@ function CommunityFeedContent() {
                         <FaTimes className="w-4 h-4" />
                       </button>
                     </div>
-                    {newPostLinks.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {newPostLinks.map((link, index) => (
-                          <div key={index} className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-1 border border-blue-200">
-                            <FaLink className="w-3 h-3 text-blue-500" />
-                            <span className="text-sm text-blue-700 max-w-[200px] truncate">{link}</span>
-                            <button
-                              onClick={() => removeNewLink(index)}
-                              className="text-red-500 hover:text-red-600"
-                            >
-                              <FaTimes className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                        <span className="text-xs text-gray-400 self-center">({newPostLinks.length}/10)</span>
+                  </div>
+                )}
+                
+                {/* Links List - Always visible when links exist */}
+                {newPostLinks.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {newPostLinks.map((link, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 border border-gray-200">
+                        <FaLink className="w-3 h-3 text-gray-500" />
+                        <span className="text-sm text-gray-700 max-w-[200px] truncate">{link}</span>
+                        <button
+                          onClick={() => removeNewLink(index)}
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          <FaTimes className="w-3 h-3" />
+                        </button>
                       </div>
-                    )}
+                    ))}
+                    <span className="text-xs text-gray-400 self-center">({newPostLinks.length}/10)</span>
                   </div>
                 )}
                 
                 {/* Poll Creator */}
                 {showPollCreator && (
-                  <div className="mt-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                        <FaPoll className="w-4 h-4 text-indigo-500" />
-                        יצירת סקר
-                      </h4>
-                      <button
+                  <div className="mt-3 bg-white border border-gray-300 rounded-xl p-6 shadow-sm" dir="rtl">
+                    {/* Header: Title + Close Button */}
+                    <div className="flex justify-between items-start mb-4">
+                      <h2 style={{ fontSize: '16px' }} className="font-semibold text-black">יצירת סקר</h2>
+                      <button 
                         onClick={() => {
                           setShowPollCreator(false);
                           setPollQuestion('');
                           setPollOptions(['', '']);
                         }}
-                        className="p-1 text-gray-400 hover:text-gray-600"
+                        className="text-gray-500 hover:text-gray-700"
                       >
-                        <FaTimes className="w-4 h-4" />
+                        <CloseIcon className="w-5 h-5" />
                       </button>
                     </div>
+
+                    {/* Poll Question Input */}
                     <input
                       type="text"
                       value={pollQuestion}
                       onChange={(e) => setPollQuestion(e.target.value)}
                       placeholder="שאלת הסקר..."
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
+                      style={{ fontSize: '14px' }}
+                      className="w-full bg-gray-200 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:ring-2 focus:ring-gray-400 mb-4 text-right placeholder-gray-500"
                     />
-                    <div className="space-y-2">
+
+                    {/* Poll Options */}
+                    <div className="space-y-3">
                       {pollOptions.map((option, index) => (
                         <div key={index} className="flex items-center gap-2">
                           <input
@@ -1882,25 +1840,28 @@ function CommunityFeedContent() {
                               setPollOptions(newOptions);
                             }}
                             placeholder={`אפשרות ${index + 1}`}
-                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            style={{ fontSize: '14px' }}
+                            className="flex-1 bg-white border border-gray-300 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:ring-2 focus:ring-gray-400 text-right placeholder-gray-500"
                           />
                           {pollOptions.length > 2 && (
                             <button
                               onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== index))}
-                              className="p-2 text-red-400 hover:text-red-600"
+                              className="p-2 text-gray-400 hover:text-gray-600"
                             >
-                              <FaTimes className="w-3 h-3" />
+                              <CloseIcon className="w-4 h-4" />
                             </button>
                           )}
                         </div>
                       ))}
                     </div>
-                    {pollOptions.length < 6 && (
+
+                    {/* Add Option Button */}
+                    {pollOptions.length < 4 && (
                       <button
                         onClick={() => setPollOptions([...pollOptions, ''])}
-                        className="mt-2 text-sm text-indigo-500 hover:text-indigo-700 flex items-center gap-1"
+                        style={{ fontSize: '14px' }}
+                        className="mt-3 text-gray-800 font-normal underline hover:opacity-80"
                       >
-                        <FaPlus className="w-3 h-3" />
                         הוסף אפשרות
                       </button>
                     )}
@@ -1909,10 +1870,13 @@ function CommunityFeedContent() {
                 
                 <div className="flex justify-between items-center mt-3">
                   {/* Attachment buttons */}
-                  <div className="flex items-center gap-4">
-                    <label className="cursor-pointer flex items-center gap-2 text-purple-500 hover:text-purple-700 transition">
-                      <FaImage className="w-5 h-5" />
-                      <span className="text-sm">תמונה {newPostImages.length > 0 && `(${newPostImages.length}/5)`}</span>
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer w-9 h-9 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition">
+                      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+                        <path d="M15.8333 2.5H4.16667C3.24619 2.5 2.5 3.24619 2.5 4.16667V15.8333C2.5 16.7538 3.24619 17.5 4.16667 17.5H15.8333C16.7538 17.5 17.5 16.7538 17.5 15.8333V4.16667C17.5 3.24619 16.7538 2.5 15.8333 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M7.49992 9.16536C8.42039 9.16536 9.16659 8.41917 9.16659 7.4987C9.16659 6.57822 8.42039 5.83203 7.49992 5.83203C6.57944 5.83203 5.83325 6.57822 5.83325 7.4987C5.83325 8.41917 6.57944 9.16536 7.49992 9.16536Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M17.5 12.5011L14.9283 9.92938C14.6158 9.61693 14.1919 9.44141 13.75 9.44141C13.3081 9.44141 12.8842 9.61693 12.5717 9.92938L5 17.501" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                       <input
                         type="file"
                         accept="image/*"
@@ -1923,9 +1887,11 @@ function CommunityFeedContent() {
                       />
                     </label>
                     
-                    <label className="cursor-pointer flex items-center gap-2 text-orange-500 hover:text-orange-700 transition">
-                      <FaFile className="w-5 h-5" />
-                      <span className="text-sm">קובץ {newPostFiles.length > 0 && `(${newPostFiles.length}/5)`}</span>
+                    <label className="cursor-pointer w-9 h-9 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition">
+                      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+                        <path d="M4.99992 18.3346C4.55789 18.3346 4.13397 18.159 3.82141 17.8465C3.50885 17.5339 3.33325 17.11 3.33325 16.668V3.33464C3.33325 2.89261 3.50885 2.46869 3.82141 2.15613C4.13397 1.84357 4.55789 1.66797 4.99992 1.66797H11.6666C11.9304 1.66754 12.1917 1.71931 12.4354 1.82028C12.6791 1.92125 12.9004 2.06944 13.0866 2.2563L16.0766 5.2463C16.264 5.43256 16.4126 5.65409 16.5138 5.89811C16.6151 6.14212 16.667 6.40378 16.6666 6.66797V16.668C16.6666 17.11 16.491 17.5339 16.1784 17.8465C15.8659 18.159 15.4419 18.3346 14.9999 18.3346H4.99992Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M11.6667 1.66797V5.83464C11.6667 6.05565 11.7545 6.26761 11.9108 6.42389C12.0671 6.58017 12.2791 6.66797 12.5001 6.66797H16.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                       <input
                         type="file"
                         accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
@@ -1938,38 +1904,83 @@ function CommunityFeedContent() {
                     
                     <button
                       onClick={() => setShowLinkInput(!showLinkInput)}
-                      className={`flex items-center gap-2 transition ${showLinkInput ? 'text-blue-600' : 'text-blue-500 hover:text-blue-700'}`}
+                      style={{ width: 36, height: 36, borderRadius: '50%' }}
+                      className={`flex items-center justify-center transition ${showLinkInput ? 'bg-gray-200 text-gray-800' : 'text-gray-600 hover:bg-gray-200'}`}
                     >
-                      <FaLink className="w-5 h-5" />
-                      <span className="text-sm">קישור {newPostLinks.length > 0 && `(${newPostLinks.length}/10)`}</span>
+                      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+                        <path d="M8.33325 10.834C8.69113 11.3124 9.14772 11.7083 9.67204 11.9947C10.1964 12.2812 10.7762 12.4516 11.3721 12.4942C11.9681 12.5369 12.5662 12.4509 13.126 12.2421C13.6858 12.0333 14.1942 11.7065 14.6166 11.284L17.1166 8.78396C17.8756 7.99811 18.2956 6.9456 18.2861 5.85312C18.2766 4.76063 17.8384 3.71558 17.0658 2.94304C16.2933 2.17051 15.2482 1.73231 14.1558 1.72281C13.0633 1.71332 12.0108 2.1333 11.2249 2.89229L9.79159 4.31729" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M11.6666 9.16702C11.3087 8.68858 10.8521 8.2927 10.3278 8.00623C9.80347 7.71977 9.22367 7.54942 8.62771 7.50674C8.03176 7.46406 7.4336 7.55004 6.8738 7.75887C6.314 7.96769 5.80566 8.29446 5.38326 8.71702L2.88326 11.217C2.12426 12.0029 1.70429 13.0554 1.71378 14.1479C1.72327 15.2403 2.16148 16.2854 2.93401 17.0579C3.70655 17.8305 4.7516 18.2687 5.84408 18.2782C6.93657 18.2877 7.98908 17.8677 8.77492 17.1087L10.1999 15.6837" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </button>
                     
                     <button
                       onClick={() => setShowPollCreator(!showPollCreator)}
-                      className={`flex items-center gap-2 transition ${showPollCreator ? 'text-indigo-600' : 'text-indigo-500 hover:text-indigo-700'}`}
+                      style={{ width: 36, height: 36, borderRadius: '50%' }}
+                      className={`flex items-center justify-center transition ${showPollCreator ? 'bg-gray-200 text-gray-800' : 'text-gray-600 hover:bg-gray-200'}`}
                     >
-                      <FaPoll className="w-5 h-5" />
-                      <span className="text-sm">סקר</span>
+                      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+                        <rect x="3" y="18" width="14" height="1.25" rx="0.5" fill="currentColor"/>
+                        <rect x="4.75" y="5" width="3" height="12" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                        <rect x="8.5" y="1" width="3" height="16" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                        <rect x="12.25" y="8" width="3" height="9" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                      </svg>
                     </button>
                   </div>
                   
                   <button
                     onClick={(e) => handleCreatePost(e as unknown as React.FormEvent)}
                     disabled={postSubmitting || !newPostContent.trim()}
-                    className="px-5 py-2 bg-black text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className={`px-5 py-2 rounded-lg font-normal flex items-center gap-2 ${
+                      !newPostContent.trim() 
+                        ? 'bg-gray-400 text-gray-500 cursor-not-allowed' 
+                        : 'bg-black text-white hover:opacity-90'
+                    }`}
                   >
                     {postSubmitting ? (
                       <span>...</span>
                     ) : (
-                      <>
-                        פרסם
-                        <FaPlus className="w-3 h-3" />
-                      </>
+                      <span>פרסם</span>
                     )}
                   </button>
                 </div>
               </div>
             )}
+
+            {/* Sort and Filter Row */}
+            <div style={{ paddingTop: '24px', paddingBottom: '24px' }} className="flex items-center">
+              {/* Filter by category */}
+              <div className="flex items-center gap-3">
+                <span style={{ fontSize: '16px' }} className="font-normal text-black">סינון לפי</span>
+                <FilterDropdown
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  placeholder="קטגוריה"
+                  allLabel="כל הקטגוריות"
+                  options={POST_CATEGORIES.map(cat => ({ value: cat.value, label: cat.label }))}
+                  size="small"
+                />
+              </div>
+              
+              {/* Divider - vertical line */}
+              <div style={{ marginLeft: '16px', marginRight: '16px', width: '1px', height: '24px', backgroundColor: '#9ca3af' }}></div>
+              
+              {/* Sort by */}
+              <div className="flex items-center gap-3">
+                <span style={{ fontSize: '16px' }} className="font-normal text-black">מיון לפי</span>
+                <FilterDropdown
+                  value={sortBy}
+                  onChange={(val) => setSortBy(val as 'newest' | 'oldest' | 'mostLiked' | 'mostCommented')}
+                  placeholder="מיון"
+                  options={[
+                    { value: 'newest', label: 'חדש ביותר' },
+                    { value: 'oldest', label: 'ישן ביותר' },
+                    { value: 'mostLiked', label: 'הכי אהוב' },
+                    { value: 'mostCommented', label: 'הכי מדובר' },
+                  ]}
+                  size="small"
+                />
+              </div>
+            </div>
 
             {/* Posts list */}
             <div className="space-y-4">
@@ -2010,13 +2021,6 @@ function CommunityFeedContent() {
                 return filteredPosts.length > 0 ? (
                   filteredPosts.map((post) => (
                   <div key={post.id} className={`bg-white border rounded-2xl p-5 ${post.isPinned ? 'border-[#3F3F46] border-2' : 'border-gray-200'}`}>
-                    {/* Pinned indicator */}
-                    {post.isPinned && (
-                      <div className="flex items-center gap-2 text-gray-600 text-sm font-medium mb-3 bg-gray-100 px-3 py-1.5 rounded-lg w-fit">
-                        <FaThumbtack className="w-3 h-3" />
-                        <span>פוסט מוצמד</span>
-                      </div>
-                    )}
                     {/* Post Header */}
                     <div className="flex items-start gap-3 mb-4">
                       {/* Profile picture - rightmost (RTL) */}
@@ -2036,34 +2040,40 @@ function CommunityFeedContent() {
                       
                       {/* Author info - next to profile pic */}
                       <div className="flex-1 text-right">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/profile/${post.author?.id}`} className="font-semibold text-black hover:underline">
-                            {post.author?.name || 'משתמש אנונימי'}
-                          </Link>
+                        <Link href={`/profile/${post.author?.id}`} className="font-medium text-black hover:underline">
+                          {post.author?.name || 'משתמש אנונימי'}
+                        </Link>
+                        <p className="text-sm text-[#52525B]">
+                          {(() => {
+                            const date = new Date(post.createdAt);
+                            const day = date.getDate();
+                            const months = ['בינואר', 'בפברואר', 'במרץ', 'באפריל', 'במאי', 'ביוני', 'ביולי', 'באוגוסט', 'בספטמבר', 'באוקטובר', 'בנובמבר', 'בדצמבר'];
+                            return `${day} ${months[date.getMonth()]}`;
+                          })()}
                           {post.category && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                              POST_CATEGORIES.find(c => c.value === post.category)?.color || 'bg-gray-100 text-gray-700'
-                            }`}>
-                              {POST_CATEGORIES.find(c => c.value === post.category)?.label || post.category}
-                            </span>
+                            <> · {POST_CATEGORIES.find(c => c.value === post.category)?.label || post.category}</>
                           )}
-                        </div>
-                        <p className="text-xs text-gray-400">
-                          {new Date(post.createdAt).toLocaleDateString('he-IL')} • פורסם במתכונים
                         </p>
                       </div>
                       
                       {/* Actions - leftmost (RTL) */}
+                      {/* Pinned indicator - beside save icon */}
+                      {post.isPinned && (
+                        <div className="flex items-center gap-1.5 text-[#52525B] text-sm font-medium px-2 py-1 rounded-lg">
+                          <FaThumbtack className="w-3 h-3" />
+                          <span>פוסט מוצמד</span>
+                        </div>
+                      )}
                       {/* Save button */}
                       {userEmail && (
                         <button
                           onClick={() => handleToggleSave(post.id)}
-                          className={`p-1 rounded-full transition ${
-                            post.isSaved ? 'text-yellow-500' : 'text-gray-400 hover:text-gray-600'
+                          className={`p-2 rounded-full transition ${
+                            post.isSaved ? 'text-[#52525B]' : 'text-[#52525B] hover:bg-gray-100'
                           }`}
                           title={post.isSaved ? 'הסר משמורים' : 'שמור פוסט'}
                         >
-                          {post.isSaved ? <FaBookmark className="w-4 h-4" /> : <FaRegBookmark className="w-4 h-4" />}
+                          {post.isSaved ? <BookmarkFilledIcon className="w-4 h-4" /> : <BookmarkIcon className="w-4 h-4" />}
                         </button>
                       )}
                       {/* Post menu for author OR owner/manager */}
@@ -2071,12 +2081,12 @@ function CommunityFeedContent() {
                         <div className="relative">
                           <button
                             onClick={() => setMenuOpenPostId(menuOpenPostId === post.id ? null : post.id)}
-                            className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                            className="p-2 text-[#52525B] rounded-full hover:bg-gray-100 transition"
                           >
-                            <FaEllipsisH className="w-4 h-4" />
+                            <MoreDotsIcon className="w-4 h-4" />
                           </button>
                           {menuOpenPostId === post.id && (
-                            <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                            <div className="absolute left-0 top-full mt-1 bg-white border border-[#E4E4E7] rounded-xl shadow-lg z-10 min-w-[160px] p-1">
                               {/* Pin/Unpin - only for owner/manager */}
                               {(isOwner || isManager) && (
                                 <button
@@ -2084,11 +2094,11 @@ function CommunityFeedContent() {
                                     handleTogglePin(post.id);
                                     setMenuOpenPostId(null);
                                   }}
-                                  className={`w-full px-4 py-2 text-right text-sm hover:bg-gray-50 flex items-center gap-2 ${
-                                    post.isPinned ? 'text-yellow-600' : 'text-gray-700'
+                                  className={`w-full px-3 py-2.5 text-right text-sm rounded-lg hover:bg-[#F4F4F5] flex items-center gap-3 transition ${
+                                    post.isPinned ? 'text-yellow-600' : 'text-[#3F3F46]'
                                   }`}
                                 >
-                                  <FaThumbtack className="w-3 h-3" />
+                                  <FaThumbtack className="w-3.5 h-3.5" />
                                   {post.isPinned ? 'בטל הצמדה' : 'הצמד פוסט'}
                                 </button>
                               )}
@@ -2111,11 +2121,16 @@ function CommunityFeedContent() {
                                     setImagesToRemove([]);
                                     setFilesToRemove([]);
                                     setLinksToRemove([]);
+                                    setEditPollQuestion(post.poll?.question || '');
+                                    setEditPollOptions(post.poll?.options?.map(o => ({ id: o.id, text: o.text })) || []);
+                                    setShowEditPollCreator(false);
+                                    setNewEditPollQuestion('');
+                                    setNewEditPollOptions(['', '']);
                                     setMenuOpenPostId(null);
                                   }}
-                                  className="w-full px-4 py-2 text-right text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  className="w-full px-3 py-2.5 text-right text-sm text-[#3F3F46] rounded-lg hover:bg-[#F4F4F5] flex items-center gap-3 transition"
                                 >
-                                  <FaEdit className="w-3 h-3" />
+                                  <FaEdit className="w-3.5 h-3.5" />
                                   עריכה
                                 </button>
                               )}
@@ -2126,9 +2141,9 @@ function CommunityFeedContent() {
                                     setDeletePostModalId(post.id);
                                     setMenuOpenPostId(null);
                                   }}
-                                  className="w-full px-4 py-2 text-right text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                  className="w-full px-3 py-2.5 text-right text-sm text-[#B3261E] rounded-lg hover:bg-[#F4F4F5] flex items-center gap-3 transition"
                                 >
-                                  <FaTrash className="w-3 h-3" />
+                                  <TrashIcon className="w-4 h-4" />
                                   מחיקה
                                 </button>
                               )}
@@ -2167,12 +2182,12 @@ function CommunityFeedContent() {
                                     <img
                                       src={`${process.env.NEXT_PUBLIC_API_URL}${image}`}
                                       alt={`תמונה ${index + 1}`}
-                                      className="w-20 h-20 object-cover rounded-lg border-2 border-purple-200"
+                                      className="w-20 h-20 object-cover rounded-lg border border-gray-200"
                                     />
                                     {imagesToRemove.includes(image) ? (
                                       <button
                                         onClick={() => undoRemoveImage(image)}
-                                        className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-1 text-xs"
+                                        className="absolute -top-2 -right-2 bg-gray-500 text-white rounded-full p-1 text-xs"
                                         title="בטל הסרה"
                                       >
                                         ↩
@@ -2191,43 +2206,19 @@ function CommunityFeedContent() {
                             </div>
                           )}
                           
-                          {/* New Images to add */}
-                          {newEditImagePreviews.length > 0 && (
-                            <div>
-                              <p className="text-xs text-gray-500 mb-2">תמונות חדשות:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {newEditImagePreviews.map((preview, index) => (
-                                  <div key={index} className="relative">
-                                    <img
-                                      src={preview}
-                                      alt={`תמונה חדשה ${index + 1}`}
-                                      className="w-20 h-20 object-cover rounded-lg border-2 border-green-300"
-                                    />
-                                    <button
-                                      onClick={() => removeNewEditImage(index)}
-                                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                                    >
-                                      <FaTimes className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
                           {/* Existing Files */}
                           {editFiles.length > 0 && (
                             <div>
                               <p className="text-xs text-gray-500 mb-2">קבצים קיימים:</p>
                               <div className="flex flex-wrap gap-2">
                                 {editFiles.map((file, index) => (
-                                  <div key={index} className={`flex items-center gap-2 bg-orange-50 rounded-lg px-3 py-1 border border-orange-200 ${filesToRemove.includes(file.url) ? 'opacity-50 line-through' : ''}`}>
-                                    <FaFile className="w-4 h-4 text-orange-500" />
-                                    <span className="text-xs text-orange-700 max-w-[100px] truncate">{file.name}</span>
+                                  <div key={index} className={`flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 border border-gray-200 ${filesToRemove.includes(file.url) ? 'opacity-50 line-through' : ''}`}>
+                                    <FaFile className="w-4 h-4 text-gray-500" />
+                                    <span className="text-xs text-gray-700 max-w-[100px] truncate">{file.name}</span>
                                     {filesToRemove.includes(file.url) ? (
                                       <button
                                         onClick={() => undoRemoveFile(file.url)}
-                                        className="text-blue-500 hover:text-blue-700 text-xs"
+                                        className="text-gray-500 hover:text-gray-700 text-xs"
                                       >
                                         ↩
                                       </button>
@@ -2245,40 +2236,19 @@ function CommunityFeedContent() {
                             </div>
                           )}
                           
-                          {/* New Files to add */}
-                          {newEditFilePreviews.length > 0 && (
-                            <div>
-                              <p className="text-xs text-gray-500 mb-2">קבצים חדשים:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {newEditFilePreviews.map((file, index) => (
-                                  <div key={index} className="flex items-center gap-2 bg-green-50 rounded-lg px-3 py-1 border border-green-300">
-                                    <FaFile className="w-4 h-4 text-green-500" />
-                                    <span className="text-xs text-green-700 max-w-[100px] truncate">{file.name}</span>
-                                    <button
-                                      onClick={() => removeNewEditFile(index)}
-                                      className="text-red-500 hover:text-red-600"
-                                    >
-                                      <FaTimes className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
                           {/* Existing Links */}
                           {editLinks.length > 0 && (
                             <div>
                               <p className="text-xs text-gray-500 mb-2">קישורים:</p>
                               <div className="flex flex-wrap gap-2">
                                 {editLinks.map((link, index) => (
-                                  <div key={index} className={`flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-1 border border-blue-200 ${linksToRemove.includes(link) ? 'opacity-50 line-through' : ''}`}>
-                                    <FaLink className="w-3 h-3 text-blue-500" />
-                                    <span className="text-xs text-blue-700 max-w-[150px] truncate">{link}</span>
+                                  <div key={index} className={`flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 border border-gray-200 ${linksToRemove.includes(link) ? 'opacity-50 line-through' : ''}`}>
+                                    <FaLink className="w-3 h-3 text-gray-500" />
+                                    <span className="text-xs text-gray-700 max-w-[150px] truncate">{link}</span>
                                     {linksToRemove.includes(link) ? (
                                       <button
                                         onClick={() => undoRemoveEditLink(link)}
-                                        className="text-blue-500 hover:text-blue-700 text-xs"
+                                        className="text-gray-500 hover:text-gray-700 text-xs"
                                       >
                                         ↩
                                       </button>
@@ -2296,71 +2266,77 @@ function CommunityFeedContent() {
                             </div>
                           )}
                           
-                          {/* Add Link Input */}
-                          {showEditLinkInput && (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="url"
-                                value={editLinkInput}
-                                onChange={(e) => setEditLinkInput(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEditLink(); } }}
-                                placeholder="https://example.com"
-                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                                disabled={addingEditLink}
-                              />
-                              <button
-                                onClick={addEditLink}
-                                disabled={!editLinkInput.trim() || addingEditLink}
-                                className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {addingEditLink ? '...' : 'הוסף'}
-                              </button>
-                              <button
-                                onClick={() => { setShowEditLinkInput(false); setEditLinkInput(''); }}
-                                className="p-2 text-gray-400 hover:text-gray-600"
-                              >
-                                <FaTimes className="w-4 h-4" />
-                              </button>
+                          
+                          {/* Poll Display in Edit Mode */}
+                          {post.poll && (
+                            <div className={`mt-3 p-4 bg-gray-50 rounded-xl border border-gray-200 ${pollToRemove ? 'opacity-50' : ''}`}>
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500 flex-shrink-0">
+                                    <rect x="3" y="18" width="14" height="1.25" rx="0.5" fill="currentColor"/>
+                                    <rect x="4.75" y="5" width="3" height="12" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                                    <rect x="8.5" y="1" width="3" height="16" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                                    <rect x="12.25" y="8" width="3" height="9" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                                  </svg>
+                                  {pollToRemove ? (
+                                    <span className="flex-1 px-3 py-2 text-right font-medium text-gray-400 line-through">{editPollQuestion}</span>
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      value={editPollQuestion}
+                                      onChange={(e) => setEditPollQuestion(e.target.value)}
+                                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                      placeholder="שאלת הסקר"
+                                    />
+                                  )}
+                                </div>
+                                {pollToRemove ? (
+                                  <button
+                                    onClick={() => setPollToRemove(false)}
+                                    className="text-gray-500 hover:text-gray-700 p-1 mr-2"
+                                    title="בטל מחיקה"
+                                  >
+                                    ↩
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => setPollToRemove(true)}
+                                    className="text-gray-400 hover:text-red-500 transition p-1 mr-2"
+                                    title="מחק סקר"
+                                  >
+                                    <FaTrash className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                              {!pollToRemove && (
+                                <>
+                                  <div className="space-y-2">
+                                    {editPollOptions.map((option, index) => (
+                                      <div key={option.id} className="flex items-center gap-2">
+                                        <input
+                                          type="text"
+                                          value={option.text}
+                                          onChange={(e) => {
+                                            const newOptions = [...editPollOptions];
+                                            newOptions[index] = { ...newOptions[index], text: e.target.value };
+                                            setEditPollOptions(newOptions);
+                                          }}
+                                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                          placeholder={`אפשרות ${index + 1}`}
+                                        />
+                                        <span className="text-xs text-gray-400 w-16 text-left">
+                                          {post.poll?.options.find(o => o.id === option.id)?.votes || 0} הצבעות
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-3 text-center">
+                                    {post.poll.totalVotes === 1 ? 'הצבעה' : 'הצבעות'} {post.poll.totalVotes}
+                                  </p>
+                                </>
+                              )}
                             </div>
                           )}
-                          
-                          {/* Add attachment buttons */}
-                          <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
-                            <span className="text-xs text-gray-400">הוסף:</span>
-                            <label className="cursor-pointer flex items-center gap-1 text-purple-500 hover:text-purple-700 text-sm transition">
-                              <FaImage className="w-4 h-4" />
-                              <span>תמונה ({editImages.length - imagesToRemove.length + newEditImages.length}/5)</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={handleEditFileSelect}
-                                className="hidden"
-                                disabled={editImages.length - imagesToRemove.length + newEditImages.length >= 5}
-                              />
-                            </label>
-                            <label className="cursor-pointer flex items-center gap-1 text-orange-500 hover:text-orange-700 text-sm transition">
-                              <FaFile className="w-4 h-4" />
-                              <span>קובץ ({editFiles.length - filesToRemove.length + newEditFiles.length}/5)</span>
-                              <input
-                                type="file"
-                                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
-                                multiple
-                                onChange={handleEditFileSelect}
-                                className="hidden"
-                                disabled={editFiles.length - filesToRemove.length + newEditFiles.length >= 5}
-                              />
-                            </label>
-                            {!showEditLinkInput && (
-                              <button
-                                onClick={() => setShowEditLinkInput(true)}
-                                className="flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm transition"
-                              >
-                                <FaLink className="w-4 h-4" />
-                                <span>קישור ({editLinks.length - linksToRemove.length}/10)</span>
-                              </button>
-                            )}
-                          </div>
                         </div>
                         
                         <div className="flex gap-2 mt-3 justify-end">
@@ -2385,13 +2361,18 @@ function CommunityFeedContent() {
                         {post.title && (
                           <h3 className="text-lg font-bold text-black mb-2">{post.title}</h3>
                         )}
-                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                        <p className="text-black leading-relaxed whitespace-pre-wrap">{post.content}</p>
                         
                         {/* Poll Display */}
                         {post.poll && (
                           <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
                             <div className="flex items-center gap-2 mb-3">
-                              <FaPoll className="w-4 h-4 text-indigo-500" />
+                              <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500">
+                                <rect x="3" y="18" width="14" height="1.25" rx="0.5" fill="currentColor"/>
+                                <rect x="4.75" y="5" width="3" height="12" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                                <rect x="8.5" y="1" width="3" height="16" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                                <rect x="12.25" y="8" width="3" height="9" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                              </svg>
                               <h4 className="font-medium text-gray-900">{post.poll.question}</h4>
                             </div>
                             <div className="space-y-2">
@@ -2432,8 +2413,84 @@ function CommunityFeedContent() {
                               })}
                             </div>
                             <p className="text-xs text-gray-500 mt-3 text-center">
-                              {post.poll.totalVotes} {post.poll.totalVotes === 1 ? 'הצבעה' : 'הצבעות'}
+                              {post.poll.totalVotes === 1 ? 'הצבעה' : 'הצבעות'} {post.poll.totalVotes}
                             </p>
+                          </div>
+                        )}
+                        
+                        {/* Files Display */}
+                        {post.files && post.files.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {post.files.map((file, index) => (
+                              <button
+                                key={index}
+                                onClick={() => handleDownload(
+                                  `${file.url}`,
+                                  file.name || 'file'
+                                )}
+                                className="w-full flex items-center gap-3 bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 hover:bg-gray-100 transition text-right"
+                              >
+                                {file.name?.endsWith('.pdf') ? (
+                                  <FaFilePdf className="w-6 h-6 text-gray-600" />
+                                ) : (
+                                  <FaFile className="w-6 h-6 text-gray-500" />
+                                )}
+                                <span className="flex-1 text-sm text-gray-700">{file.name || 'קובץ מצורף'}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Links Display with Preview */}
+                        {post.links && post.links.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {post.links.map((link, index) => {
+                              const preview = linkPreviews[link];
+                              return (
+                                <a
+                                  key={index}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition"
+                                >
+                                  {preview?.image && (
+                                    <div className="w-full h-40 bg-gray-100">
+                                      <img 
+                                        src={preview.image} 
+                                        alt={preview.title || link}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="p-3">
+                                    <div className="flex items-start gap-2">
+                                      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0">
+                                        <path d="M8.33325 10.834C8.69113 11.3124 9.14772 11.7083 9.67204 11.9947C10.1964 12.2812 10.7762 12.4516 11.3721 12.4942C11.9681 12.5369 12.5662 12.4509 13.126 12.2421C13.6858 12.0333 14.1942 11.7065 14.6166 11.284L17.1166 8.78396C17.8756 7.99811 18.2956 6.9456 18.2861 5.85312C18.2766 4.76063 17.8384 3.71558 17.0658 2.94304C16.2933 2.17051 15.2482 1.73231 14.1558 1.72281C13.0633 1.71332 12.0108 2.1333 11.2249 2.89229L9.79159 4.31729" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M11.6666 9.16702C11.3087 8.68858 10.8521 8.2927 10.3278 8.00623C9.80347 7.71977 9.22367 7.54942 8.62771 7.50674C8.03176 7.46406 7.4336 7.55004 6.8738 7.75887C6.314 7.96769 5.80566 8.29446 5.38326 8.71702L2.88326 11.217C2.12426 12.0029 1.70429 13.0554 1.71378 14.1479C1.72327 15.2403 2.16148 16.2854 2.93401 17.0579C3.70655 17.8305 4.7516 18.2687 5.84408 18.2782C6.93657 18.2877 7.98908 17.8677 8.77492 17.1087L10.1999 15.6837" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                      <div className="flex-1 min-w-0">
+                                        {preview?.title ? (
+                                          <>
+                                            <p className="font-medium text-gray-900 text-sm truncate">{preview.title}</p>
+                                            {preview.description && (
+                                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{preview.description}</p>
+                                            )}
+                                            <p className="text-xs text-blue-500 mt-1 truncate">{(() => { try { return new URL(link).hostname; } catch { return link; } })()}</p>
+                                          </>
+                                        ) : (
+                                          <p className="text-sm text-blue-600 truncate">{link}</p>
+                                        )}
+                                      </div>
+                                      <FaExternalLinkAlt className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                    </div>
+                                  </div>
+                                </a>
+                              );
+                            })}
                           </div>
                         )}
                         
@@ -2482,99 +2539,28 @@ function CommunityFeedContent() {
                             ))}
                           </div>
                         )}
-                        
-                        {/* Files Display */}
-                        {post.files && post.files.length > 0 && (
-                          <div className="mt-3 space-y-2">
-                            {post.files.map((file, index) => (
-                              <button
-                                key={index}
-                                onClick={() => handleDownload(
-                                  `${file.url}`,
-                                  file.name || 'file'
-                                )}
-                                className="w-full flex items-center gap-3 bg-orange-50 rounded-lg px-4 py-3 border border-orange-200 hover:bg-orange-100 transition text-right"
-                              >
-                                {file.name?.endsWith('.pdf') ? (
-                                  <FaFilePdf className="w-6 h-6 text-orange-600" />
-                                ) : (
-                                  <FaFile className="w-6 h-6 text-orange-500" />
-                                )}
-                                <span className="flex-1 text-sm text-orange-700">{file.name || 'קובץ מצורף'}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Links Display with Preview */}
-                        {post.links && post.links.length > 0 && (
-                          <div className="mt-3 space-y-2">
-                            {post.links.map((link, index) => {
-                              const preview = linkPreviews[link];
-                              return (
-                                <a
-                                  key={index}
-                                  href={link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition"
-                                >
-                                  {preview?.image && (
-                                    <div className="w-full h-40 bg-gray-100">
-                                      <img 
-                                        src={preview.image} 
-                                        alt={preview.title || link}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).style.display = 'none';
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-                                  <div className="p-3">
-                                    <div className="flex items-start gap-2">
-                                      <FaLink className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                                      <div className="flex-1 min-w-0">
-                                        {preview?.title ? (
-                                          <>
-                                            <p className="font-medium text-gray-900 text-sm truncate">{preview.title}</p>
-                                            {preview.description && (
-                                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{preview.description}</p>
-                                            )}
-                                            <p className="text-xs text-blue-500 mt-1 truncate">{new URL(link).hostname}</p>
-                                          </>
-                                        ) : (
-                                          <p className="text-sm text-blue-600 truncate">{link}</p>
-                                        )}
-                                      </div>
-                                      <FaExternalLinkAlt className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                    </div>
-                                  </div>
-                                </a>
-                              );
-                            })}
-                          </div>
-                        )}
                       </div>
                     )}
                     
                     {/* Like & Comment Buttons */}
-                    <div className="flex items-center gap-4 text-gray-400 text-sm border-t border-gray-100 pt-4">
+                    <div className="flex items-center gap-2 text-sm mt-2">
                       <button
                         onClick={() => handleToggleLike(post.id)}
-                        className={`flex items-center gap-1 transition ${
-                          post.isLiked ? 'text-red-500' : 'hover:text-red-500'
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition ${
+                          post.isLiked 
+                            ? 'text-[#163300] bg-[#A7EA7B] border-[#A7EA7B] hover:bg-[#96D96C]' 
+                            : 'text-[#3F3F46] bg-[#F4F4F5] border-[#E4E4E7] hover:bg-[#E4E4E7]'
                         }`}
                       >
-                        {post.isLiked ? <FaHeart className="w-4 h-4" /> : <FaRegHeart className="w-4 h-4" />}
-                        <span>{post._count?.likes || 0}</span>
+                        {post.isLiked ? <HeartFilledIcon className="w-4 h-4" /> : <HeartIcon className="w-4 h-4" />}
+                        <span className="font-normal">{post._count?.likes || 0}</span>
                       </button>
                       <button
                         onClick={() => handleLoadComments(post.id)}
-                        className="flex items-center gap-1 hover:text-blue-500"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[#3F3F46] bg-[#F4F4F5] border border-[#E4E4E7] hover:bg-[#E4E4E7] transition"
                       >
-                        <FaComments className="w-4 h-4" />
-                        <span>{post._count?.comments || 0}</span>
+                        <CommentIcon className="w-4 h-4" />
+                        <span className="font-normal">{post._count?.comments || 0}</span>
                       </button>
                     </div>
                     
@@ -2588,7 +2574,7 @@ function CommunityFeedContent() {
                           <div className="space-y-3 mb-4">
                             {postComments[post.id]?.length > 0 ? (
                               postComments[post.id].map((comment) => (
-                                <div key={comment.id} className="flex gap-2 items-start" dir="rtl">
+                                <div key={comment.id} className="flex gap-2 items-start group" dir="rtl">
                                   <Link href={`/profile/${comment.user?.id}`} className="flex-shrink-0">
                                     {comment.user?.profileImage ? (
                                       <img 
@@ -2602,13 +2588,28 @@ function CommunityFeedContent() {
                                       </div>
                                     )}
                                   </Link>
-                                  <div className="flex-1 bg-gray-50 rounded-lg p-3">
+                                  <div className="flex-1 bg-[#F4F4F5] rounded-lg p-3">
                                     <div className="flex items-center justify-between mb-1">
                                       <Link href={`/profile/${comment.user?.id}`} className="font-medium text-sm text-black hover:underline">
                                         {comment.user?.name || 'משתמש'}
                                       </Link>
-                                      <span className="text-xs text-gray-400">
-                                        {new Date(comment.createdAt).toLocaleDateString('he-IL')}
+                                      <span className="text-xs text-[#52525B] font-normal">
+                                        {(() => {
+                                          const now = new Date();
+                                          const commentDate = new Date(comment.createdAt);
+                                          const diffMs = now.getTime() - commentDate.getTime();
+                                          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                                          const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                                          
+                                          if (diffMinutes < 1) return 'עכשיו';
+                                          if (diffMinutes < 60) return `לפני ${diffMinutes} דקות`;
+                                          if (diffHours < 24) {
+                                            if (diffHours === 1) return 'לפני שעה';
+                                            if (diffHours === 2) return 'לפני שעתיים';
+                                            return `לפני ${diffHours} שעות`;
+                                          }
+                                          return commentDate.toLocaleDateString('he-IL');
+                                        })()}
                                       </span>
                                     </div>
                                     {editingCommentId === comment.id ? (
@@ -2625,7 +2626,7 @@ function CommunityFeedContent() {
                                               setEditCommentContent('');
                                             }
                                           }}
-                                          className="flex-1 px-2 py-1 border border-blue-300 rounded text-right text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                          className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black bg-white"
                                           autoFocus
                                         />
                                         <button
@@ -2644,50 +2645,53 @@ function CommunityFeedContent() {
                                         </button>
                                       </div>
                                     ) : (
-                                      <p className="text-sm text-gray-700 text-right">{comment.content}</p>
+                                      <p className="text-sm text-black text-right">{comment.content}</p>
                                     )}
                                   </div>
-                                  {userId === comment.user?.id && editingCommentId !== comment.id && (
-                                    <div className="relative" dir="ltr">
-                                      <button
-                                        onClick={() => setCommentMenuOpenId(commentMenuOpenId === comment.id ? null : comment.id)}
-                                        className="text-gray-400 hover:text-gray-600 p-1"
-                                      >
-                                        <FaEllipsisH className="w-3 h-3" />
-                                      </button>
-                                      {commentMenuOpenId === comment.id && (
-                                        <>
-                                          <div 
-                                            className="fixed inset-0 z-10"
-                                            onClick={() => setCommentMenuOpenId(null)}
-                                          />
-                                          <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[100px]">
-                                            <button
-                                              onClick={() => { 
-                                                setEditingCommentId(comment.id); 
-                                                setEditCommentContent(comment.content);
-                                                setCommentMenuOpenId(null);
-                                              }}
-                                              className="w-full px-3 py-2 text-right text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                            >
-                                              <FaEdit className="w-3 h-3" />
-                                              עריכה
-                                            </button>
-                                            <button
-                                              onClick={() => {
-                                                handleDeleteComment(comment.id, post.id);
-                                                setCommentMenuOpenId(null);
-                                              }}
-                                              className="w-full px-3 py-2 text-right text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                            >
-                                              <FaTrash className="w-3 h-3" />
-                                              מחיקה
-                                            </button>
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                  )}
+                                  {/* 3 dots menu - only visible on hover */}
+                                  <div className="w-6 flex-shrink-0">
+                                    {userId === comment.user?.id && editingCommentId !== comment.id && (
+                                      <div className="relative opacity-0 group-hover:opacity-100 transition-opacity" dir="ltr">
+                                        <button
+                                          onClick={() => setCommentMenuOpenId(commentMenuOpenId === comment.id ? null : comment.id)}
+                                          className="p-1 text-[#52525B] rounded-full hover:bg-gray-100 transition"
+                                        >
+                                          <MoreDotsIcon className="w-4 h-4" />
+                                        </button>
+                                        {commentMenuOpenId === comment.id && (
+                                          <>
+                                            <div 
+                                              className="fixed inset-0 z-10"
+                                              onClick={() => setCommentMenuOpenId(null)}
+                                            />
+                                            <div className="absolute left-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-[#E4E4E7] p-1 z-20 min-w-[120px]" dir="rtl">
+                                              <button
+                                                onClick={() => { 
+                                                  setEditingCommentId(comment.id); 
+                                                  setEditCommentContent(comment.content);
+                                                  setCommentMenuOpenId(null);
+                                                }}
+                                                className="w-full px-3 py-2.5 text-right text-sm text-[#3F3F46] rounded-lg hover:bg-[#F4F4F5] flex items-center gap-3 transition"
+                                              >
+                                                <FaEdit className="w-3.5 h-3.5" />
+                                                עריכה
+                                              </button>
+                                              <button
+                                                onClick={() => {
+                                                  handleDeleteComment(comment.id, post.id);
+                                                  setCommentMenuOpenId(null);
+                                                }}
+                                                className="w-full px-3 py-2.5 text-right text-sm text-[#B3261E] rounded-lg hover:bg-[#F4F4F5] flex items-center gap-3 transition"
+                                              >
+                                                <TrashIcon className="w-4 h-4" />
+                                                מחיקה
+                                              </button>
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               ))
                             ) : (
@@ -2699,13 +2703,17 @@ function CommunityFeedContent() {
                         {/* Add Comment Input */}
                         {userEmail && (
                           <div className="relative flex gap-2 items-center">
-                            <button
-                              onClick={() => handleAddComment(post.id)}
-                              disabled={!newCommentContent[post.id]?.trim() || submittingComment[post.id]}
-                              className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {submittingComment[post.id] ? '...' : 'שלח'}
-                            </button>
+                            {userProfile?.profileImage ? (
+                              <img 
+                                src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
+                                alt={userProfile.name || 'User'}
+                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-xs font-bold text-pink-600 flex-shrink-0">
+                                {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
+                              </div>
+                            )}
                             <div className="relative flex-1">
                               <input
                                 type="text"
@@ -2724,7 +2732,7 @@ function CommunityFeedContent() {
                                   setTimeout(() => setShowMentionDropdown(null), 200);
                                 }}
                                 disabled={submittingComment[post.id]}
-                                placeholder="כתבו תגובה... (הקלידו @ לאזכור)"
+                                placeholder="כתבו תגובה..."
                                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
                               />
                               {/* Mention Autocomplete Dropdown */}
@@ -2754,17 +2762,13 @@ function CommunityFeedContent() {
                                 </div>
                               )}
                             </div>
-                            {userProfile?.profileImage ? (
-                              <img 
-                                src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
-                                alt={userProfile.name || 'User'}
-                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-xs font-bold text-pink-600 flex-shrink-0">
-                                {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
-                              </div>
-                            )}
+                            <button
+                              onClick={() => handleAddComment(post.id)}
+                              disabled={!newCommentContent[post.id]?.trim() || submittingComment[post.id]}
+                              className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:opacity-90 disabled:bg-[#A1A1AA] disabled:text-[#71717A] disabled:cursor-not-allowed"
+                            >
+                              {submittingComment[post.id] ? '...' : 'שלח'}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -2775,19 +2779,55 @@ function CommunityFeedContent() {
                 <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-500">
                   {searchQuery.trim() ? (
                     <div className="space-y-2">
-                      <svg className="w-8 h-8 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                      <p>לא נמצאו תוצאות עבור "{searchQuery}"</p>
+                      <SearchXIcon className="w-16 h-16 mx-auto" />
+                      <p className="text-black text-lg">לא נמצאו תוצאות עבור "{searchQuery}"</p>
                     </div>
                   ) : showSavedOnly ? (
                     <div className="space-y-2">
-                      <FaRegBookmark className="w-8 h-8 mx-auto text-gray-300" />
-                      <p>אין לכם פוסטים שמורים עדיין</p>
-                      <p className="text-sm">לחצו על סימן השמירה בפוסט כדי לשמור אותו</p>
+                      <svg 
+                        viewBox="0 0 40 40" 
+                        fill="none" 
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-10 h-10 mx-auto text-gray-800"
+                      >
+                        <rect width="40" height="40" rx="20" fill="#F4F4F5"/>
+                        <path 
+                          d="M25.8332 27.5L19.9998 24.1667L14.1665 27.5V14.1667C14.1665 13.7246 14.3421 13.3007 14.6547 12.9882C14.9672 12.6756 15.3911 12.5 15.8332 12.5H24.1665C24.6085 12.5 25.0325 12.6756 25.345 12.9882C25.6576 13.3007 25.8332 13.7246 25.8332 14.1667V27.5Z" 
+                          stroke="currentColor" 
+                          strokeWidth="1.25" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <p className="font-normal text-gray-800" style={{ fontSize: '18px' }}>עדיין אין לכם פוסטים שמורים</p>
+                      <p className="font-normal text-gray-800" style={{ fontSize: '18px' }}>לחצו על סימן השמירה בפוסט כדי לשמור אותו</p>
                     </div>
                   ) : (
-                    'עדיין אין פוסטים בקהילה זו.'
+                    <div className="space-y-2">
+                      <svg 
+                        viewBox="0 0 40 40" 
+                        fill="none" 
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-10 h-10 mx-auto"
+                      >
+                        <rect width="40" height="40" rx="20" fill="#F4F4F5"/>
+                        <path 
+                          d="M25 15L15 25" 
+                          stroke="#3F3F46" 
+                          strokeWidth="1.25" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        />
+                        <path 
+                          d="M15 15L25 25" 
+                          stroke="#3F3F46" 
+                          strokeWidth="1.25" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <p className="text-gray-800" style={{ fontSize: '16px' }}>עדיין אין פוסטים בקהילה זו</p>
+                    </div>
                   )}
                 </div>
               );
@@ -2798,35 +2838,31 @@ function CommunityFeedContent() {
           {/* RIGHT: Sidebar with online members, rules, events, top members */}
           <div className="space-y-4">
             {/* Online Members */}
-            <div className="bg-[#F7F8FA] rounded-2xl p-5">
+            <div className="bg-gray-100 border border-gray-400 rounded-2xl p-5">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <div className="w-3 h-3 bg-green-500 rounded-full absolute top-0 left-0 animate-ping opacity-75"></div>
+                  <div className="w-3 h-3 bg-[#A7EA7B] rounded-full"></div>
+                  <div className="w-3 h-3 bg-[#A7EA7B] rounded-full absolute top-0 left-0 animate-ping opacity-75"></div>
                 </div>
-                <span className="text-sm text-gray-600">
+                <span style={{ fontSize: '14px' }} className="text-gray-600 font-normal">
                   <span className="font-semibold text-black">{onlineCount}</span> חברים מחוברים עכשיו
                 </span>
               </div>
             </div>
 
             {/* כללי הקהילה */}
-            <div className="bg-[#F7F8FA] rounded-2xl p-5">
+            <div className="bg-gray-100 border border-gray-400 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
-                <svg className="w-4 h-4 flex-shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <h3 className="font-semibold text-black">כללי הקהילה</h3>
+                <ClipboardCheckIcon className="w-4 h-4 flex-shrink-0 text-black" />
+                <h3 style={{ fontSize: '16px' }} className="font-semibold text-black">כללי הקהילה</h3>
               </div>
               {community?.rules && community.rules.length > 0 ? (
                 <>
-                  <ul className="space-y-2 text-sm text-gray-600">
+                  <ul className="space-y-2">
                     {(rulesExpanded ? community.rules : community.rules.slice(0, 3)).map((rule, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <svg className="w-3.5 h-3.5 flex-shrink-0 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>{rule}</span>
+                        <CheckIcon className="w-3.5 h-3.5 flex-shrink-0 text-gray-800 mt-0.5" />
+                        <span style={{ fontSize: '14px' }} className="text-gray-600 font-normal">{rule}</span>
                       </li>
                     ))}
                   </ul>
@@ -2834,95 +2870,78 @@ function CommunityFeedContent() {
                     <button
                       type="button"
                       onClick={() => setRulesExpanded(!rulesExpanded)}
-                      className="mt-3 text-sm text-gray-500 hover:text-gray-700 transition"
+                      style={{ fontSize: '14px' }}
+                      className="mt-3 text-gray-500 hover:text-gray-700 transition font-normal"
                     >
                       {rulesExpanded ? 'הצג פחות' : `הצג עוד ${community.rules.length - 3} כללים`}
                     </button>
                   )}
                 </>
               ) : (
-                <p className="text-gray-500 text-sm text-center py-2">
+                <p style={{ fontSize: '14px' }} className="text-gray-800 text-center py-2">
                   {(isOwner || isManager) ? (
-                    <Link href={`/communities/${communityId}/manage`} className="text-blue-600 hover:underline">
+                    <Link href={`/communities/${communityId}/manage`} className="text-gray-800 underline hover:opacity-80">
                       הוסיפו כללים לקהילה
                     </Link>
                   ) : (
-                    'לא הוגדרו כללים לקהילה זו'
+                    <span className="underline">לא הוגדרו כללים לקהילה זו</span>
                   )}
                 </p>
               )}
             </div>
 
             {/* אירועים קרובים */}
-            <div className="bg-[#F7F8FA] rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <FaCalendarAlt className="w-4 h-4 flex-shrink-0 text-gray-500" />
-                  <h3 className="font-semibold text-black">אירועים קרובים</h3>
-                </div>
-                <Link 
-                  href={`/communities/${communityId}/events`}
-                  className="text-xs text-gray-500 hover:text-gray-700"
-                >
-                  הכל
-                </Link>
+            <div className="bg-gray-100 border border-gray-400 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <CalendarIcon className="w-4 h-4 flex-shrink-0 text-black" />
+                <h3 style={{ fontSize: '16px' }} className="font-semibold text-black">אירועים קרובים</h3>
               </div>
               {upcomingEvents.length > 0 ? (
-                <div className="space-y-3">
+                <div style={{ gap: '12px' }} className="flex flex-col">
                   {upcomingEvents.map(event => {
                     const eventDate = new Date(event.date);
                     const formatEventTime = eventDate.toLocaleTimeString('he-IL', { 
                       hour: '2-digit', 
                       minute: '2-digit' 
                     });
+                    const dayName = eventDate.toLocaleDateString('he-IL', { weekday: 'long' });
+                    const dayNum = eventDate.getDate();
+                    const monthName = eventDate.toLocaleDateString('he-IL', { month: 'long' });
                     
                     return (
                       <Link
                         key={event.id}
                         href={`/communities/${communityId}/events`}
-                        className="block p-3 bg-white rounded-xl hover:shadow-sm transition"
+                        className="block hover:opacity-80 transition"
                       >
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 bg-black text-white rounded-xl flex flex-col items-center justify-center text-sm font-medium flex-shrink-0">
-                            <span className="text-lg font-bold">{eventDate.getDate()}</span>
-                            <span className="text-[10px] opacity-70">
-                              {eventDate.toLocaleDateString('he-IL', { month: 'short' })}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-black truncate">{event.title}</p>
-                            <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                              {event.locationType === 'online' ? (
-                                <FaVideo className="w-3 h-3" />
-                              ) : (
-                                <FaMapMarkerAlt className="w-3 h-3" />
-                              )}
-                              <span>{formatEventTime}</span>
-                              {event._count?.rsvps ? (
-                                <>
-                                  <span>·</span>
-                                  <span>{event._count.rsvps} מגיעים</span>
-                                </>
-                              ) : null}
+                        <p style={{ fontSize: '14px' }} className="font-semibold text-black truncate">{event.title}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p style={{ fontSize: '14px' }} className="text-gray-500 font-normal whitespace-nowrap">
+                            {dayNum} ב{monthName} · {dayName} · {formatEventTime}
+                          </p>
+                          {event._count?.rsvps ? (
+                            <div className="flex items-center gap-1.5 text-gray-800 flex-shrink-0 mr-3">
+                              <UsersIcon className="w-3.5 h-3.5" />
+                              <span style={{ fontSize: '12px' }} className="font-normal">{event._count.rsvps} אישרו הגעה</span>
                             </div>
-                          </div>
+                          ) : null}
                         </div>
                       </Link>
                     );
                   })}
                 </div>
               ) : (
-                <p className="text-gray-500 text-sm text-center py-2">אין אירועים קרובים</p>
+                <p style={{ fontSize: '14px' }} className="text-gray-800 text-center py-2">אין אירועים קרובים</p>
               )}
             </div>
 
             {/* חברי קהילה מובילים */}
-            <div className="bg-[#F7F8FA] rounded-2xl p-5">
+            <div className="bg-gray-100 border border-gray-400 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
-                <FaUsers className="w-4 h-4 flex-shrink-0 text-gray-500" />
-                <h3 className="font-semibold text-black">חברי קהילה מובילים</h3>
+                <AwardIcon className="w-4 h-4 flex-shrink-0 text-black" />
+                <h3 style={{ fontSize: '16px' }} className="font-semibold text-black">חברי קהילה מובילים</h3>
               </div>
-              <div className="space-y-4 text-sm">
+              <div className="space-y-4">
                 {topMembers.length > 0 ? (
                   topMembers.map((member) => {
                     const getRankIcon = (rank: number) => {
@@ -2934,7 +2953,7 @@ function CommunityFeedContent() {
                         case 3:
                           return <FaMedal className="w-5 h-5" style={{ color: '#CD7F32' }} />;
                         default:
-                          return <span className="text-gray-500 text-xs font-bold">{rank}</span>;
+                          return <span style={{ fontSize: '14px' }} className="text-gray-500 font-bold">{rank}</span>;
                       }
                     };
                     return (
@@ -2952,22 +2971,22 @@ function CommunityFeedContent() {
                               className="w-10 h-10 rounded-full object-cover hover:opacity-80 transition"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600 hover:opacity-80 transition">
+                            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center font-bold text-gray-600 hover:opacity-80 transition" style={{ fontSize: '14px' }}>
                               {member.name?.charAt(0) || '?'}
                             </div>
                           )}
                         </Link>
                         {/* Name */}
-                        <Link href={`/profile/${member.userId}`} className="font-medium text-black flex-1 hover:underline">
+                        <Link href={`/profile/${member.userId}`} style={{ fontSize: '14px' }} className="font-normal text-black flex-1 hover:underline">
                           {member.name}
                         </Link>
                         {/* Score */}
-                        <span className="text-gray-400 font-medium">{member.points}</span>
+                        <span style={{ fontSize: '14px' }} className="text-black font-bold">{member.points}</span>
                       </div>
                     );
                   })
                 ) : (
-                  <p className="text-gray-500 text-center py-4">אין נתונים עדיין</p>
+                  <p style={{ fontSize: '14px' }} className="text-gray-800 text-center py-2">אין נתונים עדיין</p>
                 )}
               </div>
             </div>
@@ -3064,21 +3083,22 @@ function CommunityFeedContent() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <FaTrash className="w-5 h-5 text-red-600" />
+              <div className="flex justify-center mb-4">
+                <TrashCircleIcon className="w-12 h-12" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">מחיקת פוסט</h3>
-              <p className="text-gray-600 mb-6">האם אתם בטוחים שברצונכם למחוק את הפוסט? פעולה זו לא ניתנת לביטול.</p>
+              <h3 className="text-lg font-bold text-black mb-2">מחיקת פוסט</h3>
+              <p className="text-[#3F3F46] mb-1">האם אתם בטוחים שברצונכם למחוק את הפוסט?</p>
+              <p className="text-[#3F3F46] mb-6">פעולה זו לא ניתנת לביטול.</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeletePostModalId(null)}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition"
+                  className="flex-1 px-4 py-2.5 border border-black rounded-xl text-black font-medium hover:bg-gray-50 transition"
                 >
                   ביטול
                 </button>
                 <button
                   onClick={() => handleDeletePost(deletePostModalId)}
-                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition"
+                  className="flex-1 px-4 py-2.5 bg-[#B3261E] text-white rounded-xl font-medium hover:opacity-90 transition"
                 >
                   מחיקה
                 </button>

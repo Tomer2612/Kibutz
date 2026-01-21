@@ -184,6 +184,8 @@ function SignupContent() {
       }
 
       localStorage.setItem('token', data.access_token);
+      // Set cookie for middleware auth
+      document.cookie = `auth-token=${data.access_token}; path=/; max-age=604800; SameSite=Lax`;
       
       // Check if user was creating a community - skip email verification and go straight to pricing
       const isCreatingCommunity = searchParams.get('createCommunity') === 'true';

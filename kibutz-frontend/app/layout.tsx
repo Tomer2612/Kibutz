@@ -12,8 +12,7 @@ const notoSerifHebrew = Noto_Serif_Hebrew({
 
 const assistant = Assistant({
   subsets: ['hebrew'],
-  weight: ['400', '600', '700'],
-  variable: '--font-assistant',
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -60,8 +59,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="he" dir="rtl" className={`${notoSerifHebrew.variable} ${assistant.variable}`} suppressHydrationWarning>
-      <body className="bg-gray-100 text-right font-sans antialiased min-h-screen" suppressHydrationWarning>
+    <html lang="he" dir="rtl" suppressHydrationWarning>
+      <body className={` ${ assistant.className} ${ notoSerifHebrew.variable} bg-gray-100 text-right antialiased min-h-screen`} suppressHydrationWarning>
         <ClientProviders>
           {children}
         </ClientProviders>

@@ -7,8 +7,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Assistant', 'sans-serif'],
-        primary: ['Assistant', 'sans-serif'],
+        sans: ['var(--font-assistant)', 'sans-serif'],
+        primary: ['var(--font-assistant)', 'sans-serif'],
+        serif: ['var(--font-noto-serif-hebrew)', 'serif'],
       },
       fontWeight: {
         regular: '400',

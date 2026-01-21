@@ -145,7 +145,11 @@ export class PostsService {
     links?: string[],
     imagesToRemove?: string[],
     filesToRemove?: string[],
-    linksToRemove?: string[]
+    linksToRemove?: string[],
+    pollQuestion?: string,
+    pollOptions?: { id: string; text: string }[],
+    newPollQuestion?: string,
+    newPollOptions?: string[]
   ) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
@@ -197,22 +201,59 @@ export class PostsService {
       updateData.files = newFiles;
     }
     
-    // Handle links - add new ones and remove specified
-    if (links || linksToRemove) {
+    // Handle links - replace with new list (frontend sends kept links + handles removals)
+    if (links !== undefined) {
+      // Frontend sends the complete list of kept links
+      updateData.links = links.slice(0, 10);
+    } else if (linksToRemove && linksToRemove.length > 0) {
+      // If only removing links (no new links array), filter the existing ones
       const currentLinks = (post.links as string[]) || [];
-      let newLinks = [...currentLinks];
+      updateData.links = currentLinks.filter(link => !linksToRemove.includes(link));
+    }
+
+    // Handle poll updates
+    if (pollQuestion && pollOptions && pollOptions.length > 0) {
+      // Check if post has a poll
+      const existingPoll = await this.prisma.poll.findFirst({
+        where: { postId },
+      });
       
-      // Remove specified links
-      if (linksToRemove && linksToRemove.length > 0) {
-        newLinks = newLinks.filter(link => !linksToRemove.includes(link));
+      if (existingPoll) {
+        // Update poll question
+        await this.prisma.poll.update({
+          where: { id: existingPoll.id },
+          data: { question: pollQuestion },
+        });
+        
+        // Update each option
+        for (const option of pollOptions) {
+          await this.prisma.pollOption.update({
+            where: { id: option.id },
+            data: { text: option.text },
+          });
+        }
       }
+    }
+    
+    // Handle creating a new poll
+    if (newPollQuestion && newPollOptions && newPollOptions.length >= 2) {
+      // Check if post already has a poll
+      const existingPoll = await this.prisma.poll.findFirst({
+        where: { postId },
+      });
       
-      // Add new links (up to limit of 10)
-      if (links && links.length > 0) {
-        newLinks = [...newLinks, ...links].slice(0, 10);
+      // Only create if no poll exists (max 1 per post)
+      if (!existingPoll) {
+        await this.prisma.poll.create({
+          data: {
+            question: newPollQuestion,
+            postId,
+            options: {
+              create: newPollOptions.map(text => ({ text })),
+            },
+          },
+        });
       }
-      
-      updateData.links = newLinks;
     }
 
     return this.prisma.post.update({
@@ -221,6 +262,16 @@ export class PostsService {
       include: {
         author: {
           select: { id: true, email: true, name: true, profileImage: true },
+        },
+        poll: {
+          include: {
+            options: {
+              orderBy: { id: 'asc' },
+              include: {
+                _count: { select: { votes: true } },
+              },
+            },
+          },
         },
         _count: {
           select: { likes: true, comments: true, savedBy: true },
@@ -449,7 +500,7 @@ export class PostsService {
   async getLinkPreview(url: string) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
       const response = await fetch(url, {
         headers: {
@@ -503,9 +554,9 @@ export class PostsService {
         description: description || null,
         image: image || null,
       };
-    } catch (err) {
-      console.error('Link preview error:', err);
-      // Return basic fallback
+    } catch (err: any) {
+      // Silently handle abort errors (expected for slow sites)
+      // Return basic fallback without logging
       try {
         const urlObj = new URL(url);
         return {
@@ -723,5 +774,42 @@ export class PostsService {
         percentage: totalVotes > 0 ? Math.round((opt._count?.votes || 0) / totalVotes * 100) : 0,
       })),
     };
+  }
+
+  // Delete a poll from a post
+  async deletePoll(pollId: string, userId: string) {
+    // Verify poll exists and get associated post
+    const poll = await this.prisma.poll.findUnique({
+      where: { id: pollId },
+      include: { post: true },
+    });
+
+    if (!poll) {
+      throw new NotFoundException('Poll not found');
+    }
+
+    // Only post author can delete the poll
+    if (poll.post.authorId !== userId) {
+      throw new ForbiddenException('Only the post author can delete the poll');
+    }
+
+    // Delete all votes first, then options, then the poll
+    await this.prisma.pollVote.deleteMany({
+      where: {
+        option: {
+          pollId: pollId,
+        },
+      },
+    });
+
+    await this.prisma.pollOption.deleteMany({
+      where: { pollId: pollId },
+    });
+
+    await this.prisma.poll.delete({
+      where: { id: pollId },
+    });
+
+    return { success: true, message: 'Poll deleted successfully' };
   }
 }

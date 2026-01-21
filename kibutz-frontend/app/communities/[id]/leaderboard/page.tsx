@@ -2,17 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaTrophy, FaMedal, FaUsers, FaCog, FaSignOutAlt, FaStar, FaHeart, FaComment, FaFileAlt, FaUser } from 'react-icons/fa';
-import NotificationBell from '../../../components/NotificationBell';
-
-interface JwtPayload {
-  email: string;
-  sub: string;
-  iat: number;
-  exp: number;
-}
+import { FaTrophy, FaMedal, FaUsers, FaStar, FaHeart, FaComment, FaFileAlt, FaUser } from 'react-icons/fa';
+import { useCommunityContext } from '../CommunityContext';
 
 interface Community {
   id: string;
@@ -35,56 +27,16 @@ export default function LeaderboardPage() {
   const router = useRouter();
   const params = useParams();
   const communityId = params.id as string;
+  const { userEmail, userId, userProfile, isOwner, isManager } = useCommunityContext();
 
   const [mounted, setMounted] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [community, setCommunity] = useState<Community | null>(null);
   const [members, setMembers] = useState<LeaderboardMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isOwner, setIsOwner] = useState(false);
-  const [isManager, setIsManager] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-
-    // Read cached profile immediately
-    const cached = localStorage.getItem('userProfileCache');
-    if (cached) {
-      try { setUserProfile(JSON.parse(cached)); } catch {}
-    }
-
-    const token = localStorage.getItem('token');
-    if (!token || token.split('.').length !== 3) {
-      router.push('/login');
-      return;
-    }
-
-    try {
-      const decoded = jwtDecode<JwtPayload>(token);
-      setUserEmail(decoded.email);
-      setUserId(decoded.sub);
-
-      // Fetch user profile
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) {
-            const profile = { name: data.name, profileImage: data.profileImage };
-            setUserProfile(profile);
-            localStorage.setItem('userProfileCache', JSON.stringify(profile));
-          }
-        })
-        .catch(console.error);
-    } catch (e) {
-      console.error('Invalid token:', e);
-      router.push('/login');
-    }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,17 +58,6 @@ export default function LeaderboardPage() {
           }
           
           setCommunity(communityData);
-        }
-
-        // Check membership and permissions
-        const membershipRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/membership`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (membershipRes.ok) {
-          const membershipData = await membershipRes.json();
-          setIsOwner(membershipData.isOwner || false);
-          setIsManager(membershipData.isManager || false);
         }
 
         // Fetch leaderboard (top 10 members)
@@ -166,122 +107,6 @@ export default function LeaderboardPage() {
 
   return (
     <main className="min-h-screen bg-gray-100 text-right" dir="rtl">
-      {/* Header */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        {/* Right side: Logo + Community */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-            Kibutz
-          </Link>
-          <div className="flex items-center gap-2">
-            {community?.logo ? (
-              <img
-                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
-                alt={community.name}
-                className="w-8 h-8 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                <FaUsers className="w-4 h-4 text-gray-400" />
-              </div>
-            )}
-            <span className="font-medium text-black">{community?.name}</span>
-          </div>
-        </div>
-
-        {/* Center: Nav links */}
-        <nav className="flex items-center gap-4">
-          {[
-            { label: 'עמוד בית', href: `/communities/${communityId}/feed` },
-            { label: 'קורסים', href: `/communities/${communityId}/courses` },
-            { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן אירועים', href: `/communities/${communityId}/events` },
-            { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard`, active: true },
-            { label: 'אודות', href: `/communities/${communityId}/about` },
-            ...((isOwner || isManager) ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] : []),
-          ].map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className={`text-sm transition px-3 py-1.5 rounded-full ${
-                link.active
-                  ? 'bg-gray-200 text-black font-medium'
-                  : 'text-gray-500 hover:text-black hover:bg-gray-50'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Left side: Notifications + Profile */}
-        <div className="flex items-center gap-3">
-          {userEmail && <NotificationBell />}
-          {userEmail && (
-            <div className="relative">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="relative focus:outline-none"
-              >
-                {userProfile?.profileImage ? (
-                  <img
-                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
-                    alt={userProfile.name || 'User'}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                    {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-              </button>
-
-              {profileMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        if (userId) router.push(`/profile/${userId}`);
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaUser className="w-4 h-4" />
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        router.push('/settings');
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaCog className="w-4 h-4" />
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('userProfileCache');
-                        router.push('/');
-                        location.reload();
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
-                    >
-                      <FaSignOutAlt className="w-4 h-4" />
-                      התנתקות
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-
       {/* Main Content */}
       <section className="max-w-5xl mx-auto py-8 px-4">
         {/* Title */}

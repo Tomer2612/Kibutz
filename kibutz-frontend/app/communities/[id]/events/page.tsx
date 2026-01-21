@@ -3,11 +3,11 @@
 import { Suspense, useEffect, useState, forwardRef, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { jwtDecode } from 'jwt-decode';
+import { useCommunityContext } from '../CommunityContext';
+import FormSelect from '../../../components/FormSelect';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { he } from 'date-fns/locale';
 import { getMonth, getYear } from 'date-fns';
-import NotificationBell from '../../../components/NotificationBell';
 import { 
   FaCalendarAlt, 
   FaPlus, 
@@ -20,14 +20,10 @@ import {
   FaCheck,
   FaQuestion,
   FaTimes,
-  FaCog,
-  FaSignOutAlt,
-  FaSearch,
   FaPen,
   FaTrashAlt,
   FaEllipsisV,
-  FaChevronDown,
-  FaUser
+  FaChevronDown
 } from 'react-icons/fa';
 
 // Short Hebrew day names for calendar - return single letter based on day name
@@ -337,11 +333,6 @@ function TimePicker({
   );
 }
 
-interface JwtPayload {
-  sub: string;
-  email: string;
-}
-
 interface Event {
   id: string;
   title: string;
@@ -403,15 +394,13 @@ function EventsPageContent() {
   const router = useRouter();
   const communityId = params.id as string;
 
+  const { userEmail, userId, userProfile, isOwnerOrManager } = useCommunityContext();
+  
   const [events, setEvents] = useState<Event[]>([]);
   const [community, setCommunity] = useState<Community | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
   const [mounted, setMounted] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
-  const [isManager, setIsManager] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -419,7 +408,6 @@ function EventsPageContent() {
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
   const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
   const [addEventDate, setAddEventDate] = useState<Date | null>(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
 
@@ -431,42 +419,16 @@ function EventsPageContent() {
   useEffect(() => {
     setMounted(true);
 
-    // Read cached profile immediately
-    const cached = localStorage.getItem('userProfileCache');
-    if (cached) {
-      try { setUserProfile(JSON.parse(cached)); } catch {}
-    }
-
     const token = localStorage.getItem('token');
     if (token) {
-      try {
-        const decoded = jwtDecode<JwtPayload>(token);
-        setUserId(decoded.sub);
-        setUserEmail(decoded.email);
-        
-        // Fetch user profile
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(res => res.ok ? res.json() : null)
-          .then(data => {
-            if (data) {
-              const profile = { name: data.name, profileImage: data.profileImage };
-              setUserProfile(profile);
-              localStorage.setItem('userProfileCache', JSON.stringify(profile));
-            }
-          });
-          
-        // Fetch communities user is member of
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/user/memberships`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(res => res.ok ? res.json() : [])
-          .then(data => {
-            setCommunities(data);
-            setUserMemberships(data.map((c: Community) => c.id));
-          });
-      } catch (e) {
-        console.error('Invalid token:', e);
-      }
+      // Fetch communities user is member of
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/user/memberships`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(res => res.ok ? res.json() : [])
+        .then(data => {
+          setCommunities(data);
+          setUserMemberships(data.map((c: Community) => c.id));
+        });
     }
   }, []);
 
@@ -489,18 +451,6 @@ function EventsPageContent() {
           }
           
           setCommunity(communityData);
-        }
-
-        // Check membership
-        if (token) {
-          const membershipRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/membership`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (membershipRes.ok) {
-            const membershipData = await membershipRes.json();
-            const isManagerOrOwner = membershipData.role === 'OWNER' || membershipData.role === 'MANAGER';
-            setIsManager(isManagerOrOwner);
-          }
         }
 
         // Fetch events for current month
@@ -764,7 +714,7 @@ function EventsPageContent() {
           key={day}
           onClick={() => setSelectedDate(date)}
           onDoubleClick={() => {
-            if (isManager && !isPastDay) {
+            if (isOwnerOrManager && !isPastDay) {
               // Create date at noon to avoid timezone issues
               const eventDate = new Date(year, month, day, 12, 0, 0);
               setAddEventDate(eventDate);
@@ -822,129 +772,6 @@ function EventsPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-100" dir="rtl">
-      {/* Header */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        {/* Right side of screen (RTL first): Kibutz Logo + Community name */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-            Kibutz
-          </Link>
-          <div className="flex items-center gap-2">
-            {community?.logo ? (
-              <img
-                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
-                alt={community?.name || ''}
-                className="w-8 h-8 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                <FaUsers className="w-4 h-4 text-gray-400" />
-              </div>
-            )}
-            <span className="font-medium text-black">{community?.name}</span>
-          </div>
-        </div>
-
-        {/* Center: Nav links */}
-        <nav className="flex items-center gap-4">
-          {[
-            { label: 'עמוד בית', href: `/communities/${communityId}/feed`, active: false },
-            { label: 'קורסים', href: `/communities/${communityId}/courses` },
-            { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן אירועים', href: `/communities/${communityId}/events`, active: true },
-            { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
-            { label: 'אודות', href: `/communities/${communityId}/about` },
-            ...(isManager ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] : []),
-          ].map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className={`text-sm transition px-3 py-1.5 rounded-full ${
-                link.active
-                  ? 'bg-gray-200 text-black font-medium'
-                  : 'text-gray-500 hover:text-black hover:bg-gray-50'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Left side of screen (RTL last): User Avatar */}
-        <div className="flex items-center gap-3">
-          {/* Notification Bell */}
-          {userId && <NotificationBell />}
-          
-          {/* User Avatar with Dropdown */}
-          {userId && (
-            <div className="relative">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="relative focus:outline-none"
-              >
-                {userProfile?.profileImage ? (
-                  <img 
-                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
-                    alt={userProfile.name || 'User'}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                    {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase() || '?'}
-                  </div>
-                )}
-                <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-              </button>
-              
-              {/* Dropdown Menu */}
-              {profileMenuOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setProfileMenuOpen(false)}
-                  />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        if (userId) router.push(`/profile/${userId}`);
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaUser className="w-4 h-4" />
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        router.push('/settings');
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaCog className="w-4 h-4" />
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('userProfileCache');
-                        router.push('/');
-                        location.reload();
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
-                    >
-                      <FaSignOutAlt className="w-4 h-4" />
-                      התנתקות
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-
       <div className="max-w-7xl mx-auto px-4 py-6">
         {viewMode === 'calendar' ? (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-6">
@@ -1090,7 +917,7 @@ function EventsPageContent() {
                     </button>
                   </div>
 
-                  {isManager && (
+                  {isOwnerOrManager && (
                     <button
                       onClick={() => {
                         setAddEventDate(null);
@@ -1126,7 +953,7 @@ function EventsPageContent() {
                             onEdit={handleEditEvent}
                             onDelete={(id) => setDeleteEventId(id)}
                             rsvpLoading={rsvpLoading}
-                            isManager={isManager}
+                            isManager={isOwnerOrManager}
                             compact
                           />
                         ))}
@@ -1158,7 +985,7 @@ function EventsPageContent() {
                       onEdit={handleEditEvent}
                       onDelete={(id) => setDeleteEventId(id)}
                       rsvpLoading={rsvpLoading}
-                      isManager={isManager}
+                      isManager={isOwnerOrManager}
                     />
                   ))
               ) : (
@@ -1190,7 +1017,7 @@ function EventsPageContent() {
                     </button>
                   </div>
 
-                  {isManager && (
+                  {isOwnerOrManager && (
                     <button
                       onClick={() => {
                         setAddEventDate(null);
@@ -1733,19 +1560,19 @@ function AddEventModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">משך</label>
-              <select
+              <FormSelect
                 value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-              >
-                <option value="30">30 דקות</option>
-                <option value="60">שעה</option>
-                <option value="90">שעה וחצי</option>
-                <option value="120">שעתיים</option>
-                <option value="180">3 שעות</option>
-                <option value="240">4 שעות</option>
-                <option value="300">5 שעות</option>
-              </select>
+                onChange={setDuration}
+                options={[
+                  { value: '30', label: '30 דקות' },
+                  { value: '60', label: 'שעה' },
+                  { value: '90', label: 'שעה וחצי' },
+                  { value: '120', label: 'שעתיים' },
+                  { value: '180', label: '3 שעות' },
+                  { value: '240', label: '4 שעות' },
+                  { value: '300', label: '5 שעות' },
+                ]}
+              />
             </div>
           </div>
 
@@ -1760,15 +1587,17 @@ function AddEventModal({
             />
             <label htmlFor="recurring" className="text-sm text-gray-700">אירוע חוזר</label>
             {isRecurring && (
-              <select
-                value={recurringType}
-                onChange={(e) => setRecurringType(e.target.value)}
-                className="px-3 py-1 border border-gray-200 rounded-lg text-sm text-black"
-              >
-                <option value="daily">יומי</option>
-                <option value="weekly">שבועי</option>
-                <option value="monthly">חודשי</option>
-              </select>
+              <div style={{ minWidth: '120px' }}>
+                <FormSelect
+                  value={recurringType}
+                  onChange={setRecurringType}
+                  options={[
+                    { value: 'daily', label: 'יומי' },
+                    { value: 'weekly', label: 'שבועי' },
+                    { value: 'monthly', label: 'חודשי' },
+                  ]}
+                />
+              </div>
             )}
           </div>
 
@@ -1811,15 +1640,17 @@ function AddEventModal({
             </div>
             {locationType === 'online' ? (
               <div className="flex gap-2">
-                <select
-                  value={locationName}
-                  onChange={(e) => setLocationName(e.target.value)}
-                  className="w-40 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black flex-shrink-0"
-                >
-                  <option value="Zoom">Zoom</option>
-                  <option value="Google Meet">Google Meet</option>
-                  <option value="Microsoft Teams">Microsoft Teams</option>
-                </select>
+                <div style={{ minWidth: '160px' }}>
+                  <FormSelect
+                    value={locationName}
+                    onChange={setLocationName}
+                    options={[
+                      { value: 'Zoom', label: 'Zoom' },
+                      { value: 'Google Meet', label: 'Google Meet' },
+                      { value: 'Microsoft Teams', label: 'Microsoft Teams' },
+                    ]}
+                  />
+                </div>
                 <input
                   type="text"
                   value={locationUrl}
@@ -2199,19 +2030,19 @@ function EditEventModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">משך</label>
-              <select
+              <FormSelect
                 value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-              >
-                <option value="30">30 דקות</option>
-                <option value="60">שעה</option>
-                <option value="90">שעה וחצי</option>
-                <option value="120">שעתיים</option>
-                <option value="180">3 שעות</option>
-                <option value="240">4 שעות</option>
-                <option value="300">5 שעות</option>
-              </select>
+                onChange={setDuration}
+                options={[
+                  { value: '30', label: '30 דקות' },
+                  { value: '60', label: 'שעה' },
+                  { value: '90', label: 'שעה וחצי' },
+                  { value: '120', label: 'שעתיים' },
+                  { value: '180', label: '3 שעות' },
+                  { value: '240', label: '4 שעות' },
+                  { value: '300', label: '5 שעות' },
+                ]}
+              />
             </div>
           </div>
 
@@ -2226,15 +2057,17 @@ function EditEventModal({
             />
             <label htmlFor="recurring-edit" className="text-sm text-gray-700">אירוע חוזר</label>
             {isRecurring && (
-              <select
-                value={recurringType}
-                onChange={(e) => setRecurringType(e.target.value)}
-                className="px-3 py-1 border border-gray-200 rounded-lg text-sm text-black"
-              >
-                <option value="daily">יומי</option>
-                <option value="weekly">שבועי</option>
-                <option value="monthly">חודשי</option>
-              </select>
+              <div style={{ minWidth: '120px' }}>
+                <FormSelect
+                  value={recurringType}
+                  onChange={setRecurringType}
+                  options={[
+                    { value: 'daily', label: 'יומי' },
+                    { value: 'weekly', label: 'שבועי' },
+                    { value: 'monthly', label: 'חודשי' },
+                  ]}
+                />
+              </div>
             )}
           </div>
 
@@ -2277,15 +2110,17 @@ function EditEventModal({
             </div>
             {locationType === 'online' ? (
               <div className="flex gap-2">
-                <select
-                  value={locationName}
-                  onChange={(e) => setLocationName(e.target.value)}
-                  className="w-40 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-black"
-                >
-                  <option value="Zoom">Zoom</option>
-                  <option value="Google Meet">Google Meet</option>
-                  <option value="Microsoft Teams">Microsoft Teams</option>
-                </select>
+                <div style={{ minWidth: '160px' }}>
+                  <FormSelect
+                    value={locationName}
+                    onChange={setLocationName}
+                    options={[
+                      { value: 'Zoom', label: 'Zoom' },
+                      { value: 'Google Meet', label: 'Google Meet' },
+                      { value: 'Microsoft Teams', label: 'Microsoft Teams' },
+                    ]}
+                  />
+                </div>
                 <input
                   type="text"
                   value={locationUrl}

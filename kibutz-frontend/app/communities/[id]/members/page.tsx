@@ -2,17 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaCog, FaSignOutAlt, FaCrown, FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo, FaUsers, FaSearch } from 'react-icons/fa';
-import NotificationBell from '../../../components/NotificationBell';
-
-interface JwtPayload {
-  email: string;
-  sub: string;
-  iat: number;
-  exp: number;
-}
+import { useCommunityContext } from '../CommunityContext';
+import { FaCrown, FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo, FaSearch } from 'react-icons/fa';
+import SearchXIcon from '../../../components/SearchXIcon';
+import UserRemoveIcon from '../../../components/UserRemoveIcon';
+import CloseIcon from '../../../components/CloseIcon';
 
 interface Member {
   id: string;
@@ -64,45 +59,14 @@ export default function CommunityMembersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [removeModal, setRemoveModal] = useState<{ open: boolean; memberId: string | null; memberName: string }>({ open: false, memberId: null, memberName: '' });
+  
+  const { userEmail, userId, userProfile, isOwnerOrManager } = useCommunityContext();
   const [showBanned, setShowBanned] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-
-    // Read cached profile immediately
-    const cached = localStorage.getItem('userProfileCache');
-    if (cached) {
-      try { setUserProfile(JSON.parse(cached)); } catch {}
-    }
-
-    const token = localStorage.getItem('token');
-    if (token && token.split('.').length === 3) {
-      try {
-        const decoded = jwtDecode<JwtPayload>(token);
-        setUserEmail(decoded.email);
-        setUserId(decoded.sub);
-
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-          .then(res => res.ok ? res.json() : null)
-          .then(data => {
-            if (data) {
-              const profile = { name: data.name, profileImage: data.profileImage };
-              setUserProfile(profile);
-              localStorage.setItem('userProfileCache', JSON.stringify(profile));
-            }
-          })
-          .catch(console.error);
-      } catch (e) {
-        console.error('Invalid token:', e);
-      }
-    }
   }, []);
 
   useEffect(() => {
@@ -202,22 +166,20 @@ export default function CommunityMembersPage() {
     switch (role) {
       case 'OWNER':
         return (
-          <span className="inline-flex items-center gap-1 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+          <span className="inline-flex items-center gap-1 text-[12px] font-medium bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
             <FaCrown className="w-3 h-3" />
             בעלים
           </span>
         );
       case 'MANAGER':
         return (
-          <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-            <FaUserShield className="w-3 h-3" />
+          <span className="inline-flex items-center text-[12px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
             מנהל
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-            <FaUser className="w-3 h-3" />
+          <span className="inline-flex items-center text-[12px] font-medium bg-[#E4E4E7] text-[#52525B] px-2 py-0.5 rounded-full">
             חבר
           </span>
         );
@@ -259,10 +221,6 @@ export default function CommunityMembersPage() {
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
-    if (!confirm(`האם אתה בטוח שברצונך להסיר את ${memberName} מהקהילה?`)) {
-      return;
-    }
-
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -278,6 +236,7 @@ export default function CommunityMembersPage() {
         // Remove from members list
         setMembers(prev => prev.filter(m => m.id !== memberId));
         setFilteredMembers(prev => prev.filter(m => m.id !== memberId));
+        setRemoveModal({ open: false, memberId: null, memberName: '' });
         
         // Refresh banned users list
         const bannedRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/banned`, {
@@ -326,140 +285,29 @@ export default function CommunityMembersPage() {
 
   return (
     <main className="min-h-screen bg-gray-100 text-right" dir="rtl">
-      {/* Header */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        {/* Right side: Logo + Community picker */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-            Kibutz
-          </Link>
-          <div className="flex items-center gap-2">
-            {community?.logo ? (
-              <img
-                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
-                alt={community.name}
-                className="w-8 h-8 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                <FaUsers className="w-4 h-4 text-gray-400" />
-              </div>
-            )}
-            <span className="font-medium text-black">{community?.name}</span>
-          </div>
-        </div>
-
-        {/* Center: Nav links */}
-        <nav className="flex items-center gap-4">
-          {[
-            { label: 'עמוד בית', href: `/communities/${communityId}/feed` },
-            { label: 'קורסים', href: `/communities/${communityId}/courses` },
-            { label: 'חברי קהילה', href: `/communities/${communityId}/members`, active: true },
-            { label: 'יומן אירועים', href: `/communities/${communityId}/events` },
-            { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
-            { label: 'אודות', href: `/communities/${communityId}/about` },
-            ...(currentUserRole === 'OWNER' || currentUserRole === 'MANAGER' 
-              ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] 
-              : []),
-          ].map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className={`text-sm transition px-3 py-1.5 rounded-full ${
-                link.active
-                  ? 'bg-gray-200 text-black font-medium'
-                  : 'text-gray-500 hover:text-black hover:bg-gray-50'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Left side: Notifications + Profile */}
-        <div className="flex items-center gap-3">
-          {userEmail && <NotificationBell />}
-          {userEmail && (
-            <div className="relative">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="relative focus:outline-none"
-              >
-                {userProfile?.profileImage ? (
-                  <img
-                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
-                    alt={userProfile.name || 'User'}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                    {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-              </button>
-
-              {profileMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setProfileMenuOpen(false)}
-                  />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        if (userId) router.push(`/profile/${userId}`);
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaUser className="w-4 h-4" />
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        router.push('/settings');
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaCog className="w-4 h-4" />
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('userProfileCache');
-                        router.push('/');
-                        location.reload();
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
-                    >
-                      <FaSignOutAlt className="w-4 h-4" />
-                      התנתקות
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-
       {/* Members Content */}
       <section className="max-w-3xl mx-auto py-8 px-4">
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           {/* Search */}
           <div className="mb-6">
-            <div className="relative">
-              <FaSearch className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <div className="flex items-center rounded-lg border bg-white px-4 py-3 focus-within:ring-2 focus-within:ring-black" style={{ borderColor: '#D0D0D4' }}>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                strokeWidth={1.5} 
+                stroke="currentColor" 
+                className="w-5 h-5 text-zinc-600"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
               <input
                 type="text"
                 placeholder="חפש חבר קהילה"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-200 text-right focus:outline-none focus:border-gray-400 bg-white"
+                className="mr-3 flex-1 bg-transparent outline-none text-right placeholder:text-gray-400"
+                dir="rtl"
               />
             </div>
           </div>
@@ -470,7 +318,7 @@ export default function CommunityMembersPage() {
             filteredMembers.map((member) => (
               <div
                 key={member.id}
-                className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-xl transition"
+                className="group flex items-center gap-4 p-4 hover:bg-[#F4F4F5] rounded-xl transition"
               >
                 {/* Profile Image */}
                 <Link href={`/profile/${member.id}`} className="relative flex-shrink-0">
@@ -486,7 +334,7 @@ export default function CommunityMembersPage() {
                     </div>
                   )}
                   {member.isOnline && (
-                    <span className="absolute bottom-0 left-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>
+                    <span className="absolute bottom-0 left-0 w-3.5 h-3.5 bg-[#A7EA7B] border-2 border-white rounded-full"></span>
                   )}
                 </Link>
 
@@ -498,36 +346,32 @@ export default function CommunityMembersPage() {
                     </Link>
                     {getRoleBadge(member.role)}
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-[#52525B]">
                     {getUsername(member.email)} · תאריך הצטרפות: {formatDate(member.joinedAt)}
                   </p>
                 </div>
 
                 {/* Role Management & Remove - Only for Owners/Managers, can't change owner role */}
                 {(currentUserRole === 'OWNER' || currentUserRole === 'MANAGER') && member.role !== 'OWNER' && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     {/* Role change button - Only owners can change roles */}
                     {currentUserRole === 'OWNER' && (
                       <button
                         onClick={() => handleRoleChange(member.id, member.role === 'MANAGER' ? 'USER' : 'MANAGER')}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                          member.role === 'MANAGER'
-                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                        }`}
+                        className="px-3 py-1.5 text-[12px] font-medium rounded-md bg-[#3F3F46] text-white hover:bg-[#52525B] transition"
                       >
-                        {member.role === 'MANAGER' ? 'שנה לחבר' : 'קדם למנהל'}
+                        {member.role === 'MANAGER' ? 'שנה לחבר קהילה' : 'קדם למנהל'}
                       </button>
                     )}
                     
                     {/* Remove button - Owners can remove anyone, Managers can only remove Users */}
                     {(currentUserRole === 'OWNER' || (currentUserRole === 'MANAGER' && member.role === 'USER')) && (
                       <button
-                        onClick={() => handleRemoveMember(member.id, member.name || 'משתמש')}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                        onClick={() => setRemoveModal({ open: true, memberId: member.id, memberName: member.name || 'משתמש' })}
+                        className="p-1.5 text-[#B3261E] hover:bg-[#F4F4F5] rounded-lg transition"
                         title="הסר מהקהילה"
                       >
-                        <FaUserMinus className="w-4 h-4" />
+                        <UserRemoveIcon className="w-5 h-5" />
                       </button>
                     )}
                   </div>
@@ -535,14 +379,21 @@ export default function CommunityMembersPage() {
               </div>
             ))
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              {searchQuery ? 'לא נמצאו חברים התואמים לחיפוש' : 'אין חברים בקהילה זו'}
+            <div className="text-center py-12">
+              {searchQuery ? (
+                <>
+                  <SearchXIcon className="w-16 h-16 mx-auto mb-4" />
+                  <p className="text-black text-lg">לא נמצאו חברים עבור "{searchQuery}"</p>
+                </>
+              ) : (
+                <p className="text-gray-500">אין חברים בקהילה זו</p>
+              )}
             </div>
           )}
         </div>
 
           {/* Member count */}
-          <div className="mt-6 text-center text-sm text-gray-500">
+          <div className="mt-6 text-center text-sm text-[#3F3F46]">
             {members.length} חברים בקהילה
           </div>
         </div>
@@ -612,6 +463,41 @@ export default function CommunityMembersPage() {
           </div>
         )}
       </section>
+
+      {/* Remove Member Modal */}
+      {removeModal.open && removeModal.memberId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setRemoveModal({ open: false, memberId: null, memberName: '' })} />
+          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4" dir="rtl">
+            <button
+              onClick={() => setRemoveModal({ open: false, memberId: null, memberName: '' })}
+              className="absolute top-4 left-4 p-1 hover:bg-gray-100 rounded-full transition"
+            >
+              <CloseIcon className="w-5 h-5" />
+            </button>
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-black mb-2">הסר חבר קהילה</h3>
+              <p className="text-[#3F3F46] mb-6">
+                האם אתה בטוח שברצונך להסיר את <span className="font-semibold">{removeModal.memberName}</span> מהקהילה?
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => setRemoveModal({ open: false, memberId: null, memberName: '' })}
+                  className="px-6 py-2.5 border border-black text-black rounded-xl font-medium hover:bg-gray-50 transition"
+                >
+                  ביטול
+                </button>
+                <button
+                  onClick={() => handleRemoveMember(removeModal.memberId!, removeModal.memberName)}
+                  className="px-6 py-2.5 bg-[#B3261E] text-white rounded-xl font-medium hover:bg-[#9C2019] transition"
+                >
+                  הסר
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

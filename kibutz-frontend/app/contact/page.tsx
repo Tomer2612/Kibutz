@@ -1,18 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode';
-import NotificationBell from '../components/NotificationBell';
-import { FaCog, FaSignOutAlt, FaEnvelope, FaPaperPlane, FaUser } from 'react-icons/fa';
-
-interface JwtPayload {
-  email: string;
-  sub: string;
-  iat: number;
-  exp: number;
-}
+import SiteHeader from '../components/SiteHeader';
+import SiteFooter from '../components/SiteFooter';
 
 // Email validation
 const isValidEmail = (email: string) => {
@@ -28,13 +18,6 @@ const CHAR_LIMITS = {
 };
 
 export default function ContactPage() {
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  
   // Contact form state
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -47,34 +30,20 @@ export default function ContactPage() {
   const [emailTouched, setEmailTouched] = useState(false);
   const [emailError, setEmailError] = useState('');
 
+  // Pre-fill form if user is logged in
   useEffect(() => {
-    setMounted(true);
-
-    // Read cached profile immediately
-    const cached = localStorage.getItem('userProfileCache');
-    if (cached) {
-      try { setUserProfile(JSON.parse(cached)); } catch {}
-    }
-
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
       try {
-        const decoded = jwtDecode<JwtPayload>(token);
-        setUserEmail(decoded.email);
-        setUserId(decoded.sub);
-        setContactEmail(decoded.email);
-        
-        // Fetch user profile
+        // Fetch user profile to pre-fill name and email
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
           .then(data => {
             if (data) {
-              const profile = { name: data.name, profileImage: data.profileImage };
-              setUserProfile(profile);
-              localStorage.setItem('userProfileCache', JSON.stringify(profile));
               setContactName(data.name || '');
+              setContactEmail(data.email || '');
             }
           })
           .catch(console.error);
@@ -83,13 +52,6 @@ export default function ContactPage() {
       }
     }
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userProfileCache');
-    router.push('/');
-    location.reload();
-  };
 
   const validateEmail = () => {
     setEmailTouched(true);
@@ -150,146 +112,41 @@ export default function ContactPage() {
 
   return (
     <main className="min-h-screen bg-gray-100" dir="rtl">
-      {/* Header */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-          Kibutz
-        </Link>
-        <div className="flex gap-6 items-center">
-          <Link href="/pricing" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            מחירון
-          </Link>
-          <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            שאלות ותשובות
-          </Link>
-          <Link href="/contact" className="text-black font-medium transition text-sm">
-            צרו קשר
-          </Link>
-          <Link href="/terms" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            תנאי שימוש
-          </Link>
-          <Link href="/privacy" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            מדיניות פרטיות
-          </Link>
-          
-          {!mounted ? (
-            <div className="w-10 h-10" />
-          ) : !userEmail ? (
-            <>
-              <Link
-                href="/login"
-                className="border border-black text-black px-6 py-2.5 rounded-lg font-semibold hover:bg-black hover:text-white transition"
-              >
-                כניסה
-              </Link>
-              <Link
-                href="/signup"
-                className="bg-black text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition"
-              >
-                הרשמה
-              </Link>
-            </>
-          ) : (
-            <div className="flex items-center gap-3">
-              <NotificationBell />
-              <div className="relative">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="relative focus:outline-none"
-              >
-                {userProfile?.profileImage ? (
-                  <img 
-                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
-                    alt={userProfile.name || 'User'}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                    {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-              </button>
-              
-              {profileMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        if (userId) router.push(`/profile/${userId}`);
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaUser className="w-4 h-4" />
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        router.push('/settings');
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaCog className="w-4 h-4" />
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
-                    >
-                      <FaSignOutAlt className="w-4 h-4" />
-                      התנתקות
-                    </button>
-                  </div>
-                </>
-              )}
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Hero Section */}
       <section className="text-center py-16 px-4">
-        <h1 className="text-4xl md:text-5xl font-bold text-black mb-4">
+        <h1 className="font-semibold text-black" style={{ fontSize: '3.5rem' }}>
           דברו איתנו
         </h1>
-        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-          יש שאלה או פנייה? אפשר גם לכתוב ישירות ל-<span className="text-black font-semibold">support@kibutz.co.il</span>
+        <p className="text-gray-600 text-lg max-w-2xl mx-auto" style={{ marginBottom: '2rem' }}>
+          יש שאלה או פנייה? אפשר גם לכתוב ישירות ל-<a href="mailto:support@kibutz.co.il" className="text-black font-normal underline hover:opacity-70 transition">support@kibutz.co.il</a>
         </p>
       </section>
 
       {/* Contact Form */}
       <section className="max-w-2xl mx-auto px-4 pb-16">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl border border-gray-400 p-8">
           {formSubmitted ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaPaperPlane className="w-8 h-8 text-green-600" />
+              <div className="w-10 h-10 mx-auto mb-4">
+                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
+                  <rect width="40" height="40" rx="20" fill="#A7EA7B"/>
+                  <g transform="translate(8, 8)">
+                    <path d="M22 13V6C22 5.46957 21.7893 4.96086 21.4142 4.58579C21.0391 4.21071 20.5304 4 20 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V18C2 19.1 2.9 20 4 20H12" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M22 7L13.03 12.7C12.7213 12.8934 12.3643 12.996 12 12.996C11.6357 12.996 11.2787 12.8934 10.97 12.7L2 7" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 19L18 21L22 17" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </g>
+                </svg>
               </div>
-              <h3 className="text-xl font-semibold text-black mb-2">ההודעה נשלחה!</h3>
-              <p className="text-gray-600">נחזור אליכם בהקדם האפשרי.</p>
-              <button
-                onClick={() => {
-                  setFormSubmitted(false);
-                  setContactSubject('');
-                  setContactMessage('');
-                  setEmailTouched(false);
-                  setEmailError('');
-                }}
-                className="mt-4 text-blue-600 hover:underline text-sm"
-              >
-                שלח הודעה נוספת
-              </button>
+              <h3 className="font-semibold text-black mb-2" style={{ fontSize: '24px' }}>ההודעה נשלחה!</h3>
+              <p className="text-gray-800" style={{ fontSize: '18px' }}>נחזור אליכם בהקדם האפשרי.</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmitContact} className="space-y-4">
+            <form onSubmit={handleSubmitContact} className="space-y-6">
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-gray-700">שם מלא</label>
+                <div className="flex justify-between items-center" style={{ marginBottom: '10px' }}>
+                  <label className="block font-medium text-black" style={{ fontSize: '18px' }}>שם מלא</label>
                   <span className="text-xs text-gray-400">{contactName.length}/{CHAR_LIMITS.name}</span>
                 </div>
                 <input
@@ -298,11 +155,12 @@ export default function ContactPage() {
                   onChange={(e) => setContactName(e.target.value.slice(0, CHAR_LIMITS.name))}
                   required
                   maxLength={CHAR_LIMITS.name}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
+                  className="w-full p-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black text-right"
+                  style={{ borderRadius: '10px' }}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">אימייל</label>
+                <label className="block font-medium text-black" style={{ fontSize: '18px', marginBottom: '10px' }}>אימייל</label>
                 <input
                   type="email"
                   value={contactEmail}
@@ -320,17 +178,18 @@ export default function ContactPage() {
                   }}
                   onBlur={validateEmail}
                   required
-                  className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right ${
+                  className={`w-full p-3 border focus:outline-none focus:ring-2 focus:ring-black text-right ${
                     emailTouched && emailError ? 'border-red-400' : 'border-gray-300'
                   }`}
+                  style={{ borderRadius: '10px' }}
                 />
                 {emailTouched && emailError && (
                   <p className="text-red-500 text-sm mt-1">{emailError}</p>
                 )}
               </div>
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-gray-700">נושא</label>
+                <div className="flex justify-between items-center" style={{ marginBottom: '10px' }}>
+                  <label className="block font-medium text-black" style={{ fontSize: '18px' }}>נושא</label>
                   <span className="text-xs text-gray-400">{contactSubject.length}/{CHAR_LIMITS.subject}</span>
                 </div>
                 <input
@@ -339,12 +198,13 @@ export default function ContactPage() {
                   onChange={(e) => setContactSubject(e.target.value.slice(0, CHAR_LIMITS.subject))}
                   required
                   maxLength={CHAR_LIMITS.subject}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right"
+                  className="w-full p-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black text-right"
+                  style={{ borderRadius: '10px' }}
                 />
               </div>
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-gray-700">תיאור</label>
+                <div className="flex justify-between items-center" style={{ marginBottom: '10px' }}>
+                  <label className="block font-medium text-black" style={{ fontSize: '18px' }}>תיאור</label>
                   <span className="text-xs text-gray-400">{contactMessage.length}/{CHAR_LIMITS.message}</span>
                 </div>
                 <textarea
@@ -353,8 +213,8 @@ export default function ContactPage() {
                   required
                   rows={5}
                   maxLength={CHAR_LIMITS.message}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right resize-none overflow-y-auto"
-                  style={{ direction: 'ltr' }}
+                  className="w-full p-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black text-right resize-none overflow-y-auto"
+                  style={{ borderRadius: '10px', direction: 'ltr' }}
                 />
               </div>
               <button
@@ -368,6 +228,7 @@ export default function ContactPage() {
           )}
         </div>
       </section>
+      <SiteFooter />
     </main>
   );
 }

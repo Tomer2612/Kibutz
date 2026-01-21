@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false, // Disable to prevent double WebSocket connections in dev
   outputFileTracingRoot: path.join(__dirname),
   eslint: {
     // Disable ESLint during builds - we'll run it separately

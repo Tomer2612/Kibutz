@@ -62,11 +62,13 @@ export class PostsController {
       for (const file of files) {
         const filePath = `/uploads/posts/${file.filename}`;
         const fileType = getFileType(file.mimetype);
+        // Decode Hebrew/non-ASCII filenames properly
+        const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
         
         if (fileType === 'image' && images.length < 5) {
           images.push(filePath);
         } else if (fileType === 'file' && uploadedFiles.length < 5) {
-          uploadedFiles.push({ url: filePath, name: file.originalname });
+          uploadedFiles.push({ url: filePath, name: originalName });
         }
       }
     }
@@ -137,6 +139,10 @@ export class PostsController {
       imagesToRemove?: string;
       filesToRemove?: string;
       linksToRemove?: string;
+      pollQuestion?: string;
+      pollOptions?: string;
+      newPollQuestion?: string;
+      newPollOptions?: string;
     },
     @UploadedFiles() files?: Express.Multer.File[]
   ) {
@@ -149,11 +155,13 @@ export class PostsController {
       for (const file of files) {
         const filePath = `/uploads/posts/${file.filename}`;
         const fileType = getFileType(file.mimetype);
+        // Decode Hebrew/non-ASCII filenames properly
+        const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
         
         if (fileType === 'image' && newImages.length < 5) {
           newImages.push(filePath);
         } else if (fileType === 'file' && newFiles.length < 5) {
-          newFiles.push({ url: filePath, name: file.originalname });
+          newFiles.push({ url: filePath, name: originalName });
         }
       }
     }
@@ -163,12 +171,16 @@ export class PostsController {
     let imagesToRemove: string[] | undefined;
     let filesToRemove: string[] | undefined;
     let linksToRemove: string[] | undefined;
+    let pollOptions: { id: string; text: string }[] | undefined;
+    let newPollOptions: string[] | undefined;
     
     try {
       if (body.links) links = JSON.parse(body.links);
       if (body.imagesToRemove) imagesToRemove = JSON.parse(body.imagesToRemove);
       if (body.filesToRemove) filesToRemove = JSON.parse(body.filesToRemove);
       if (body.linksToRemove) linksToRemove = JSON.parse(body.linksToRemove);
+      if (body.pollOptions) pollOptions = JSON.parse(body.pollOptions);
+      if (body.newPollOptions) newPollOptions = JSON.parse(body.newPollOptions);
     } catch {
       // Ignore parse errors
     }
@@ -183,7 +195,11 @@ export class PostsController {
       links,
       imagesToRemove,
       filesToRemove,
-      linksToRemove
+      linksToRemove,
+      body.pollQuestion,
+      pollOptions,
+      body.newPollQuestion,
+      newPollOptions
     );
   }
 
@@ -311,5 +327,16 @@ export class PostsController {
   ) {
     const userId = req.user.userId;
     return this.postsService.removeVote(pollId, userId);
+  }
+
+  // Delete a poll from a post
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('polls/:pollId')
+  deletePoll(
+    @Param('pollId') pollId: string,
+    @Req() req
+  ) {
+    const userId = req.user.userId;
+    return this.postsService.deletePoll(pollId, userId);
   }
 }

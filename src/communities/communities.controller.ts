@@ -235,6 +235,13 @@ export class CommunitiesController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get('user/my-communities')
+  getUserCommunitiesWithDetails(@Req() req) {
+    const userId = req.user.userId;
+    return this.communitiesService.getUserCommunitiesWithDetails(userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id/members')
   getCommunityMembers(@Param('id') id: string) {
     return this.communitiesService.getCommunityMembers(id);

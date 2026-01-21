@@ -3,8 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaCheck, FaChevronDown, FaChevronUp, FaClock, FaEdit, FaTrash, FaFileAlt, FaVideo, FaUsers, FaCog, FaSignOutAlt, FaUser, FaTimes, FaQuestionCircle, FaCheckCircle, FaTimesCircle, FaLink, FaImage, FaLayerGroup } from 'react-icons/fa';
-import NotificationBell from '../../../../components/NotificationBell';
+import { FaCheck, FaChevronDown, FaChevronUp, FaClock, FaEdit, FaTrash, FaFileAlt, FaVideo, FaUsers, FaTimes, FaQuestionCircle, FaCheckCircle, FaTimesCircle, FaLink, FaImage, FaLayerGroup } from 'react-icons/fa';
 
 // Declare YouTube Player types
 declare global {
@@ -100,7 +99,6 @@ function CourseViewerContent() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUnenrollModal, setShowUnenrollModal] = useState(false);
@@ -517,70 +515,10 @@ function CourseViewerContent() {
 
   const progress = calculateProgress();
 
-  const Navbar = () => (
-    <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200" dir="rtl">
-      <div className="flex items-center gap-6">
-        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">Kibutz</Link>
-        <div className="flex items-center gap-2">
-          {course.community.logo ? (
-            <img src={`${process.env.NEXT_PUBLIC_API_URL}${course.community.logo}`} alt={course.community.name} className="w-8 h-8 rounded-lg object-cover" />
-          ) : (
-            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center"><FaUsers className="w-4 h-4 text-gray-400" /></div>
-          )}
-          <span className="font-medium text-black">{course.community.name}</span>
-        </div>
-      </div>
-      <nav className="flex items-center gap-4">
-        {[
-          { label: 'עמוד בית', href: `/communities/${communityId}/feed` },
-          { label: 'קורסים', href: `/communities/${communityId}/courses` },
-          { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-          { label: 'יומן אירועים', href: `/communities/${communityId}/events` },
-          { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
-          { label: 'אודות', href: `/communities/${communityId}/about` },
-          ...(isOwnerOrAuthor ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] : []),
-        ].map((link) => (
-          <Link key={link.label} href={link.href} className="text-sm transition px-3 py-1.5 rounded-full text-gray-500 hover:text-black hover:bg-gray-50">{link.label}</Link>
-        ))}
-      </nav>
-      <div className="flex items-center gap-3">
-        {mounted && userEmail && <NotificationBell />}
-        {mounted && userEmail ? (
-          <div className="relative">
-            <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="relative focus:outline-none">
-              {userProfile?.profileImage ? (
-                <img src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`} alt={userProfile.name || 'User'} className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">{userProfile?.name?.charAt(0) || userEmail.charAt(0).toUpperCase()}</div>
-              )}
-              <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-            </button>
-            {profileMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
-                <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
-                  <button onClick={() => { setProfileMenuOpen(false); if (userId) router.push(`/profile/${userId}`); }} className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"><FaUser className="w-4 h-4" />הפרופיל שלי</button>
-                  <button onClick={() => { setProfileMenuOpen(false); router.push('/settings'); }} className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"><FaCog className="w-4 h-4" />הגדרות</button>
-                  <div className="border-t border-gray-100 my-1"></div>
-                  <button onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('userProfileCache'); router.push('/'); location.reload(); }} className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"><FaSignOutAlt className="w-4 h-4" />התנתקות</button>
-                </div>
-              </>
-            )}
-          </div>
-        ) : mounted ? (
-          <Link href="/login" className="px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-800 transition">התחברות</Link>
-        ) : (
-          <div className="w-10 h-10" />
-        )}
-      </div>
-    </header>
-  );
-
   // If not enrolled, show enrollment page
   if (!course.enrollment && !isOwnerOrAuthor) {
     return (
       <main className="min-h-screen bg-gray-100" dir="rtl">
-        <Navbar />
         <div className="max-w-4xl mx-auto px-8 py-16">
           <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
             {course.image && <img src={course.image.startsWith('http') ? course.image : `${process.env.NEXT_PUBLIC_API_URL}${course.image}`} alt={course.title} className="w-full h-64 object-cover rounded-xl mb-8" />}
@@ -603,7 +541,6 @@ function CourseViewerContent() {
   // Enrolled or Owner - show course viewer
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-white" dir="rtl">
-      <Navbar />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside className="w-80 border-l border-gray-200 bg-white flex flex-col overflow-hidden">

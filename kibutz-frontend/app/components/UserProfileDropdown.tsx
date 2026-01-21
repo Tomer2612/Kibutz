@@ -1,0 +1,89 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa';
+import Avatar from './Avatar';
+
+interface UserProfileDropdownProps {
+  userEmail: string;
+  userId: string | null;
+  userProfile: { name?: string; profileImage?: string | null } | null;
+  showOnlineIndicator?: boolean;
+}
+
+export default function UserProfileDropdown({
+  userEmail,
+  userId,
+  userProfile,
+  showOnlineIndicator = true,
+}: UserProfileDropdownProps) {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userProfileCache');
+    // Clear auth cookie
+    document.cookie = 'auth-token=; path=/; max-age=0';
+    router.replace('/');
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative focus:outline-none"
+      >
+        <Avatar
+          src={userProfile?.profileImage}
+          name={userProfile?.name}
+          email={userEmail}
+          size="md"
+          showOnlineIndicator={showOnlineIndicator}
+        />
+      </button>
+
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setIsOpen(false)}
+          />
+          {/* Dropdown Menu */}
+          <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                if (userId) router.push(`/profile/${userId}`);
+              }}
+              className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+            >
+              <FaUser className="w-4 h-4" />
+              הפרופיל שלי
+            </button>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                router.push('/settings');
+              }}
+              className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+            >
+              <FaCog className="w-4 h-4" />
+              הגדרות
+            </button>
+            <div className="border-t border-gray-100 my-1"></div>
+            <button
+              onClick={handleLogout}
+              className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
+            >
+              <FaSignOutAlt className="w-4 h-4" />
+              התנתקות
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

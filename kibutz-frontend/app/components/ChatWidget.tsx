@@ -38,18 +38,18 @@ interface OpenChat {
 }
 
 export default function ChatWidget() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [openChats, setOpenChats] = useState<OpenChat[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [showConversations, setShowConversations] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [totalUnread, setTotalUnread] = useState(0);
+  const conversationsRef = useRef<HTMLDivElement>(null);
   
-  const { onNewMessage, setUnreadMessageCount } = useSocketContext();
+  const { onNewMessage } = useSocketContext();
 
-  // Check auth status - run on mount and listen for storage changes
+  // Check auth status
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
@@ -70,25 +70,67 @@ export default function ChatWidget() {
       }
     };
 
-    // Initial check
     checkAuth();
-
-    // Listen for storage changes (login/logout from other tabs)
     window.addEventListener('storage', checkAuth);
-
-    // Poll for token changes (same tab login)
-    const interval = setInterval(checkAuth, 1000);
 
     return () => {
       window.removeEventListener('storage', checkAuth);
-      clearInterval(interval);
     };
   }, []);
+
+  // Fetch conversations
+  const fetchConversations = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    setLoadingConversations(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/conversations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch conversations:', err);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, []);
+
+  // Listen for toggle event from MessagesBell
+  useEffect(() => {
+    const handleToggle = () => {
+      setShowConversations(prev => {
+        if (!prev) {
+          fetchConversations();
+        }
+        return !prev;
+      });
+    };
+
+    window.addEventListener('toggleChatWidget', handleToggle);
+    return () => window.removeEventListener('toggleChatWidget', handleToggle);
+  }, [fetchConversations]);
+
+  // Close conversations dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (conversationsRef.current && !conversationsRef.current.contains(event.target as Node)) {
+        setShowConversations(false);
+      }
+    };
+
+    if (showConversations) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showConversations]);
 
   // Listen for new messages
   useEffect(() => {
     onNewMessage((socketMessage: SocketMessage) => {
-      // Update open chat if exists
       setOpenChats(prev => prev.map(chat => {
         if (chat.conversationId === socketMessage.conversationId) {
           const message: Message = {
@@ -102,92 +144,20 @@ export default function ChatWidget() {
         }
         return chat;
       }));
-
-      // Update conversations list
-      setConversations(prev => {
-        const updated = prev.map(conv => {
-          if (conv.id === socketMessage.conversationId) {
-            return {
-              ...conv,
-              lastMessageText: socketMessage.content,
-              lastMessageAt: socketMessage.createdAt,
-              unreadCount: (conv.unreadCount || 0) + 1,
-            };
-          }
-          return conv;
-        });
-        return updated.sort((a, b) => 
-          new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-        );
-      });
     });
   }, [onNewMessage]);
 
-  // Fetch initial unread count on mount
-  useEffect(() => {
-    const fetchUnreadCount = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/unread-count`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setTotalUnread(data.unreadCount || 0);
-          setUnreadMessageCount(data.unreadCount || 0);
-        }
-      } catch (err) {
-        console.error('Failed to fetch unread count:', err);
-      }
-    };
-
-    if (isLoggedIn) {
-      fetchUnreadCount();
-    }
-  }, [isLoggedIn, setUnreadMessageCount]);
-
-  // Update totalUnread when new messages arrive
-  useEffect(() => {
-    const total = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-    setTotalUnread(total);
-  }, [conversations]);
-
-  const fetchConversations = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    setLoading(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/conversations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setConversations(data);
-        
-        // Calculate total unread
-        const unread = data.reduce((sum: number, c: Conversation) => sum + (c.unreadCount || 0), 0);
-        setTotalUnread(unread);
-        setUnreadMessageCount(unread);
-      }
-    } catch (err) {
-      console.error('Failed to fetch conversations:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openChat = async (conv: Conversation) => {
+  const openChat = useCallback(async (conv: Conversation) => {
+    if (!currentUserId) return;
+    
     const other = conv.participant1.id === currentUserId ? conv.participant2 : conv.participant1;
     
     // Check if already open
-    if (openChats.find(c => c.conversationId === conv.id)) {
+    const existingChat = openChats.find(c => c.conversationId === conv.id);
+    if (existingChat) {
       setOpenChats(prev => prev.map(c => 
         c.conversationId === conv.id ? { ...c, isMinimized: false } : c
       ));
-      setIsOpen(false);
       return;
     }
 
@@ -203,7 +173,6 @@ export default function ChatWidget() {
     };
 
     setOpenChats(prev => [...prev.slice(-2), newChat]); // Max 3 chats
-    setIsOpen(false);
 
     // Fetch messages
     const token = localStorage.getItem('token');
@@ -226,19 +195,26 @@ export default function ChatWidget() {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         });
-
-        // Update unread count
-        setConversations(prev => prev.map(c => 
-          c.id === conv.id ? { ...c, unreadCount: 0 } : c
-        ));
       }
     } catch (err) {
       console.error('Failed to fetch messages:', err);
     }
-  };
+  }, [currentUserId, openChats]);
+
+  // Listen for openChat events from ChatBell
+  useEffect(() => {
+    const handleOpenChat = (event: CustomEvent<Conversation>) => {
+      openChat(event.detail);
+    };
+
+    window.addEventListener('openChat', handleOpenChat as EventListener);
+    return () => {
+      window.removeEventListener('openChat', handleOpenChat as EventListener);
+    };
+  }, [openChat]);
 
   // Open chat with a user directly (called from profile)
-  const startChatWithUser = useCallback(async (userId: string, userName: string, userImage: string | null) => {
+  const startChatWithUser = useCallback(async (userId: string) => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -261,7 +237,7 @@ export default function ChatWidget() {
     } catch (err) {
       console.error('Failed to create conversation:', err);
     }
-  }, [currentUserId]);
+  }, [openChat]);
 
   // Expose startChatWithUser globally
   useEffect(() => {
@@ -285,49 +261,50 @@ export default function ChatWidget() {
     return conv.participant1.id === currentUserId ? conv.participant2 : conv.participant1;
   };
 
+  const handleConversationClick = (conv: Conversation) => {
+    openChat(conv);
+    setShowConversations(false);
+  };
+
   if (!authChecked || !isLoggedIn) return null;
 
   return (
     <>
-      {/* Floating Chat Button */}
-      <button
-        onClick={() => {
-          setIsOpen(!isOpen);
-          if (!isOpen) fetchConversations();
-        }}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-[#3B82F6] text-white rounded-full shadow-lg hover:bg-[#2563EB] transition-all z-50 flex items-center justify-center"
-      >
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-        {/* Unread Badge */}
-        {totalUnread > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
-            {totalUnread > 99 ? '99+' : totalUnread}
-          </span>
-        )}
-      </button>
-
-      {/* Conversations Panel */}
-      {isOpen && (
-        <div className="fixed bottom-24 right-6 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
-          <div className="bg-[#3B82F6] text-white px-4 py-3 flex items-center justify-between">
-            <h3 className="font-bold">הודעות</h3>
-            <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 rounded p-1">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      {/* Conversations Dropdown - positioned at top right of page */}
+      {showConversations && (
+        <div 
+          ref={conversationsRef}
+          className="fixed top-16 left-8 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden"
+          dir="rtl"
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900">הודעות</h3>
+            <button 
+              onClick={() => setShowConversations(false)}
+              className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-          
-          <div className="max-h-96 overflow-y-auto">
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#3B82F6]"></div>
+          <div className="max-h-[400px] overflow-y-auto">
+            {loadingConversations ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
               </div>
             ) : conversations.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                <p>אין הודעות עדיין</p>
+                <svg className="w-8 h-8 mx-auto mb-2 opacity-30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path 
+                    d="M22 17C22 17.5304 21.7893 18.0391 21.4142 18.4142C21.0391 18.7893 20.5304 19 20 19H6.828C6.29761 19.0001 5.78899 19.2109 5.414 19.586L3.212 21.788C3.1127 21.8873 2.9862 21.9549 2.84849 21.9823C2.71077 22.0097 2.56803 21.9956 2.43831 21.9419C2.30858 21.8881 2.1977 21.7971 2.11969 21.6804C2.04167 21.5637 2.00002 21.4264 2 21.286V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H20C20.5304 3 21.0391 3.21071 21.4142 3.58579C21.7893 3.96086 22 4.46957 22 5V17Z" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <p className="text-sm">אין הודעות עדיין</p>
               </div>
             ) : (
               conversations.map(conv => {
@@ -335,8 +312,10 @@ export default function ChatWidget() {
                 return (
                   <button
                     key={conv.id}
-                    onClick={() => openChat(conv)}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors text-right"
+                    onClick={() => handleConversationClick(conv)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition cursor-pointer text-right ${
+                      (conv.unreadCount || 0) > 0 ? 'bg-blue-50/50' : ''
+                    }`}
                   >
                     <div className="relative flex-shrink-0">
                       {other.profileImage ? (
@@ -345,23 +324,29 @@ export default function ChatWidget() {
                           alt={other.name}
                           width={40}
                           height={40}
-                          className="w-10 h-10 rounded-full object-cover"
+                          className="rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-10 h-10 bg-[#3B82F6] rounded-full flex items-center justify-center text-white font-bold">
-                          {other.name.charAt(0)}
+                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium">
+                          {other.name?.charAt(0) || '?'}
                         </div>
-                      )}
-                      {(conv.unreadCount || 0) > 0 && (
-                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                          {conv.unreadCount}
-                        </span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{other.name}</p>
-                      <p className="text-sm text-gray-500 truncate">{conv.lastMessageText || 'לחץ לשיחה'}</p>
+                      <p className={`text-sm ${(conv.unreadCount || 0) > 0 ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                        {other.name}
+                      </p>
+                      {conv.lastMessageText && (
+                        <p className="text-xs text-gray-500 truncate">
+                          {conv.lastMessageText}
+                        </p>
+                      )}
                     </div>
+                    {(conv.unreadCount || 0) > 0 && (
+                      <span className="bg-[#1a3a4a] text-white text-xs font-semibold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                        {conv.unreadCount}
+                      </span>
+                    )}
                   </button>
                 );
               })
@@ -370,15 +355,17 @@ export default function ChatWidget() {
         </div>
       )}
 
-      {/* Chat windows container - fixed at bottom right */}
+      {/* Chat windows at bottom */}
       <div className="fixed bottom-0 right-24 flex flex-row-reverse items-end gap-2 z-40">
-        {/* All chats in order - each maintains its position */}
-        {openChats.map((chat) => (
-          chat.isMinimized ? (
+      {openChats.map((chat) => (
+        chat.isMinimized ? (
+          <div
+            key={chat.conversationId}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-t-lg shadow-lg"
+          >
             <button
-              key={chat.conversationId}
               onClick={() => toggleMinimize(chat.conversationId)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-t-lg shadow-lg hover:bg-gray-50 transition"
+              className="flex items-center gap-1.5 hover:opacity-70 transition"
               title={chat.recipientName}
             >
               {chat.recipientImage ? (
@@ -396,24 +383,34 @@ export default function ChatWidget() {
               )}
               <span className="text-sm font-medium text-gray-700">{chat.recipientName}</span>
             </button>
-          ) : (
-            <ChatWindow
-              key={chat.conversationId}
-              chat={chat}
-              currentUserId={currentUserId}
-              onClose={() => closeChat(chat.conversationId)}
-              onMinimize={() => toggleMinimize(chat.conversationId)}
-              onNewMessage={(msg) => {
-                setOpenChats(prev => prev.map(c => 
-                  c.conversationId === chat.conversationId 
-                    ? { ...c, messages: [...c.messages, msg] }
-                    : c
-                ));
-              }}
-            />
-          )
-        ))}
-      </div>
+            <button
+              onClick={() => closeChat(chat.conversationId)}
+              className="p-0.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition"
+              title="סגור"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <ChatWindow
+            key={chat.conversationId}
+            chat={chat}
+            currentUserId={currentUserId}
+            onClose={() => closeChat(chat.conversationId)}
+            onMinimize={() => toggleMinimize(chat.conversationId)}
+            onNewMessage={(msg) => {
+              setOpenChats(prev => prev.map(c => 
+                c.conversationId === chat.conversationId 
+                  ? { ...c, messages: [...c.messages, msg] }
+                  : c
+              ));
+            }}
+          />
+        )
+      ))}
+    </div>
     </>
   );
 }
@@ -476,11 +473,6 @@ function ChatWindow({
   const formatTime = (date: string) => {
     return new Date(date).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   };
-
-  // Minimized chats are now rendered in the parent component's bar
-  if (chat.isMinimized) {
-    return null;
-  }
 
   return (
     <div className="w-80 max-h-[350px] bg-white rounded-t-xl shadow-2xl border border-gray-200 flex flex-col">
@@ -575,5 +567,60 @@ function ChatWindow({
         </button>
       </form>
     </div>
+  );
+}
+
+// Messages Bell Component - for chat messages icon in navbar
+export function MessagesBell() {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/unread-count`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(data.unreadCount || 0);
+        }
+      } catch (err) {
+        console.error('Failed to fetch unread message count:', err);
+      }
+    };
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleClick = () => {
+    window.dispatchEvent(new CustomEvent('toggleChatWidget'));
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className="relative p-2 text-gray-500 hover:text-gray-700 transition"
+      aria-label="הודעות"
+    >
+      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path 
+          d="M22 17C22 17.5304 21.7893 18.0391 21.4142 18.4142C21.0391 18.7893 20.5304 19 20 19H6.828C6.29761 19.0001 5.78899 19.2109 5.414 19.586L3.212 21.788C3.1127 21.8873 2.9862 21.9549 2.84849 21.9823C2.71077 22.0097 2.56803 21.9956 2.43831 21.9419C2.30858 21.8881 2.1977 21.7971 2.11969 21.6804C2.04167 21.5637 2.00002 21.4264 2 21.286V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H20C20.5304 3 21.0391 3.21071 21.4142 3.58579C21.7893 3.96086 22 4.46957 22 5V17Z" 
+          stroke="currentColor" 
+          strokeWidth="2" 
+          strokeLinecap="round" 
+          strokeLinejoin="round"
+        />
+      </svg>
+      {unreadCount > 0 && (
+        <span className="absolute top-0 right-0 bg-[#1a3a4a] text-white text-[10px] font-semibold rounded-full min-w-[18px] h-[18px] flex items-center justify-center">
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </span>
+      )}
+    </button>
   );
 }

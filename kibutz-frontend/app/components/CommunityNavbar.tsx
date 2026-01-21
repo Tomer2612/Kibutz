@@ -1,0 +1,249 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { FaUsers } from 'react-icons/fa';
+import NotificationBell from './NotificationBell';
+import { MessagesBell } from './ChatWidget';
+import UserProfileDropdown from './UserProfileDropdown';
+
+interface UserCommunity {
+  id: string;
+  name: string;
+  slug?: string | null;
+  logo?: string | null;
+}
+
+interface CommunityNavbarProps {
+  communityId: string;
+  community: { name: string; logo?: string | null } | null;
+  activePage: 'feed' | 'courses' | 'members' | 'events' | 'leaderboard' | 'about' | 'manage';
+  isOwnerOrManager: boolean;
+  userEmail: string | null;
+  userId: string | null;
+  userProfile: { name?: string; profileImage?: string | null } | null;
+  // Optional search functionality
+  showSearch?: boolean;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+}
+
+export default function CommunityNavbar({
+  communityId,
+  community,
+  activePage,
+  isOwnerOrManager,
+  userEmail,
+  userId,
+  userProfile,
+  showSearch = false,
+  searchQuery = '',
+  onSearchChange,
+}: CommunityNavbarProps) {
+  const router = useRouter();
+  const [userCommunities, setUserCommunities] = useState<UserCommunity[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch user's communities
+  useEffect(() => {
+    if (!userEmail) return;
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/user/my-communities`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setUserCommunities(data))
+      .catch(console.error);
+  }, [userEmail]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Close dropdown on Escape
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsDropdownOpen(false);
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
+
+  const handleCommunitySwitch = (comm: UserCommunity) => {
+    setIsDropdownOpen(false);
+    router.push(`/communities/${comm.slug || comm.id}/feed`);
+  };
+
+  const navLinks = [
+    { key: 'feed', label: 'עמוד בית', href: `/communities/${communityId}/feed` },
+    { key: 'courses', label: 'קורסים', href: `/communities/${communityId}/courses` },
+    { key: 'members', label: 'חברי קהילה', href: `/communities/${communityId}/members` },
+    { key: 'events', label: 'יומן אירועים', href: `/communities/${communityId}/events` },
+    { key: 'leaderboard', label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
+    { key: 'about', label: 'אודות', href: `/communities/${communityId}/about` },
+    ...(isOwnerOrManager ? [{ key: 'manage', label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] : []),
+  ];
+
+  const showCommunityDropdown = userCommunities.length > 1;
+
+  return (
+    <header dir="rtl" className="relative flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200 h-[72px]">
+      {/* Right side: Kibutz Logo + Community name - FIXED WIDTH */}
+      <div className="flex items-center gap-6 w-[280px] flex-shrink-0">
+        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
+          Kibutz
+        </Link>
+        
+        {/* Community Switcher */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => showCommunityDropdown && setIsDropdownOpen(!isDropdownOpen)}
+            className={`flex items-center gap-2 ${showCommunityDropdown ? 'cursor-pointer hover:opacity-75 transition' : 'cursor-default'}`}
+          >
+            {community?.logo ? (
+              <img
+                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
+                alt={community.name}
+                className="w-10 h-10 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                <FaUsers className="w-5 h-5 text-gray-400" />
+              </div>
+            )}
+            <span className="font-medium text-black truncate max-w-[120px]" style={{ fontSize: '16px' }}>{community?.name}</span>
+            
+            {showCommunityDropdown && (
+              <svg 
+                width="10" height="5" viewBox="0 0 10 5" fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+                className={`transform transition-transform duration-200 flex-shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`}
+              >
+                <path 
+                  d="M1 1L5 5L9 1" 
+                  stroke="#374151" 
+                  strokeWidth="1.5" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+          </button>
+
+          {/* Dropdown */}
+          {isDropdownOpen && showCommunityDropdown && (
+            <div 
+              className="absolute top-full mt-2 right-0 bg-white border border-gray-200 rounded-xl z-50 overflow-hidden p-1.5 min-w-[200px]"
+              style={{ boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.12)' }}
+            >
+              {userCommunities.map((comm) => (
+                <button
+                  key={comm.id}
+                  onClick={() => handleCommunitySwitch(comm)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-right rounded-lg transition-colors ${
+                    comm.id === communityId 
+                      ? 'bg-gray-100 font-medium' 
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {comm.logo ? (
+                    <img
+                      src={`${process.env.NEXT_PUBLIC_API_URL}${comm.logo}`}
+                      alt={comm.name}
+                      className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <FaUsers className="w-4 h-4 text-gray-400" />
+                    </div>
+                  )}
+                  <span className="text-black truncate" style={{ fontSize: '14px' }}>{comm.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Center: Nav links - CENTERED ABSOLUTELY */}
+      <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-4">
+        {navLinks.map((link) => (
+          <Link
+            key={link.key}
+            href={link.href}
+            className={`text-sm transition px-3 py-1.5 whitespace-nowrap text-black ${
+              activePage === link.key
+                ? 'bg-gray-200 font-normal'
+                : 'hover:bg-gray-50 font-normal'
+            }`}
+            style={{ borderRadius: '10px' }}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </nav>
+
+      {/* Left side: Search (optional) + Notifications + Profile - FIXED WIDTH */}
+      <div className="flex items-center gap-3 w-[240px] flex-shrink-0 justify-end">
+        {/* Search - always reserve space to prevent layout shift */}
+        <div className={`relative ${showSearch ? 'visible' : 'invisible'}`}>
+          <svg 
+            viewBox="0 0 18 18" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-[18px] h-[18px]"
+          >
+            <path 
+              d="M15.7538 15.7472L12.4988 12.4922" 
+              stroke="currentColor" 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+            <path 
+              d="M8.25024 14.25C11.564 14.25 14.2502 11.5637 14.2502 8.25C14.2502 4.93629 11.564 2.25 8.25024 2.25C4.93654 2.25 2.25024 4.93629 2.25024 8.25C2.25024 11.5637 4.93654 14.25 8.25024 14.25Z" 
+              stroke="currentColor" 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange?.(e.target.value)}
+            placeholder="חיפוש"
+            className="pl-4 pr-10 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:border-gray-400 w-32"
+            tabIndex={showSearch ? 0 : -1}
+          />
+        </div>
+
+        {/* Messages and Notification Bells */}
+        {userEmail && <MessagesBell />}
+        {userEmail && <NotificationBell />}
+
+        {/* User Avatar with Dropdown */}
+        {userEmail && (
+          <UserProfileDropdown
+            userEmail={userEmail}
+            userId={userId}
+            userProfile={userProfile}
+            showOnlineIndicator={true}
+          />
+        )}
+      </div>
+    </header>
+  );
+}

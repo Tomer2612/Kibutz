@@ -3,9 +3,13 @@
 import { useEffect, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaSearch, FaChevronDown, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
-import NotificationBell from './components/NotificationBell';
+import SiteHeader from './components/SiteHeader';
+import SiteFooter from './components/SiteFooter';
+import FilterDropdown from './components/FilterDropdown';
+import SearchXIcon from './components/SearchXIcon';
+import ChevronLeftIcon from './components/ChevronLeftIcon';
+import ChevronRightIcon from './components/ChevronRightIcon';
 
 const COMMUNITY_TOPICS = [
   'אנימציה',
@@ -113,10 +117,8 @@ interface JwtPayload {
 }
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [filteredCommunities, setFilteredCommunities] = useState<Community[]>([]);
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
@@ -125,7 +127,6 @@ export default function Home() {
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedPrice, setSelectedPrice] = useState('');
   const [loading, setLoading] = useState(true);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const router = useRouter();
 
   // Pagination state
@@ -133,34 +134,12 @@ export default function Home() {
   const communitiesPerPage = 9;
 
   useEffect(() => {
-    setMounted(true);
-    
-    // Read cached profile immediately
-    const cached = localStorage.getItem('userProfileCache');
-    if (cached) {
-      try { setUserProfile(JSON.parse(cached)); } catch {}
-    }
-    
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
       try {
         const decoded = jwtDecode<JwtPayload>(token);
         setUserEmail(decoded.email);
         setUserId(decoded.sub);
-        
-        // Fetch user profile
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-          .then(res => res.ok ? res.json() : null)
-          .then(data => {
-            if (data) {
-              const profile = { name: data.name, profileImage: data.profileImage };
-              setUserProfile(profile);
-              localStorage.setItem('userProfileCache', JSON.stringify(profile));
-            }
-          })
-          .catch(console.error);
 
         // Fetch user memberships
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/user/memberships`, {
@@ -248,132 +227,14 @@ export default function Home() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userProfileCache');
-    router.push('/');
-    location.reload();
-  };
-
   return (
-    <main className="min-h-screen bg-gray-100 text-right">
+    <main className="min-h-screen text-right" style={{ backgroundColor: '#F4F4F5' }}>
       {/* Header */}
-      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-          Kibutz
-        </Link>
-        <div className="flex gap-6 items-center">
-          {/* Nav Links */}
-          <Link href="/pricing" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            מחירון
-          </Link>
-          <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            שאלות ותשובות
-          </Link>
-          <Link href="/contact" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            צרו קשר
-          </Link>
-          <Link href="/terms" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            תנאי שימוש
-          </Link>
-          <Link href="/privacy" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            מדיניות פרטיות
-          </Link>
-          
-          {!mounted ? (
-            <div className="w-10 h-10" /> /* Placeholder during SSR */
-          ) : !userEmail ? (
-            <>
-              <Link
-                href="/login"
-                className="border border-black text-black px-6 py-2.5 rounded-lg font-semibold hover:bg-black hover:text-white transition"
-              >
-                כניסה
-              </Link>
-              <Link
-                href="/signup"
-                className="bg-black text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition"
-              >
-                הרשמה
-              </Link>
-            </>
-          ) : (
-            <div className="flex items-center gap-3">
-              {/* Notification Bell */}
-              <NotificationBell />
-              
-              <div className="relative">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="relative focus:outline-none"
-              >
-                {userProfile?.profileImage ? (
-                  <img 
-                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
-                    alt={userProfile.name || 'User'}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                    {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-              </button>
-              
-              {/* Dropdown Menu */}
-              {profileMenuOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setProfileMenuOpen(false)}
-                  />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        if (userId) router.push(`/profile/${userId}`);
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaUser className="w-4 h-4" />
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        router.push('/settings');
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaCog className="w-4 h-4" />
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('userProfileCache');
-                        router.push('/');
-                        location.reload();
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
-                    >
-                      <FaSignOutAlt className="w-4 h-4" />
-                      התנתקות
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-            </div>
-          )}
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Title + CTA */}
       <section className="text-center mb-8 mt-12">
-        <h1 className="text-5xl font-bold text-black mb-3">
+        <h1 className="font-semibold text-black mb-3" style={{ fontSize: '3.5rem' }}>
           מאגר הקהילות הגדול בארץ
         </h1>
         <p className="text-gray-600 text-lg">
@@ -385,17 +246,17 @@ export default function Home() {
         {userEmail ? (
           <Link
             href="/pricing"
-            className="bg-black text-white px-8 py-3 rounded-full font-semibold hover:opacity-90 transition text-lg flex flex-row-reverse items-center gap-2"
+            className="bg-black text-white font-normal hover:opacity-90 transition text-lg"
+            style={{ padding: '1rem 1.5rem', borderRadius: '1rem' }}
           >
-            <span className="inline-flex items-center justify-center text-xl leading-none">+</span>
             צרו קהילה משלכם
           </Link>
         ) : (
           <Link
             href="/signup?createCommunity=true"
-            className="bg-black text-white px-8 py-3 rounded-full font-semibold hover:opacity-90 transition text-lg flex flex-row-reverse items-center gap-2"
+            className="bg-black text-white font-normal hover:opacity-90 transition text-lg"
+            style={{ padding: '1rem 1.5rem', borderRadius: '1rem' }}
           >
-            <span className="inline-flex items-center justify-center text-xl leading-none">+</span>
             צרו קהילה משלכם
           </Link>
         )}
@@ -403,62 +264,56 @@ export default function Home() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 justify-center mb-6 w-full max-w-5xl mx-auto px-4">
-        <div className="relative flex-grow max-w-xs">
-          <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
+        <div className="flex items-center flex-grow max-w-xs rounded-lg border bg-white px-4 py-3 focus-within:ring-2 focus-within:ring-black" style={{ borderColor: '#D0D0D4' }}>
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            strokeWidth={1.5} 
+            stroke="currentColor" 
+            className="w-5 h-5 text-zinc-600"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
           <input
             type="text"
             placeholder="חפשו קהילה"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-3 pr-10 border border-gray-300 rounded-lg text-right placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black"
+            className="mr-3 flex-1 bg-transparent outline-none text-right placeholder:text-gray-400"
+            dir="rtl"
           />
         </div>
 
-        <div className="w-0.5 h-10 bg-gray-300 rounded-full"></div>
+        <div style={{ width: '1px', backgroundColor: '#D0D0D4', alignSelf: 'stretch' }}></div>
 
-        <div className="relative">
-          <FaChevronDown className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
-          <select
-            value={selectedPrice}
-            onChange={(e) => setSelectedPrice(e.target.value)}
-            className="p-3 pr-10 pl-10 border border-gray-300 rounded-lg min-w-32 text-right focus:outline-none focus:ring-2 focus:ring-black appearance-none bg-white"
-          >
-            <option value="">כל המחירים</option>
-            <option value="free">חינם</option>
-            <option value="low">₪1-50</option>
-            <option value="high">₪51-100</option>
-          </select>
-        </div>
-        <div className="relative">
-          <FaChevronDown className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
-          <select
-            value={selectedTopic}
-            onChange={(e) => setSelectedTopic(e.target.value)}
-            className="p-3 pr-10 pl-10 border border-gray-300 rounded-lg min-w-32 text-right focus:outline-none focus:ring-2 focus:ring-black appearance-none bg-white"
-          >
-            <option value="">כל הנושאים</option>
-            {COMMUNITY_TOPICS.map((topicOption) => (
-              <option key={topicOption} value={topicOption}>
-                {topicOption}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="relative">
-          <FaChevronDown className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
-          <select
-            value={selectedSize}
-            onChange={(e) => setSelectedSize(e.target.value)}
-            className="p-3 pr-10 pl-10 border border-gray-300 rounded-lg min-w-32 text-right focus:outline-none focus:ring-2 focus:ring-black appearance-none bg-white"
-          >
-            <option value="">כל הגדלים</option>
-            {COMMUNITY_SIZES.map((size) => (
-              <option key={size.value} value={size.value}>
-                {size.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterDropdown
+          value={selectedPrice}
+          onChange={setSelectedPrice}
+          placeholder="מחיר"
+          allLabel="כל המחירים"
+          options={[
+            { value: 'free', label: 'חינם' },
+            { value: 'low', label: '₪1-50' },
+            { value: 'high', label: '₪51-100' },
+          ]}
+        />
+        
+        <FilterDropdown
+          value={selectedTopic}
+          onChange={setSelectedTopic}
+          placeholder="נושא"
+          allLabel="כל הנושאים"
+          options={COMMUNITY_TOPICS.map(topic => ({ value: topic, label: topic }))}
+        />
+        
+        <FilterDropdown
+          value={selectedSize}
+          onChange={setSelectedSize}
+          placeholder="גודל"
+          allLabel="כל הגדלים"
+          options={COMMUNITY_SIZES.map(size => ({ value: size.value, label: size.label }))}
+        />
       </div>
 
       {/* Active filters indicator */}
@@ -511,16 +366,17 @@ export default function Home() {
               <div
                 key={community.id}
                 onClick={() => handleCardClick(community)}
-                className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200 cursor-pointer"
+                className="rounded-2xl overflow-hidden bg-white transition-all duration-200 cursor-pointer"
               >
                 {community.image ? (
                   <img
                     src={`${process.env.NEXT_PUBLIC_API_URL}${community.image}`}
                     alt={community.name}
-                    className="w-full h-44 object-cover"
+                    className="w-full object-cover"
+                    style={{ aspectRatio: '16/9' }}
                   />
                 ) : (
-                  <div className="w-full h-44 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
+                  <div className="w-full bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center" style={{ aspectRatio: '16/9' }}>
                     <span className="text-gray-400 font-medium">תמונת קהילה</span>
                   </div>
                 )}
@@ -530,40 +386,31 @@ export default function Home() {
                       <img
                         src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
                         alt={community.name}
-                        className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                        className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
                         <span className="text-gray-400 text-lg font-bold">{community.name.charAt(0)}</span>
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h2 className="font-bold text-xl text-black">{community.name}</h2>
+                      <h2 className="font-bold text-black" style={{ fontSize: '1.5rem' }}>{community.name}</h2>
+                      {/* Category below heading */}
+                      {community.topic && (
+                        <span style={{ fontSize: '1rem', color: '#3F3F46' }}>{community.topic}</span>
+                      )}
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
+                  <p className="line-clamp-3 leading-relaxed" style={{ fontSize: '1rem', color: '#3F3F46' }}>
                     {community.description}
                   </p>
                   
-                  {/* Separator line */}
-                  <div className="border-t border-gray-200 my-4"></div>
-                  
-                  {/* Topic + Member count + Price badges - all on same line */}
-                  <div className="flex flex-wrap items-center justify-start gap-2">
-                    {/* Topic badge */}
-                    {community.topic && (() => {
-                      const colors = getTopicColor(community.topic);
-                      return (
-                        <span className={`${colors.bg} ${colors.text} px-3 py-1.5 rounded-full text-sm font-medium border ${colors.border}`}>
-                          {community.topic}
-                        </span>
-                      );
-                    })()}
-                    
+                  {/* Member count + Price badges - on same line */}
+                  <div className="flex flex-wrap items-center justify-start gap-2 mt-4">
                     {/* Member count badge */}
                     <span 
-                      className="px-3 py-1.5 rounded-full text-sm font-medium"
-                      style={{ backgroundColor: '#F4F4F5', color: '#52525B' }}
+                      className="rounded-full font-normal"
+                      style={{ backgroundColor: '#F4F4F5', color: '#3F3F46', fontSize: '1rem', padding: '0.5rem 1rem' }}
                     >
                       {(community.memberCount ?? 0) === 1 
                         ? 'משתמש אחד' 
@@ -575,15 +422,15 @@ export default function Home() {
                     {/* Free/Paid badge */}
                     {(community.price ?? 0) === 0 ? (
                       <span 
-                        className="px-3 py-1.5 rounded-full text-sm font-medium"
-                        style={{ backgroundColor: '#E9FCC5', color: '#365908' }}
+                        className="rounded-full font-normal"
+                        style={{ backgroundColor: '#A7EA7B', color: '#163300', fontSize: '1rem', padding: '0.5rem 1rem' }}
                       >
                         חינם
                       </span>
                     ) : (
                       <span 
-                        className="px-3 py-1.5 rounded-full text-sm font-medium"
-                        style={{ backgroundColor: '#DCF1FE', color: '#02527D' }}
+                        className="rounded-full font-normal"
+                        style={{ backgroundColor: '#91DCED', color: '#003233', fontSize: '1rem', padding: '0.5rem 1rem' }}
                       >
                         ₪{community.price} לחודש
                       </span>
@@ -595,7 +442,8 @@ export default function Home() {
           })
         ) : (
           <div className="col-span-full text-center py-12">
-            <p className="text-gray-500 text-lg">לא נמצאו קהילות בחיפוש</p>
+            <SearchXIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <p className="text-black text-lg">לא נמצאו קהילות בחיפוש</p>
           </div>
         )}
       </div>
@@ -609,19 +457,23 @@ export default function Home() {
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className={`text-2xl transition ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`flex items-center justify-center transition ${
+                currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-[#3F3F46] hover:text-black'
+              }`}
+              style={{ width: 32, height: 32 }}
             >
-              &lt;
+              <ChevronRightIcon className="w-5 h-5" />
             </button>
             {visiblePages.map(page => (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition ${
+                className={`flex items-center justify-center font-medium text-[16px] transition ${
                   page === currentPage
-                    ? 'bg-gray-200 text-gray-600'
-                    : 'bg-white text-gray-600 hover:bg-gray-100'
+                    ? 'bg-[#71717A] text-white'
+                    : 'bg-white text-[#71717A] hover:bg-gray-50'
                 }`}
+                style={{ width: 32, height: 32, borderRadius: '50%' }}
               >
                 {page}
               </button>
@@ -629,13 +481,19 @@ export default function Home() {
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
-              className={`text-2xl transition ${currentPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`flex items-center justify-center transition ${
+                currentPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-[#3F3F46] hover:text-black'
+              }`}
+              style={{ width: 32, height: 32 }}
             >
-              &gt;
+              <ChevronLeftIcon className="w-5 h-5" />
             </button>
           </div>
         );
       })()}
+
+      {/* Footer */}
+      <SiteFooter />
     </main>
   );
 }

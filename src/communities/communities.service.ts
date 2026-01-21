@@ -498,6 +498,47 @@ export class CommunitiesService {
     return memberships.map(m => m.communityId);
   }
 
+  async getUserCommunitiesWithDetails(userId: string) {
+    // Get communities where user is a member
+    const memberships = await this.prisma.communityMember.findMany({
+      where: { userId },
+      include: {
+        community: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logo: true,
+          },
+        },
+      },
+    });
+
+    // Also get communities where user is the owner (but not a member record)
+    const ownedCommunities = await this.prisma.community.findMany({
+      where: { ownerId: userId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logo: true,
+      },
+    });
+
+    // Combine and deduplicate
+    const communityMap = new Map<string, { id: string; name: string; slug: string | null; logo: string | null }>();
+    
+    for (const m of memberships) {
+      communityMap.set(m.community.id, m.community);
+    }
+    
+    for (const c of ownedCommunities) {
+      communityMap.set(c.id, c);
+    }
+
+    return Array.from(communityMap.values());
+  }
+
   async getCommunityMembers(communityIdOrSlug: string) {
     const communityId = await this.resolveId(communityIdOrSlug);
     

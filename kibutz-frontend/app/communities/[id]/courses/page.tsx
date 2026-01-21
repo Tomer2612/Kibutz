@@ -4,8 +4,18 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaClock, FaBook, FaPlus, FaPlay, FaUsers, FaSearch, FaCog, FaSignOutAlt, FaUser, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
-import NotificationBell from '../../../components/NotificationBell';
+import { FaPlay, FaTimes } from 'react-icons/fa';
+import { useCommunityContext } from '../CommunityContext';
+import SearchXIcon from '../../../components/SearchXIcon';
+import BookIcon from '../../../components/BookIcon';
+import StopwatchIcon from '../../../components/StopwatchIcon';
+import EditIcon from '../../../components/EditIcon';
+import TrashIcon from '../../../components/TrashIcon';
+import NotebookCircleIcon from '../../../components/NotebookCircleIcon';
+import TrashCircleIcon from '../../../components/TrashCircleIcon';
+import CloseIcon from '../../../components/CloseIcon';
+import ChevronLeftIcon from '../../../components/ChevronLeftIcon';
+import ChevronRightIcon from '../../../components/ChevronRightIcon';
 
 interface Course {
   id: string;
@@ -72,13 +82,10 @@ export default function CoursesPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'in-progress' | 'completed'>('all');
   const [mounted, setMounted] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
-  const [isOwnerOrManager, setIsOwnerOrManager] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; courseId: string | null; courseTitle: string }>({ open: false, courseId: null, courseTitle: '' });
+  
+  // Get user data and searchQuery from layout context
+  const { searchQuery, setSearchQuery, userEmail, userId, userProfile, isOwnerOrManager } = useCommunityContext();
   const [deleting, setDeleting] = useState(false);
 
   // Pagination state
@@ -89,47 +96,9 @@ export default function CoursesPage() {
 
   useEffect(() => {
     setMounted(true);
-
-    // Read cached profile immediately
-    const cached = localStorage.getItem('userProfileCache');
-    if (cached) {
-      try { setUserProfile(JSON.parse(cached)); } catch {}
-    }
-
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUserId(payload.sub);
-        setUserEmail(payload.email);
-        
-        // Fetch user profile
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-          .then(res => res.ok ? res.json() : null)
-          .then(data => {
-            if (data) {
-              const profile = { name: data.name, profileImage: data.profileImage };
-              setUserProfile(profile);
-              localStorage.setItem('userProfileCache', JSON.stringify(profile));
-            }
-          })
-          .catch(console.error);
-      } catch (e) {
-        console.error('Failed to decode token');
-      }
-    }
-
     fetchCommunity();
     fetchCourses();
   }, [communityId]);
-
-  useEffect(() => {
-    if (community && userId) {
-      checkPermissions();
-    }
-  }, [community, userId]);
 
   const fetchCommunity = async () => {
     try {
@@ -147,32 +116,6 @@ export default function CoursesPage() {
       }
     } catch (err) {
       console.error('Failed to fetch community:', err);
-    }
-  };
-
-  const checkPermissions = async () => {
-    const token = localStorage.getItem('token');
-    if (!token || !community) return;
-
-    // Check if owner
-    if (community.ownerId === userId) {
-      setIsOwnerOrManager(true);
-      return;
-    }
-
-    // Check if manager
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/membership`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.role === 'MANAGER' || data.role === 'OWNER') {
-          setIsOwnerOrManager(true);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to check membership:', err);
     }
   };
 
@@ -197,8 +140,12 @@ export default function CoursesPage() {
     if (minutes < 60) return `${minutes} דקות`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    if (mins === 0) return `${hours} שעות`;
-    return `${hours} שעות ו-${mins} דקות`;
+    let hoursStr = '';
+    if (hours === 1) hoursStr = 'שעה';
+    else if (hours === 2) hoursStr = 'שעתיים';
+    else hoursStr = `${hours} שעות`;
+    if (mins === 0) return hoursStr;
+    return `${hoursStr} ו-${mins} דקות`;
   };
 
   const openDeleteModal = (courseId: string, courseTitle: string, e: React.MouseEvent) => {
@@ -259,212 +206,85 @@ export default function CoursesPage() {
   );
 
   return (
-    <main className="min-h-screen bg-gray-100 text-right">
-      {/* Header with community navbar */}
-      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        {/* Right side: Kibutz Logo + Community */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-            Kibutz
-          </Link>
-          <div className="flex items-center gap-2">
-            {community?.logo ? (
-              <img
-                src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
-                alt={community.name}
-                className="w-8 h-8 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                <FaUsers className="w-4 h-4 text-gray-400" />
-              </div>
-            )}
-            <span className="font-medium text-black">{community?.name}</span>
-          </div>
-        </div>
-
-        {/* Center: Nav links */}
-        <nav className="flex items-center gap-4">
-          {[
-            { label: 'עמוד בית', href: `/communities/${communityId}/feed` },
-            { label: 'קורסים', href: `/communities/${communityId}/courses`, active: true },
-            { label: 'חברי קהילה', href: `/communities/${communityId}/members` },
-            { label: 'יומן אירועים', href: `/communities/${communityId}/events` },
-            { label: 'לוח תוצאות', href: `/communities/${communityId}/leaderboard` },
-            { label: 'אודות', href: `/communities/${communityId}/about` },
-            ...(isOwnerOrManager ? [{ label: 'ניהול קהילה', href: `/communities/${communityId}/manage` }] : []),
-          ].map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className={`text-sm transition px-3 py-1.5 rounded-full ${
-                link.active
-                  ? 'bg-gray-200 text-black font-medium'
-                  : 'text-gray-500 hover:text-black hover:bg-gray-50'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Left side: Search + User Avatar */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="חיפוש"
-              className="pl-4 pr-10 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:border-gray-400 w-32"
-            />
-          </div>
-          
-          {userEmail && <NotificationBell />}
-          
-          {userEmail && (
-            <div className="relative">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="relative focus:outline-none"
-              >
-                {userProfile?.profileImage ? (
-                  <img 
-                    src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
-                    alt={userProfile.name || 'User'}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                    {userProfile?.name?.charAt(0) || userEmail.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-              </button>
-              
-              {profileMenuOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setProfileMenuOpen(false)}
-                  />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        if (userId) router.push(`/profile/${userId}`);
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaUser className="w-4 h-4" />
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        router.push('/settings');
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaCog className="w-4 h-4" />
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('userProfileCache');
-                        router.push('/');
-                        location.reload();
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
-                    >
-                      <FaSignOutAlt className="w-4 h-4" />
-                      התנתקות
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-
+    <main className="min-h-screen bg-[#F4F4F5] text-right">
       {/* Sub header with tabs and create button */}
-      <div className="bg-gray-100 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-8 flex items-center justify-between">
+      <div className="bg-[#F4F4F5] border-b border-gray-200 pt-10">
+        <div className="max-w-5xl mx-auto px-8 flex items-center justify-between">
           <div className="flex gap-4">
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-4 py-3 font-medium relative transition ${
+              className={`px-4 py-3 text-[21px] relative transition ${
                 activeTab === 'all'
-                  ? 'text-gray-900'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'font-semibold text-black'
+                  : 'font-normal text-[#3F3F46] hover:text-gray-700'
               }`}
             >
               כל הקורסים
-              {activeTab === 'all' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-800"></span>}
+              {activeTab === 'all' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></span>}
             </button>
             <button
               onClick={() => setActiveTab('in-progress')}
-              className={`px-4 py-3 font-medium relative transition ${
+              className={`px-4 py-3 text-[21px] relative transition ${
                 activeTab === 'in-progress'
-                  ? 'text-gray-900'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'font-semibold text-black'
+                  : 'font-normal text-[#3F3F46] hover:text-gray-700'
               }`}
             >
               קורסים בתהליך
-              {activeTab === 'in-progress' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-800"></span>}
+              {activeTab === 'in-progress' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></span>}
             </button>
             <button
               onClick={() => setActiveTab('completed')}
-              className={`px-4 py-3 font-medium relative transition ${
+              className={`px-4 py-3 text-[21px] relative transition ${
                 activeTab === 'completed'
-                  ? 'text-gray-900'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'font-semibold text-black'
+                  : 'font-normal text-[#3F3F46] hover:text-gray-700'
               }`}
             >
               קורסים שהושלמו
-              {activeTab === 'completed' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-800"></span>}
+              {activeTab === 'completed' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></span>}
             </button>
           </div>
           {isOwnerOrManager && (
             <Link
               href={`/communities/${communityId}/courses/create`}
-              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium text-base"
             >
               יצירת קורס חדש
-              <FaPlus className="w-3 h-3" />
             </Link>
           )}
         </div>
       </div>
 
       {/* Course Grid */}
-      <div className="max-w-7xl mx-auto px-8 py-8">
+      <div className="max-w-5xl mx-auto px-8 py-8">
         {displayedCourses.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaBook className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-700 mb-2">
-              {activeTab === 'completed' 
-                ? 'עדיין לא השלמת קורסים' 
-                : activeTab === 'in-progress'
-                  ? 'עדיין לא התחלת קורסים או שהשלמת את כולם'
-                  : 'אין קורסים זמינים'}
-            </h3>
-            <p className="text-gray-500">
-              {activeTab === 'completed' 
-                ? 'המשך ללמוד והקורסים שתשלים יופיעו כאן'
-                : activeTab === 'in-progress'
-                  ? 'הירשם לקורס מלשונית "כל הקורסים"'
-                  : isOwnerOrManager 
-                    ? 'צור את הקורס הראשון שלך'
-                    : 'בקרוב יתווספו קורסים חדשים'
-              }
-            </p>
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center">
+            {searchQuery ? (
+              <>
+                <SearchXIcon className="w-16 h-16 mx-auto mb-4" />
+                <p className="text-black text-lg">לא נמצאו קורסים עבור "{searchQuery}"</p>
+              </>
+            ) : (
+              <>
+                <NotebookCircleIcon className="w-16 h-16 mx-auto mb-4" />
+                <h3 className="text-[21px] font-medium text-black mb-2">
+                  {activeTab === 'completed' 
+                    ? 'עדיין לא השלמת קורסים' 
+                    : activeTab === 'in-progress'
+                      ? 'עדיין לא התחלת קורסים או שהשלמת את כולם'
+                      : 'אין קורסים זמינים'}
+                </h3>
+                <p className="text-lg text-[#3F3F46]">
+                  {activeTab === 'completed' 
+                    ? 'המשך ללמוד והקורסים שתשלים יופיעו כאן'
+                    : activeTab === 'in-progress'
+                      ? 'הירשם לקורס מלשונית "כל הקורסים"'
+                      : 'צור את הקורס הראשון שלך'
+                  }
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <>
@@ -478,30 +298,34 @@ export default function CoursesPage() {
               .map(course => (
               <div
                 key={course.id}
-                className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition group border border-gray-100 relative"
+                className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition group border border-gray-100 relative w-full max-w-[432px]"
+                style={{ height: '510px' }}
               >
                 {/* Edit/Delete Buttons for Owner/Author */}
                 {canEditCourse(course) && (
-                  <div className="absolute top-3 left-3 z-10 flex items-center gap-1">
+                  <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
                     <Link
                       href={`/communities/${communityId}/courses/${course.id}/edit`}
                       onClick={(e) => e.stopPropagation()}
-                      className="p-2 bg-white/90 hover:bg-white text-gray-600 rounded-lg shadow-sm transition"
+                      className="bg-white text-[#3F3F46] flex items-center justify-center hover:bg-gray-50 transition shadow-sm"
+                      style={{ width: 32, height: 32, borderRadius: '50%' }}
                     >
-                      <FaEdit className="w-3.5 h-3.5" />
+                      <EditIcon className="w-4 h-4" />
                     </Link>
-                    <button
-                      onClick={(e) => openDeleteModal(course.id, course.title, e)}
-                      className="p-2 bg-white/90 hover:bg-white text-red-500 rounded-lg shadow-sm transition"
+                    <Link
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); openDeleteModal(course.id, course.title, e); }}
+                      className="bg-white text-[#B3261E] flex items-center justify-center hover:bg-gray-50 transition shadow-sm"
+                      style={{ width: 32, height: 32, borderRadius: '50%' }}
                     >
-                      <FaTrash className="w-3.5 h-3.5" />
-                    </button>
+                      <TrashIcon className="w-4 h-4" />
+                    </Link>
                   </div>
                 )}
 
                 {/* Course Image - Clickable */}
                 <Link href={`/communities/${communityId}/courses/${course.id}`} className="block">
-                  <div className="relative h-48 bg-gray-200 overflow-hidden">
+                  <div className="relative h-[250px] bg-gray-200 overflow-hidden">
                     {course.image ? (
                       <Image
                         src={course.image.startsWith('http') ? course.image : `${process.env.NEXT_PUBLIC_API_URL}${course.image}`}
@@ -511,7 +335,7 @@ export default function CoursesPage() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">
-                        <FaBook className="w-16 h-16 text-white/50" />
+                        <BookIcon className="w-16 h-16 text-white/50" />
                       </div>
                     )}
                     
@@ -532,38 +356,38 @@ export default function CoursesPage() {
                 </Link>
 
                 {/* Course Info - Clickable */}
-                <Link href={`/communities/${communityId}/courses/${course.id}`} className="block p-5 overflow-hidden no-underline">
+                <Link href={`/communities/${communityId}/courses/${course.id}`} className="block p-5 overflow-hidden no-underline h-[260px]">
                   {/* Title */}
                   <h3 className="text-lg font-bold text-gray-900 mb-3 truncate">
                     {course.title}
                   </h3>
 
-                  {/* Description */}
-                  <p className="text-sm text-gray-500 line-clamp-2 mb-4 min-h-[40px] break-words overflow-hidden">
-                    {course.description}
-                  </p>
-
-                  {/* Duration and Lessons - Grey badges */}
-                  <div className="flex items-center gap-3 mb-4 flex-wrap">
-                    <span className="flex items-center gap-2 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-sm">
-                      <FaClock className="w-3.5 h-3.5 flex-shrink-0" />
+                  {/* Duration and Lessons - With icons, bg gray 2, stroke gray 3 */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="flex items-center gap-1.5 bg-[#F4F4F5] border border-[#E4E4E7] text-[#3F3F46] px-2.5 py-1 rounded-md text-sm font-normal whitespace-nowrap">
+                      <StopwatchIcon className="w-4 h-4 flex-shrink-0" />
                       {formatDuration(course.totalDuration)}
                     </span>
-                    <span className="flex items-center gap-2 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-sm">
-                      <FaBook className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="flex items-center gap-1.5 bg-[#F4F4F5] border border-[#E4E4E7] text-[#3F3F46] px-2.5 py-1 rounded-md text-sm font-normal whitespace-nowrap">
+                      <BookIcon className="w-4 h-4 flex-shrink-0" />
                       {course.totalLessons} שיעורים
                     </span>
                   </div>
 
+                  {/* Description - 18px, regular, gray 8 */}
+                  <p className="text-lg font-normal text-[#3F3F46] line-clamp-2 mb-3 min-h-[56px] break-words overflow-hidden">
+                    {course.description || 'אין תיאור'}
+                  </p>
+
                   {/* Progress Bar */}
-                  <div className="mt-auto">
+                  <div className="mt-3">
                     <div className="flex items-center justify-between text-sm mb-2">
                       <span className="text-gray-500">התקדמות</span>
                       <span className="font-semibold text-gray-700">{Math.round(course.enrollment?.progress || 0)}%</span>
                     </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-2 bg-[#D4F5C4] rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-black rounded-full transition-all"
+                        className="h-full bg-[#A7EA7B] rounded-full transition-all"
                         style={{ width: `${course.enrollment?.progress || 0}%` }}
                       />
                     </div>
@@ -583,19 +407,22 @@ export default function CoursesPage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className={`text-2xl transition ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`w-8 h-8 flex items-center justify-center transition ${
+                    currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-[#3F3F46] hover:text-black'
+                  }`}
                 >
-                  &lt;
+                  <ChevronRightIcon className="w-5 h-5" />
                 </button>
                 {visiblePages.map(page => (
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition ${
+                    className={`flex items-center justify-center font-medium text-[16px] transition ${
                       page === currentPage
-                        ? 'bg-gray-200 text-gray-600'
-                        : 'bg-white text-gray-600 hover:bg-gray-100'
+                        ? 'bg-[#71717A] text-white'
+                        : 'bg-white text-[#71717A] hover:bg-gray-50'
                     }`}
+                    style={{ width: 32, height: 32, borderRadius: '50%' }}
                   >
                     {page}
                   </button>
@@ -603,9 +430,11 @@ export default function CoursesPage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className={`text-2xl transition ${currentPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`w-8 h-8 flex items-center justify-center transition ${
+                    currentPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-[#3F3F46] hover:text-black'
+                  }`}
                 >
-                  &gt;
+                  <ChevronLeftIcon className="w-5 h-5" />
                 </button>
               </div>
             );
@@ -624,32 +453,30 @@ export default function CoursesPage() {
               className="absolute top-4 left-4 p-1 hover:bg-gray-100 rounded-full transition"
               disabled={deleting}
             >
-              <FaTimes className="w-5 h-5 text-gray-400" />
+              <CloseIcon className="w-5 h-5" />
             </button>
             <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaTrash className="w-7 h-7 text-red-500" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">מחיקת קורס</h3>
-              <p className="text-gray-600 mb-6">
+              <TrashCircleIcon className="w-12 h-12 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-black mb-2">מחיקת קורס</h3>
+              <p className="text-[#3F3F46] mb-6">
                 האם אתה בטוח שברצונך למחוק את הקורס <span className="font-semibold">"{deleteModal.courseTitle}"</span>?
                 <br />
-                <span className="text-red-500 text-sm">פעולה זו לא ניתנת לביטול.</span>
+                פעולה זו לא ניתנת לביטול.
               </p>
               <div className="flex gap-3 justify-center">
                 <button
                   onClick={() => setDeleteModal({ open: false, courseId: null, courseTitle: '' })}
                   disabled={deleting}
-                  className="px-6 py-2.5 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
+                  className="px-6 py-2.5 border border-black text-black rounded-xl font-medium hover:bg-gray-50 transition disabled:opacity-50"
                 >
                   ביטול
                 </button>
                 <button
                   onClick={handleDeleteCourse}
                   disabled={deleting}
-                  className="px-6 py-2.5 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition disabled:opacity-50 flex items-center gap-2"
+                  className="px-6 py-2.5 bg-[#B3261E] text-white rounded-xl font-medium hover:bg-[#9C2019] transition disabled:opacity-50 flex items-center gap-2"
                 >
-                  {deleting ? 'מוחק...' : 'מחק קורס'}
+                  {deleting ? 'מוחק...' : 'מחיקה'}
                 </button>
               </div>
             </div>

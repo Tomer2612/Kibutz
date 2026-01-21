@@ -3,10 +3,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
-import Link from 'next/link';
-import NotificationBell from '../components/NotificationBell';
+import SiteHeader from '../components/SiteHeader';
+import FormSelect from '../components/FormSelect';
 import { HiOutlineUser, HiOutlineCamera, HiOutlineCog6Tooth, HiOutlineArrowRightOnRectangle, HiOutlineLink, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeSlash, HiOutlineBell, HiOutlineShieldCheck, HiOutlineHeart, HiOutlineChatBubbleLeft, HiOutlineChatBubbleOvalLeft, HiOutlineUserPlus, HiOutlineUsers, HiOutlineEnvelope, HiOutlineMapPin, HiOutlineDocumentText, HiOutlineAtSymbol, HiOutlineCreditCard } from 'react-icons/hi2';
-import { FaPowerOff, FaTrash, FaUser, FaCog, FaSignOutAlt, FaCreditCard, FaCalendarAlt, FaLock, FaTimes } from 'react-icons/fa';
+import { FaPowerOff, FaTrash, FaCreditCard, FaCalendarAlt, FaLock, FaTimes } from 'react-icons/fa';
 
 // Password requirements (same as signup)
 const passwordRequirements = [
@@ -101,7 +101,6 @@ export default function SettingsPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settingOffline, setSettingOffline] = useState(false);
@@ -543,100 +542,7 @@ export default function SettingsPage() {
 
   return (
     <main className="min-h-screen bg-gray-100 text-right" dir="rtl">
-      {/* Header - same as profile page */}
-      <header className="w-full flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        {/* Right side: Logo */}
-        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-          Kibutz
-        </Link>
-
-        {/* Left side: Nav + Auth */}
-        <div className="flex items-center gap-6">
-          <nav className="flex items-center gap-6">
-            <Link href="/pricing" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              מחירון
-            </Link>
-            <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              שאלות ותשובות
-            </Link>
-            <Link href="/contact" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              צרו קשר
-            </Link>
-            <Link href="/terms" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              תנאי שימוש
-            </Link>
-            <Link href="/privacy" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              מדיניות פרטיות
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            {/* Notification Bell */}
-            <NotificationBell />
-            
-            <div className="relative">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="relative focus:outline-none"
-              >
-                {imagePreview ? (
-                  <img 
-                    src={imagePreview}
-                    alt={name || 'User'}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                    {name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className={`absolute bottom-0 left-0 w-3 h-3 border-2 border-white rounded-full ${showOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-              </button>
-              
-              {profileMenuOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setProfileMenuOpen(false)}
-                  />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        if (userId) router.push(`/profile/${userId}`);
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaUser className="w-4 h-4" />
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => setProfileMenuOpen(false)}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaCog className="w-4 h-4" />
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('userProfileCache');
-                        router.push('/');
-                        window.location.reload();
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
-                    >
-                      <FaSignOutAlt className="w-4 h-4" />
-                      התנתקות
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Main Layout with Sidebar */}
       <div className="flex min-h-[calc(100vh-65px)]">
@@ -804,24 +710,13 @@ export default function SettingsPage() {
                 {/* Location */}
                 <div className="flex items-center gap-8">
                   <h3 className="text-sm font-medium text-gray-900 w-32 flex-shrink-0">עיר מגורים</h3>
-                  <div className="flex-1 relative">
-                    <HiOutlineMapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <select
+                  <div className="flex-1">
+                    <FormSelect
                       value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className="w-full pr-11 pl-10 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black text-sm bg-white appearance-none cursor-pointer"
-                    >
-                      {ISRAELI_CITIES.map((city) => (
-                        <option key={city} value={city}>
-                          {city || 'בחר עיר'}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
+                      onChange={setLocation}
+                      placeholder="בחר עיר"
+                      options={ISRAELI_CITIES.filter(city => city !== '').map(city => ({ value: city, label: city }))}
+                    />
                   </div>
                 </div>
 

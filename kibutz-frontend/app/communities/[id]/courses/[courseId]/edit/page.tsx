@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaPlus, FaTrash, FaGripVertical, FaImage, FaSave, FaPlay, FaChevronDown, FaChevronUp, FaCog, FaSignOutAlt, FaUser, FaVideo, FaFileAlt, FaLink, FaQuestionCircle, FaCheckCircle, FaTimes, FaLayerGroup, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import NotificationBell from '../../../../../components/NotificationBell';
+import { MessagesBell } from '../../../../../components/ChatWidget';
 
 interface QuizOptionForm {
   id?: string;
@@ -726,6 +727,7 @@ export default function EditCoursePage() {
           Kibutz
         </Link>
         <div className="flex items-center gap-3">
+          {mounted && <MessagesBell />}
           {mounted && <NotificationBell />}
           {mounted ? (
           <div className="relative">
@@ -744,7 +746,7 @@ export default function EditCoursePage() {
                 {userProfile?.name?.charAt(0) || userEmail?.charAt(0)?.toUpperCase()}
               </div>
             )}
-            <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+            <span className="absolute bottom-0 left-0 w-3 h-3 bg-[#A7EA7B] border-2 border-white rounded-full"></span>
           </button>
           
           {profileMenuOpen && (

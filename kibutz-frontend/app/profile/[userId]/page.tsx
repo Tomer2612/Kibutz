@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { jwtDecode } from 'jwt-decode';
-import { FaCog, FaSignOutAlt, FaUsers, FaMapMarkerAlt, FaCalendarAlt, FaSignInAlt, FaClock, FaUser, FaCamera } from 'react-icons/fa';
-import NotificationBell from '../../components/NotificationBell';
+import { FaUsers, FaMapMarkerAlt, FaCalendarAlt, FaSignInAlt, FaClock, FaCamera } from 'react-icons/fa';
+import SiteHeader from '../../components/SiteHeader';
+import ChevronLeftIcon from '../../components/ChevronLeftIcon';
+import ChevronRightIcon from '../../components/ChevronRightIcon';
 
 // Topic color mapping - synced with homepage
 const TOPIC_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -97,13 +98,6 @@ interface Community {
   createdAt?: string;
 }
 
-interface JwtPayload {
-  email: string;
-  sub: string;
-  iat: number;
-  exp: number;
-}
-
 export default function MemberProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -130,47 +124,24 @@ export default function MemberProfilePage() {
   const [memberPage, setMemberPage] = useState(1);
   const communitiesPerPage = 3;
 
-  // Current user state (for navbar)
-  const [mounted, setMounted] = useState(false);
+  // Current user state (for checking if viewing own profile)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-  const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
 
-  // Fetch current user for navbar
+  // Fetch current user ID to check if viewing own profile
   useEffect(() => {
-    setMounted(true);
-
-    // Read cached profile immediately
-    const cached = localStorage.getItem('userProfileCache');
-    if (cached) {
-      try { setCurrentUserProfile(JSON.parse(cached)); } catch {}
-    }
-
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
-      try {
-        const decoded = jwtDecode<JwtPayload>(token);
-        setCurrentUserEmail(decoded.email);
-        setCurrentUserId(decoded.sub);
-
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` }
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) {
+            setCurrentUserId(data.userId);
+          }
         })
-          .then(res => res.ok ? res.json() : null)
-          .then(data => {
-            if (data) {
-              setCurrentUserId(data.userId);
-              const profile = { name: data.name, profileImage: data.profileImage };
-              setCurrentUserProfile(profile);
-              localStorage.setItem('userProfileCache', JSON.stringify(profile));
-            }
-          })
-          .catch(console.error);
-      } catch (e) {
-        console.error('Invalid token:', e);
-      }
+        .catch(console.error);
     }
   }, []);
 
@@ -310,122 +281,7 @@ export default function MemberProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
-      {/* Header/Navbar - same as homepage */}
-      <header className="w-full flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        {/* Right side: Logo */}
-        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-          Kibutz
-        </Link>
-
-        {/* Left side: Nav + Auth */}
-        <div className="flex items-center gap-6">
-          <nav className="flex items-center gap-6">
-            <Link href="/pricing" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              מחירון
-            </Link>
-            <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              שאלות ותשובות
-            </Link>
-            <Link href="/contact" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              צרו קשר
-            </Link>
-            <Link href="/terms" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              תנאי שימוש
-            </Link>
-            <Link href="/privacy" className="text-gray-600 hover:text-black transition text-sm font-medium">
-              מדיניות פרטיות
-            </Link>
-          </nav>
-
-          {!mounted ? (
-            <div className="w-10 h-10" />
-          ) : !currentUserEmail ? (
-            <div className="flex items-center gap-3">
-              <Link
-                href="/login"
-                className="border border-black text-black px-6 py-2.5 rounded-lg font-semibold hover:bg-black hover:text-white transition"
-              >
-                כניסה
-              </Link>
-              <Link
-                href="/signup"
-                className="bg-black text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition"
-              >
-                הרשמה
-              </Link>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              {/* Notification Bell */}
-              <NotificationBell />
-              
-              <div className="relative">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="relative focus:outline-none"
-              >
-                {currentUserProfile?.profileImage ? (
-                  <img
-                    src={currentUserProfile.profileImage.startsWith('http') ? currentUserProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${currentUserProfile.profileImage}`}
-                    alt={currentUserProfile.name || 'User'}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                    {currentUserProfile?.name?.charAt(0) || currentUserEmail?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-              </button>
-
-              {profileMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setProfileMenuOpen(false)}
-                  />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        if (currentUserId) router.push(`/profile/${currentUserId}`);
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaUser className="w-4 h-4" />
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        router.push('/settings');
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                    >
-                      <FaCog className="w-4 h-4" />
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-100 my-1"></div>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('userProfileCache');
-                        router.push('/');
-                        location.reload();
-                      }}
-                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
-                    >
-                      <FaSignOutAlt className="w-4 h-4" />
-                      התנתקות
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-            </div>
-          )}
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Profile Cover Image - Bigger and customizable */}
       <div className="w-full h-64 relative z-0">
@@ -533,7 +389,7 @@ export default function MemberProfilePage() {
                     // Online now - green dot
                     return (
                       <>
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span className="w-2 h-2 bg-[#A7EA7B] rounded-full"></span>
                         <span>מחובר/ת עכשיו</span>
                       </>
                     );
@@ -768,19 +624,23 @@ export default function MemberProfilePage() {
                       <button
                         onClick={() => setCreatedPage(p => Math.max(1, p - 1))}
                         disabled={createdPage === 1}
-                        className={`text-2xl transition ${createdPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center justify-center transition ${
+                          createdPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-[#3F3F46] hover:text-black'
+                        }`}
+                        style={{ width: 32, height: 32 }}
                       >
-                        &lt;
+                        <ChevronRightIcon className="w-5 h-5" />
                       </button>
                       {visiblePages.map(page => (
                         <button
                           key={page}
                           onClick={() => setCreatedPage(page)}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition ${
+                          className={`flex items-center justify-center font-medium text-[16px] transition ${
                             page === createdPage
-                              ? 'bg-gray-200 text-gray-600'
-                              : 'bg-white text-gray-600 hover:bg-gray-100'
+                              ? 'bg-[#71717A] text-white'
+                              : 'bg-white text-[#71717A] hover:bg-gray-50'
                           }`}
+                          style={{ width: 32, height: 32, borderRadius: '50%' }}
                         >
                           {page}
                         </button>
@@ -788,9 +648,12 @@ export default function MemberProfilePage() {
                       <button
                         onClick={() => setCreatedPage(p => Math.min(totalPages, p + 1))}
                         disabled={createdPage >= totalPages}
-                        className={`text-2xl transition ${createdPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center justify-center transition ${
+                          createdPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-[#3F3F46] hover:text-black'
+                        }`}
+                        style={{ width: 32, height: 32 }}
                       >
-                        &gt;
+                        <ChevronLeftIcon className="w-5 h-5" />
                       </button>
                     </div>
                     );
@@ -905,19 +768,23 @@ export default function MemberProfilePage() {
                       <button
                         onClick={() => setMemberPage(p => Math.max(1, p - 1))}
                         disabled={memberPage === 1}
-                        className={`text-2xl transition ${memberPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center justify-center transition ${
+                          memberPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-[#3F3F46] hover:text-black'
+                        }`}
+                        style={{ width: 32, height: 32 }}
                       >
-                        &lt;
+                        <ChevronRightIcon className="w-5 h-5" />
                       </button>
                       {visiblePages.map(page => (
                         <button
                           key={page}
                           onClick={() => setMemberPage(page)}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition ${
+                          className={`flex items-center justify-center font-medium text-[16px] transition ${
                             page === memberPage
-                              ? 'bg-gray-200 text-gray-600'
-                              : 'bg-white text-gray-600 hover:bg-gray-100'
+                              ? 'bg-[#71717A] text-white'
+                              : 'bg-white text-[#71717A] hover:bg-gray-50'
                           }`}
+                          style={{ width: 32, height: 32, borderRadius: '50%' }}
                         >
                           {page}
                         </button>
@@ -925,9 +792,12 @@ export default function MemberProfilePage() {
                       <button
                         onClick={() => setMemberPage(p => Math.min(totalPages, p + 1))}
                         disabled={memberPage >= totalPages}
-                        className={`text-2xl transition ${memberPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center justify-center transition ${
+                          memberPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-[#3F3F46] hover:text-black'
+                        }`}
+                        style={{ width: 32, height: 32 }}
                       >
-                        &gt;
+                        <ChevronLeftIcon className="w-5 h-5" />
                       </button>
                     </div>
                     );

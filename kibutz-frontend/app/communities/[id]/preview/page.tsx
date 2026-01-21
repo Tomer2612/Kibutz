@@ -6,6 +6,7 @@ import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
 import { FaUsers, FaCalendarAlt, FaSearch, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaUser, FaTimes, FaCreditCard, FaLock } from 'react-icons/fa';
 import NotificationBell from '../../../components/NotificationBell';
+import { MessagesBell } from '../../../components/ChatWidget';
 
 interface Community {
   id: string;
@@ -427,6 +428,7 @@ function CommunityPreviewContent() {
             </>
           ) : (
             <>
+              {userEmail && <MessagesBell />}
               {userEmail && <NotificationBell />}
               <div className="relative">
                 <button
@@ -444,7 +446,7 @@ function CommunityPreviewContent() {
                     {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                <span className="absolute bottom-0 left-0 w-3 h-3 bg-[#A7EA7B] border-2 border-white rounded-full"></span>
               </button>
 
               {profileMenuOpen && (
