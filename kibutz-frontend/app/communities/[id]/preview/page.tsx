@@ -783,7 +783,7 @@ function CommunityPreviewContent() {
                     type="text"
                     value={cardNumber}
                     onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                       getCardNumberError() ? 'border-red-400' : 'border-gray-300'
                     }`}
                   />
@@ -816,7 +816,7 @@ function CommunityPreviewContent() {
                           setCardExpiry(rawValue);
                         }
                       }}
-                      className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                      className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                         getExpiryError() ? 'border-red-400' : 'border-gray-300'
                       }`}
                     />
@@ -833,7 +833,7 @@ function CommunityPreviewContent() {
                       type="text"
                       value={cardCvv}
                       onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                      className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                      className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                         getCvvError() ? 'border-red-400' : 'border-gray-300'
                       }`}
                     />

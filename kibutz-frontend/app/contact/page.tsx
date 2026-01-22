@@ -155,7 +155,7 @@ export default function ContactPage() {
                   onChange={(e) => setContactName(e.target.value.slice(0, CHAR_LIMITS.name))}
                   required
                   maxLength={CHAR_LIMITS.name}
-                  className="w-full p-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black text-right"
+                  className="w-full p-3 border border-gray-300 focus:outline-none focus:border-black text-right"
                   style={{ borderRadius: '10px' }}
                 />
               </div>
@@ -178,7 +178,7 @@ export default function ContactPage() {
                   }}
                   onBlur={validateEmail}
                   required
-                  className={`w-full p-3 border focus:outline-none focus:ring-2 focus:ring-black text-right ${
+                  className={`w-full p-3 border focus:outline-none focus:border-black text-right ${
                     emailTouched && emailError ? 'border-red-400' : 'border-gray-300'
                   }`}
                   style={{ borderRadius: '10px' }}
@@ -198,7 +198,7 @@ export default function ContactPage() {
                   onChange={(e) => setContactSubject(e.target.value.slice(0, CHAR_LIMITS.subject))}
                   required
                   maxLength={CHAR_LIMITS.subject}
-                  className="w-full p-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black text-right"
+                  className="w-full p-3 border border-gray-300 focus:outline-none focus:border-black text-right"
                   style={{ borderRadius: '10px' }}
                 />
               </div>
@@ -213,7 +213,7 @@ export default function ContactPage() {
                   required
                   rows={5}
                   maxLength={CHAR_LIMITS.message}
-                  className="w-full p-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black text-right resize-none overflow-y-auto"
+                  className="w-full p-3 border border-gray-300 focus:outline-none focus:border-black text-right resize-none overflow-y-auto"
                   style={{ borderRadius: '10px', direction: 'ltr' }}
                 />
               </div>

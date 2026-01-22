@@ -220,7 +220,7 @@ function PricingContent() {
                 type="text"
                 value={communityName}
                 onChange={(e) => setCommunityName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
               />
             </div>
             
@@ -302,7 +302,7 @@ function PricingContent() {
                   type="text"
                   value={cardNumber}
                   onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                     getCardNumberError() ? 'border-red-400' : 'border-gray-300'
                   }`}
                 />
@@ -335,7 +335,7 @@ function PricingContent() {
                         setCardExpiry(rawValue);
                       }
                     }}
-                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                       getExpiryError() ? 'border-red-400' : 'border-gray-300'
                     }`}
                   />
@@ -352,7 +352,7 @@ function PricingContent() {
                     type="text"
                     value={cardCvv}
                     onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                       getCvvError() ? 'border-red-400' : 'border-gray-300'
                     }`}
                   />
@@ -455,12 +455,12 @@ function PricingContent() {
           {faqs.map((faq, index) => (
             <div
               key={index}
-              className="bg-white border border-gray-400 overflow-hidden"
+              className="bg-white border border-gray-400 overflow-hidden hover:bg-gray-50 transition"
               style={{ borderRadius: '16px' }}
             >
               <button
                 onClick={() => toggleFaq(index)}
-                className="w-full flex items-center justify-between text-right hover:bg-gray-50 transition"
+                className="w-full flex items-center justify-between text-right"
                 style={{ padding: '1rem 2rem' }}
               >
                 <span className="font-medium text-black">{faq.question}</span>

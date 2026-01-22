@@ -72,12 +72,12 @@ export default function SupportPage() {
           {faqs.map((faq, index) => (
             <div
               key={index}
-              className="bg-white border border-gray-400 overflow-hidden"
+              className="bg-white border border-gray-400 overflow-hidden hover:bg-gray-50 transition"
               style={{ borderRadius: '16px' }}
             >
               <button
                 onClick={() => toggleFaq(index)}
-                className="w-full flex items-center justify-between text-right hover:bg-gray-50 transition"
+                className="w-full flex items-center justify-between text-right"
                 style={{ padding: '1rem 2rem' }}
               >
                 <span className="font-medium text-black">{faq.question}</span>

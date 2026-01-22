@@ -1754,7 +1754,7 @@ function CommunityFeedContent() {
                         onChange={(e) => setNewLinkInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLink(); } }}
                         placeholder="https://example.com"
-                        className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black placeholder:text-[#7A7A83] placeholder:font-normal ${newLinkInput.trim() ? 'text-black' : 'text-[#7A7A83]'}`}
+                        className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:border-black placeholder:text-[#7A7A83] placeholder:font-normal ${newLinkInput.trim() ? 'text-black' : 'text-[#7A7A83]'}`}
                         style={{ fontSize: '14px', fontWeight: 400 }}
                         disabled={addingLink}
                       />
@@ -1824,7 +1824,7 @@ function CommunityFeedContent() {
                       onChange={(e) => setPollQuestion(e.target.value)}
                       placeholder="שאלת הסקר..."
                       style={{ fontSize: '14px' }}
-                      className="w-full bg-gray-200 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:ring-2 focus:ring-gray-400 mb-4 text-right placeholder-gray-500"
+                      className="w-full bg-gray-200 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:border-gray-400 mb-4 text-right placeholder-gray-500"
                     />
 
                     {/* Poll Options */}
@@ -1841,7 +1841,7 @@ function CommunityFeedContent() {
                             }}
                             placeholder={`אפשרות ${index + 1}`}
                             style={{ fontSize: '14px' }}
-                            className="flex-1 bg-white border border-gray-300 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:ring-2 focus:ring-gray-400 text-right placeholder-gray-500"
+                            className="flex-1 bg-white border border-gray-300 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:border-gray-400 text-right placeholder-gray-500"
                           />
                           {pollOptions.length > 2 && (
                             <button
@@ -2161,12 +2161,12 @@ function CommunityFeedContent() {
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
                           placeholder="כותרת (אופציונלי)"
-                          className="w-full p-3 mb-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:ring-2 focus:ring-black"
+                          className="w-full p-3 mb-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:border-black"
                         />
                         <textarea
                           value={editContent}
                           onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full p-3 border border-gray-200 rounded-lg text-right resize-none focus:outline-none focus:ring-2 focus:ring-black"
+                          className="w-full p-3 border border-gray-200 rounded-lg text-right resize-none focus:outline-none focus:border-black"
                           rows={4}
                         />
                         
@@ -2285,7 +2285,7 @@ function CommunityFeedContent() {
                                       type="text"
                                       value={editPollQuestion}
                                       onChange={(e) => setEditPollQuestion(e.target.value)}
-                                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:border-black bg-white"
                                       placeholder="שאלת הסקר"
                                     />
                                   )}
@@ -2321,7 +2321,7 @@ function CommunityFeedContent() {
                                             newOptions[index] = { ...newOptions[index], text: e.target.value };
                                             setEditPollOptions(newOptions);
                                           }}
-                                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:border-black bg-white"
                                           placeholder={`אפשרות ${index + 1}`}
                                         />
                                         <span className="text-xs text-gray-400 w-16 text-left">
@@ -2626,7 +2626,7 @@ function CommunityFeedContent() {
                                               setEditCommentContent('');
                                             }
                                           }}
-                                          className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black bg-white"
+                                          className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-right text-sm focus:outline-none focus:border-black bg-white"
                                           autoFocus
                                         />
                                         <button
@@ -2733,7 +2733,7 @@ function CommunityFeedContent() {
                                 }}
                                 disabled={submittingComment[post.id]}
                                 placeholder="כתבו תגובה..."
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:border-black disabled:opacity-50"
                               />
                               {/* Mention Autocomplete Dropdown */}
                               {showMentionDropdown === post.id && mentionSuggestions.length > 0 && (

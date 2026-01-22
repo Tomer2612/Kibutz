@@ -682,7 +682,7 @@ export default function SettingsPage() {
                       onChange={(e) => setName(e.target.value.slice(0, 50))}
                       placeholder="שם מלא"
                       maxLength={50}
-                      className="w-full pr-11 pl-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                      className="w-full pr-11 pl-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-black text-sm"
                     />
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">{name.length}/50</span>
                   </div>
@@ -701,7 +701,7 @@ export default function SettingsPage() {
                       placeholder="ספרו על עצמכם"
                       maxLength={300}
                       rows={5}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black text-sm resize-none overflow-y-auto text-right"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-black text-sm resize-none overflow-y-auto text-right"
                     />
                     <span className="absolute left-3 bottom-3 text-xs text-gray-400">{bio.length}/300</span>
                   </div>
@@ -1185,7 +1185,7 @@ export default function SettingsPage() {
                           type="text"
                           value={cardNumber}
                           onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                             getCardNumberError() ? 'border-red-400' : 'border-gray-300'
                           }`}
                         />
@@ -1218,7 +1218,7 @@ export default function SettingsPage() {
                                 setCardExpiry(rawValue);
                               }
                             }}
-                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                               getExpiryError() ? 'border-red-400' : 'border-gray-300'
                             }`}
                           />
@@ -1235,7 +1235,7 @@ export default function SettingsPage() {
                             type="text"
                             value={cardCvv}
                             onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                               getCvvError() ? 'border-red-400' : 'border-gray-300'
                             }`}
                           />

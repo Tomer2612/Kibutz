@@ -264,7 +264,7 @@ export default function Home() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 justify-center mb-6 w-full max-w-5xl mx-auto px-4">
-        <div className="flex items-center flex-grow max-w-xs rounded-lg border bg-white px-4 py-3 focus-within:ring-2 focus-within:ring-black" style={{ borderColor: '#D0D0D4' }}>
+        <div className="flex items-center flex-grow max-w-xs rounded-lg border border-[#D0D0D4] bg-white px-4 py-3 focus-within:border-black transition-colors">
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
             fill="none" 
@@ -280,7 +280,7 @@ export default function Home() {
             placeholder="חפשו קהילה"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="mr-3 flex-1 bg-transparent outline-none text-right placeholder:text-gray-400"
+            className="mr-3 flex-1 bg-transparent outline-none focus:ring-0 text-right placeholder:text-gray-400"
             dir="rtl"
           />
         </div>
@@ -329,7 +329,7 @@ export default function Home() {
               setSelectedSize('');
               setSelectedPrice('');
             }}
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-black underline hover:no-underline"
           >
             נקה סינון
           </button>
@@ -366,7 +366,7 @@ export default function Home() {
               <div
                 key={community.id}
                 onClick={() => handleCardClick(community)}
-                className="rounded-2xl overflow-hidden bg-white transition-all duration-200 cursor-pointer"
+                className="rounded-2xl overflow-hidden bg-white transition-all duration-200 cursor-pointer flex flex-col"
               >
                 {community.image ? (
                   <img
@@ -380,7 +380,7 @@ export default function Home() {
                     <span className="text-gray-400 font-medium">תמונת קהילה</span>
                   </div>
                 )}
-                <div className="p-5 text-right" dir="rtl">
+                <div className="p-5 text-right flex-1 flex flex-col" dir="rtl">
                   <div className="flex items-start gap-3 mb-2">
                     {community.logo ? (
                       <img
@@ -397,7 +397,7 @@ export default function Home() {
                       <h2 className="font-bold text-black" style={{ fontSize: '1.5rem' }}>{community.name}</h2>
                       {/* Category below heading */}
                       {community.topic && (
-                        <span style={{ fontSize: '1rem', color: '#3F3F46' }}>{community.topic}</span>
+                        <span className="font-normal" style={{ fontSize: '1rem', color: '#3F3F46' }}>{community.topic}</span>
                       )}
                     </div>
                   </div>
@@ -406,7 +406,7 @@ export default function Home() {
                   </p>
                   
                   {/* Member count + Price badges - on same line */}
-                  <div className="flex flex-wrap items-center justify-start gap-2 mt-4">
+                  <div className="flex flex-wrap items-center justify-start gap-2 mt-auto pt-4">
                     {/* Member count badge */}
                     <span 
                       className="rounded-full font-normal"

@@ -836,7 +836,7 @@ export default function EditCoursePage() {
                       }
                     }}
                     maxLength={MAX_TITLE_LENGTH}
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    className={`w-full p-3 border rounded-lg focus:border-blue-500 ${
                       errors.title ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="לדוגמה: מבוא לבישול ביתי"
@@ -864,7 +864,7 @@ export default function EditCoursePage() {
                     }}
                     maxLength={MAX_DESCRIPTION_LENGTH}
                     rows={4}
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-right ${
+                    className={`w-full p-3 border rounded-lg focus:border-blue-500 text-right ${
                       errors.description ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="תאר את הקורס בכמה משפטים..."
@@ -1073,7 +1073,7 @@ export default function EditCoursePage() {
                                             setErrors(prev => ({ ...prev, [`lesson_${chapterIndex}_${lessonIndex}_title`]: '' }));
                                           }
                                         }}
-                                        className={`w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 ${
+                                        className={`w-full p-2 border rounded focus:border-blue-500 ${
                                           errors[`lesson_${chapterIndex}_${lessonIndex}_title`] ? 'border-red-500' : 'border-gray-200'
                                         }`}
                                         placeholder="כותרת השיעור"
@@ -1096,7 +1096,7 @@ export default function EditCoursePage() {
                                             }
                                           }
                                         }}
-                                        className={`w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 ${
+                                        className={`w-full p-2 border rounded focus:border-blue-500 ${
                                           errors[`lesson_${chapterIndex}_${lessonIndex}_duration`] ? 'border-red-500' : 'border-gray-200'
                                         }`}
                                         min={MIN_LESSON_DURATION}
@@ -1205,7 +1205,7 @@ export default function EditCoursePage() {
                                             type="text"
                                             value={lesson.videoUrl}
                                             onChange={(e) => updateLesson(chapterIndex, lessonIndex, { videoUrl: e.target.value })}
-                                            className="w-full p-2 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500"
+                                            className="w-full p-2 border border-gray-200 rounded focus:border-blue-500"
                                             placeholder="https://www.youtube.com/watch?v=..."
                                           />
                                         </div>
@@ -1218,7 +1218,7 @@ export default function EditCoursePage() {
                                             value={lesson.content}
                                             onChange={(e) => updateLesson(chapterIndex, lessonIndex, { content: e.target.value })}
                                             rows={3}
-                                            className="w-full p-2 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 text-right"
+                                            className="w-full p-2 border border-gray-200 rounded focus:border-blue-500 text-right"
                                             placeholder="תוכן טקסט לשיעור..."
                                           />
                                         </div>
@@ -1306,7 +1306,7 @@ export default function EditCoursePage() {
                                                     newLinks[linkIndex] = e.target.value;
                                                     updateLesson(chapterIndex, lessonIndex, { links: newLinks });
                                                   }}
-                                                  className="flex-1 p-2 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 text-sm"
+                                                  className="flex-1 p-2 border border-gray-200 rounded focus:border-blue-500 text-sm"
                                                   dir="ltr"
                                                   placeholder="https://example.com"
                                                 />
@@ -1383,7 +1383,7 @@ export default function EditCoursePage() {
                                                     newQuestions[qIndex] = { ...newQuestions[qIndex], question: e.target.value };
                                                     updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                   }}
-                                                  className={`w-full p-2 border rounded focus:ring-1 focus:ring-gray-400 text-sm ${
+                                                  className={`w-full p-2 border rounded focus:border-gray-400 text-sm ${
                                                     errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_question`]
                                                       ? 'border-red-500'
                                                       : 'border-gray-200'
@@ -1520,7 +1520,7 @@ export default function EditCoursePage() {
                                                         newQuestions[qIndex].options[optIndex].text = e.target.value;
                                                         updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                       }}
-                                                      className={`flex-1 p-1.5 border rounded text-sm focus:ring-1 focus:ring-gray-400 ${
+                                                      className={`flex-1 p-1.5 border rounded text-sm focus:border-gray-400 ${
                                                         errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_opt_${optIndex}`]
                                                           ? 'border-red-500'
                                                           : 'border-gray-200'

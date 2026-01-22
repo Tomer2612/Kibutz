@@ -601,7 +601,7 @@ export default function ManageCommunityPage() {
                     <input
                       type="text"
                       placeholder="לדוגמא: יוגה למומחים"
-                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
@@ -723,7 +723,7 @@ export default function ManageCommunityPage() {
                   <div className="flex-1">
                     <textarea
                       placeholder="תארו את הקהילה, מה הם הנושאים המרכזיים, מי יכול להצטרף..."
-                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right resize-none text-base"
+                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right resize-none text-base"
                       rows={6}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -854,7 +854,7 @@ export default function ManageCommunityPage() {
                     <input
                       type="text"
                       placeholder="כלל חדש..."
-                      className="flex-1 p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                      className="flex-1 p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
                       value={newRule}
                       onChange={(e) => setNewRule(e.target.value)}
                       onKeyDown={(e) => {
@@ -893,7 +893,7 @@ export default function ManageCommunityPage() {
                       <input
                         type="url"
                         placeholder="קישור לערוץ YouTube"
-                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
                         value={youtubeUrl}
                         onChange={(e) => setYoutubeUrl(e.target.value)}
                       />
@@ -903,7 +903,7 @@ export default function ManageCommunityPage() {
                       <input
                         type="url"
                         placeholder="קישור לקבוצת WhatsApp"
-                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
                         value={whatsappUrl}
                         onChange={(e) => setWhatsappUrl(e.target.value)}
                       />
@@ -913,7 +913,7 @@ export default function ManageCommunityPage() {
                       <input
                         type="url"
                         placeholder="קישור לעמוד Facebook"
-                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
                         value={facebookUrl}
                         onChange={(e) => setFacebookUrl(e.target.value)}
                       />
@@ -923,7 +923,7 @@ export default function ManageCommunityPage() {
                       <input
                         type="url"
                         placeholder="קישור לעמוד Instagram"
-                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-right text-base"
+                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
                         value={instagramUrl}
                         onChange={(e) => setInstagramUrl(e.target.value)}
                       />
@@ -1123,7 +1123,7 @@ export default function ManageCommunityPage() {
                         type="text"
                         value={newCardNumber}
                         onChange={(e) => setNewCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                        className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                        className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                           newCardNumber.length > 0 && newCardNumber.length < 16 ? 'border-red-400' : 'border-gray-300'
                         }`}
                       />
@@ -1156,7 +1156,7 @@ export default function ManageCommunityPage() {
                               setNewCardExpiry(rawValue);
                             }
                           }}
-                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                             newCardExpiry.length > 0 && (newCardExpiry.length < 5 || (() => {
                               if (newCardExpiry.length !== 5) return false;
                               const [m, y] = newCardExpiry.split('/').map(Number);
@@ -1189,7 +1189,7 @@ export default function ManageCommunityPage() {
                           type="text"
                           value={newCardCvv}
                           onChange={(e) => setNewCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
                             newCardCvv.length > 0 && newCardCvv.length < 3 ? 'border-red-400' : 'border-gray-300'
                           }`}
                         />

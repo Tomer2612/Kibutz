@@ -290,7 +290,7 @@ export default function CommunityMembersPage() {
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           {/* Search */}
           <div className="mb-6">
-            <div className="flex items-center rounded-lg border bg-white px-4 py-3 focus-within:ring-2 focus-within:ring-black" style={{ borderColor: '#D0D0D4' }}>
+            <div className="flex items-center rounded-lg border bg-white px-4 py-3 focus-within:border-black transition-colors" style={{ borderColor: '#D0D0D4' }}>
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
                 fill="none" 
