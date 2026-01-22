@@ -2860,7 +2860,7 @@ function CommunityFeedContent() {
                   <ul className="space-y-2">
                     {community.rules.slice(0, 3).map((rule, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <CheckIcon className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#A7EA7B]" />
+                        <CheckIcon className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-800" />
                         <span style={{ fontSize: '14px' }} className="text-gray-600 font-normal">{rule}</span>
                       </li>
                     ))}

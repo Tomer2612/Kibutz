@@ -733,6 +733,8 @@ export default function ManageCommunityPage() {
                     <textarea
                       placeholder="תארו את הקהילה, מה הם הנושאים המרכזיים, מי יכול להצטרף..."
                       className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right resize-none text-base"
+                      style={{ direction: 'ltr' }}
+                      dir="rtl"
                       rows={6}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
