@@ -3,9 +3,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaUsers, FaImage, FaCog, FaTrash, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar, FaPlus, FaCreditCard, FaChevronDown, FaCalendarAlt, FaLock } from 'react-icons/fa';
+import { FaUsers, FaImage, FaCog, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar, FaPlus, FaCreditCard, FaChevronDown, FaCalendarAlt, FaLock } from 'react-icons/fa';
 import { useCommunityContext } from '../CommunityContext';
 import FormSelect from '../../../components/FormSelect';
+import PlusIcon from '../../../components/PlusIcon';
+import TrashIcon from '../../../components/TrashIcon';
+import CheckIcon from '../../../components/CheckIcon';
+import CloseIcon from '../../../components/CloseIcon';
+import NoFeeIcon from '../../../components/NoFeeIcon';
+import DollarIcon from '../../../components/DollarIcon';
 
 interface Community {
   id: string;
@@ -393,7 +399,7 @@ export default function ManageCommunityPage() {
       setMessageType('success');
       setTimeout(() => {
         router.push(`/communities/${communityId}/feed`);
-      }, 1500);
+      }, 3000);
     } catch (err: any) {
       console.error('Community update error:', err);
       setMessage(err.message || 'שגיאה בעדכון הקהילה');
@@ -479,6 +485,7 @@ export default function ManageCommunityPage() {
   // Rules handlers
   const handleAddRule = () => {
     if (!newRule.trim()) return;
+    if (rules.length >= 3) return; // Limit to 3 rules max
     setRules(prev => [...prev, newRule.trim()]);
     setNewRule('');
   };
@@ -678,19 +685,21 @@ export default function ManageCommunityPage() {
                       />
                       <label
                         htmlFor="logo-upload"
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 text-gray-600 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition text-sm w-44"
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 text-gray-600 border border-gray-300 cursor-pointer hover:bg-gray-50 transition text-base font-normal w-44"
+                        style={{ borderRadius: '8px' }}
                       >
-                        <span>העלאת תמונת לוגו</span>
-                        <FaImage className="w-5 h-5" />
+                        <PlusIcon className="w-4 h-4 ml-1" />
+                        <span className="ml-1">העלאת תמונת לוגו</span>
                       </label>
                       {logo && (
                         <button
                           type="button"
                           onClick={() => setLogo(null)}
-                          className="flex items-center justify-center gap-2 px-4 py-2.5 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition text-sm w-44"
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 border border-[#B3261E] text-[#B3261E] hover:bg-red-50 transition text-base font-normal w-44"
+                          style={{ borderRadius: '8px' }}
                         >
+                          <TrashIcon className="w-4 h-4" />
                           <span>מחק תמונה נוכחית</span>
-                          <FaTrash className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -744,37 +753,66 @@ export default function ManageCommunityPage() {
                   </div>
                   <div className="flex-1">
                   {images.length > 0 && (
-                    <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="grid grid-cols-3 gap-2 mb-4">
                       {images.map((img, index) => (
-                        <div key={index} className="relative group">
+                        <div key={index} className="relative group" style={{ width: '220px', height: '124px' }}>
                           <img
                             src={img.preview}
                             alt={`תמונה ${index + 1}`}
-                            className={`w-full h-24 object-cover rounded-lg border-2 ${
-                              img.isPrimary ? 'border-yellow-400' : 'border-gray-200'
+                            className={`w-full h-full object-cover ${
+                              img.isPrimary ? '' : 'border border-gray-200'
                             }`}
+                            style={img.isPrimary ? { border: '3px solid #A7EA7B', borderRadius: '12px' } : { borderRadius: '12px' }}
                           />
                           {img.isPrimary && (
-                            <div className="absolute top-1 right-1 bg-yellow-400 text-white text-xs px-1.5 py-0.5 rounded">
+                            <div 
+                              className="absolute flex items-center justify-center font-medium"
+                              style={{ 
+                                top: '10px', 
+                                right: '10px', 
+                                backgroundColor: '#A7EA7B', 
+                                color: '#163300',
+                                fontSize: '12px',
+                                width: '47px',
+                                height: '20px',
+                                borderRadius: '9999px'
+                              }}
+                            >
                               ראשית
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setPrimaryImage(index)}
-                              className={`p-1.5 rounded-full ${
-                                img.isPrimary ? 'bg-yellow-400 text-white' : 'bg-white text-gray-600 hover:text-yellow-500'
-                              }`}
-                            >
-                              <FaStar className="w-4 h-4" />
-                            </button>
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" style={{ borderRadius: '12px', gap: '8px' }}>
+                            {!img.isPrimary && (
+                              <button
+                                type="button"
+                                onClick={() => setPrimaryImage(index)}
+                                className="font-medium flex items-center justify-center"
+                                style={{ 
+                                  backgroundColor: '#91DCED', 
+                                  color: '#003233',
+                                  fontSize: '12px',
+                                  width: '77px',
+                                  height: '20px',
+                                  borderRadius: '9999px'
+                                }}
+                              >
+                                הפוך לראשית
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => removeImageAtIndex(index)}
-                              className="p-1.5 bg-white text-red-500 rounded-full hover:bg-red-50"
+                              className="font-medium flex items-center justify-center"
+                              style={{ 
+                                backgroundColor: '#B3261E', 
+                                color: 'white',
+                                fontSize: '12px',
+                                width: '67px',
+                                height: '20px',
+                                borderRadius: '9999px'
+                              }}
                             >
-                              <FaTimes className="w-4 h-4" />
+                              הסר תמונה
                             </button>
                           </div>
                         </div>
@@ -804,17 +842,16 @@ export default function ManageCommunityPage() {
                 {isOwner && (
                   <div className="flex items-center justify-between gap-6 pt-6 border-t border-gray-200">
                     <div className="flex-1">
-                      <h3 className="font-medium text-base" style={{ color: '#B3261E' }}>מחיקת קהילה</h3>
+                      <h3 className="font-medium text-base text-black">מחיקת קהילה</h3>
                       <p className="text-sm text-gray-500 mt-1">מחיקת הקהילה תמחוק את כל התוכן, החברים, התגובות והתשלומים שנעשו בתוכה. הפעולה הזאת לא הפיכה</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowDeleteConfirm(true)}
-                      className="py-3 px-6 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-base hover:opacity-90 flex-shrink-0"
+                      className="py-3 px-6 text-white rounded-lg font-medium transition-colors text-base hover:opacity-90 flex-shrink-0"
                       style={{ backgroundColor: '#B3261E' }}
                     >
                       <span>מחק קהילה לצמיתות</span>
-                      <FaTrash className="w-4 h-4" />
                     </button>
                   </div>
                 )}
@@ -827,7 +864,7 @@ export default function ManageCommunityPage() {
                 <div className="flex gap-8">
                   <div className="w-48 flex-shrink-0 text-right">
                     <h3 className="font-medium text-gray-900 text-base">כללי הקהילה</h3>
-                    <p className="text-sm text-gray-500 mt-1">הכללים שחברי הקהילה יראו בעמוד הפיד</p>
+                    <p className="text-sm text-gray-500 mt-1">הכללים שחברי הקהילה יראו בעמוד הפיד. אפשר להוסיף עד 3 כללים</p>
                   </div>
                   <div className="flex-1 space-y-3">
                   {rules.length > 0 && (
@@ -837,14 +874,14 @@ export default function ManageCommunityPage() {
                           key={index} 
                           className="flex items-center gap-2 bg-gray-50 rounded-lg p-3 border border-gray-200"
                         >
-                          <span className="text-green-500">✓</span>
+                          <CheckIcon className="w-4 h-4 flex-shrink-0 text-[#A7EA7B]" />
                           <span className="flex-1 text-sm text-gray-700">{rule}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveRule(index)}
-                            className="p-1 text-gray-400 hover:text-red-500 transition"
+                            className="p-1 text-gray-400 hover:text-[#B3261E] transition"
                           >
-                            <FaTimes className="w-4 h-4" />
+                            <CloseIcon className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ))}
@@ -854,7 +891,7 @@ export default function ManageCommunityPage() {
                     <input
                       type="text"
                       placeholder="כלל חדש..."
-                      className="flex-1 p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
+                      className="flex-1 p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
                       value={newRule}
                       onChange={(e) => setNewRule(e.target.value)}
                       onKeyDown={(e) => {
@@ -863,18 +900,19 @@ export default function ManageCommunityPage() {
                           handleAddRule();
                         }
                       }}
+                      disabled={rules.length >= 3}
                     />
                     <button
                       type="button"
                       onClick={handleAddRule}
-                      disabled={!newRule.trim()}
+                      disabled={!newRule.trim() || rules.length >= 3}
                       className="px-5 py-3.5 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition flex items-center gap-2 text-base"
                     >
                       <FaPlus className="w-3 h-3" />
                       הוסף
                     </button>
                   </div>
-                </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -888,45 +926,81 @@ export default function ManageCommunityPage() {
                     <p className="text-sm text-gray-500 mt-1">קישורים לפרופילים החברתיים שלכם</p>
                   </div>
                   <div className="flex-1 space-y-3">
-                    <div className="relative">
-                      <FaYoutube className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500" />
-                      <input
-                        type="url"
-                        placeholder="קישור לערוץ YouTube"
-                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
-                        value={youtubeUrl}
-                        onChange={(e) => setYoutubeUrl(e.target.value)}
-                      />
+                    <div>
+                      <div className="relative">
+                        <FaYoutube className="absolute right-4 top-1/2 -translate-y-1/2 text-red-500" />
+                        <input
+                          type="url"
+                          placeholder="קישור לערוץ YouTube"
+                          className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
+                            youtubeUrl && !youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be')
+                              ? 'border-[#B3261E] focus:border-[#B3261E]'
+                              : 'border-gray-300 focus:border-black'
+                          }`}
+                          value={youtubeUrl}
+                          onChange={(e) => setYoutubeUrl(e.target.value)}
+                        />
+                      </div>
+                      {youtubeUrl && !youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be') && (
+                        <p className="text-xs text-[#B3261E] mt-1 text-right">הקישור צריך להיות מ-YouTube</p>
+                      )}
                     </div>
-                    <div className="relative">
-                      <FaWhatsapp className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
-                      <input
-                        type="url"
-                        placeholder="קישור לקבוצת WhatsApp"
-                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
-                        value={whatsappUrl}
-                        onChange={(e) => setWhatsappUrl(e.target.value)}
-                      />
+                    <div>
+                      <div className="relative">
+                        <FaWhatsapp className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500" />
+                        <input
+                          type="url"
+                          placeholder="קישור לקבוצת WhatsApp"
+                          className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
+                            whatsappUrl && !whatsappUrl.includes('whatsapp.com') && !whatsappUrl.includes('wa.me') && !whatsappUrl.includes('chat.whatsapp')
+                              ? 'border-[#B3261E] focus:border-[#B3261E]'
+                              : 'border-gray-300 focus:border-black'
+                          }`}
+                          value={whatsappUrl}
+                          onChange={(e) => setWhatsappUrl(e.target.value)}
+                        />
+                      </div>
+                      {whatsappUrl && !whatsappUrl.includes('whatsapp.com') && !whatsappUrl.includes('wa.me') && !whatsappUrl.includes('chat.whatsapp') && (
+                        <p className="text-xs text-[#B3261E] mt-1 text-right">הקישור צריך להיות מ-WhatsApp</p>
+                      )}
                     </div>
-                    <div className="relative">
-                      <FaFacebook className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600" />
-                      <input
-                        type="url"
-                        placeholder="קישור לעמוד Facebook"
-                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
-                        value={facebookUrl}
-                        onChange={(e) => setFacebookUrl(e.target.value)}
-                      />
+                    <div>
+                      <div className="relative">
+                        <FaFacebook className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-600" />
+                        <input
+                          type="url"
+                          placeholder="קישור לעמוד Facebook"
+                          className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
+                            facebookUrl && !facebookUrl.includes('facebook.com') && !facebookUrl.includes('fb.com') && !facebookUrl.includes('fb.me')
+                              ? 'border-[#B3261E] focus:border-[#B3261E]'
+                              : 'border-gray-300 focus:border-black'
+                          }`}
+                          value={facebookUrl}
+                          onChange={(e) => setFacebookUrl(e.target.value)}
+                        />
+                      </div>
+                      {facebookUrl && !facebookUrl.includes('facebook.com') && !facebookUrl.includes('fb.com') && !facebookUrl.includes('fb.me') && (
+                        <p className="text-xs text-[#B3261E] mt-1 text-right">הקישור צריך להיות מ-Facebook</p>
+                      )}
                     </div>
-                    <div className="relative">
-                      <FaInstagram className="absolute right-3 top-1/2 -translate-y-1/2 text-pink-500" />
-                      <input
-                        type="url"
-                        placeholder="קישור לעמוד Instagram"
-                        className="w-full p-3.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
-                        value={instagramUrl}
-                        onChange={(e) => setInstagramUrl(e.target.value)}
-                      />
+                    <div>
+                      <div className="relative">
+                        <FaInstagram className="absolute right-4 top-1/2 -translate-y-1/2 text-pink-500" />
+                        <input
+                          type="url"
+                          placeholder="קישור לעמוד Instagram"
+                          className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
+                            instagramUrl && !instagramUrl.includes('instagram.com') && !instagramUrl.includes('instagr.am')
+                              ? 'border-[#B3261E] focus:border-[#B3261E]'
+                              : 'border-gray-300 focus:border-black'
+                          }`}
+                          value={instagramUrl}
+                          onChange={(e) => setInstagramUrl(e.target.value)}
+                        />
+                      </div>
+                      {instagramUrl && !instagramUrl.includes('instagram.com') && !instagramUrl.includes('instagr.am') && (
+                        <p className="text-xs text-[#B3261E] mt-1 text-right">הקישור צריך להיות מ-Instagram</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -949,21 +1023,18 @@ export default function ManageCommunityPage() {
                           setIsPaidCommunity(false);
                           setPrice(0);
                         }}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium border transition ${
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-base font-normal border transition ${
                           !isPaidCommunity
-                            ? 'border-gray-300 bg-white text-gray-900'
-                            : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                            ? 'border-black bg-white text-gray-600'
+                            : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
                         }`}
                       >
-                        <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M15 9.5c-.5-1-1.5-1.5-3-1.5-2 0-3 1-3 2.5s1 2 3 2.5c2 .5 3 1.5 3 2.5s-1 2.5-3 2.5c-1.5 0-2.5-.5-3-1.5" />
-                          <path d="M12 5.5v2M12 16.5v2" />
-                          <path d="M4 4l16 16" strokeLinecap="round" />
-                        </svg>
+                        <NoFeeIcon className="w-4.5 h-4.5 text-gray-600" />
                         <span>חינם להצטרפות</span>
-                        <div className="w-4 h-4 rounded-full border-2 border-gray-900 flex items-center justify-center bg-white">
-                          {!isPaidCommunity && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#91DCED' }} />}
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center bg-white ${
+                          !isPaidCommunity ? 'border-black' : 'border-gray-300'
+                        }`}>
+                          {!isPaidCommunity && <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#91DCED' }} />}
                         </div>
                       </button>
                       <button
@@ -972,16 +1043,18 @@ export default function ManageCommunityPage() {
                           setIsPaidCommunity(true);
                           if (price < 10) setPrice(10);
                         }}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium border transition ${
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-base font-normal border transition ${
                           isPaidCommunity
-                            ? 'border-gray-300 bg-white text-gray-900'
-                            : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                            ? 'border-black bg-white text-gray-600'
+                            : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
                         }`}
                       >
-                        <span className="text-gray-400 font-medium">$</span>
+                        <DollarIcon className="w-4.5 h-4.5 text-gray-600" />
                         <span>מנוי בתשלום</span>
-                        <div className="w-4 h-4 rounded-full border-2 border-gray-900 flex items-center justify-center bg-white">
-                          {isPaidCommunity && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#A7EA7B' }} />}
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center bg-white ${
+                          isPaidCommunity ? 'border-black' : 'border-gray-300'
+                        }`}>
+                          {isPaidCommunity && <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#A7EA7B' }} />}
                         </div>
                       </button>
                     </div>
@@ -1062,11 +1135,11 @@ export default function ManageCommunityPage() {
             {/* Message Display */}
             {message && (
               <div
-                className={`mt-6 p-4 rounded-lg ${
-                  messageType === 'error'
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-green-100 text-green-700'
-                }`}
+                className="mt-6 p-4 rounded-lg"
+                style={messageType === 'error' 
+                  ? { backgroundColor: '#FEE2E2', color: '#B91C1C' }
+                  : { backgroundColor: '#A7EA7B', color: 'black', fontSize: '16px', fontWeight: 400 }
+                }
               >
                 {message}
               </div>

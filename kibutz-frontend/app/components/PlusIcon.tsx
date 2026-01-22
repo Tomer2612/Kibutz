@@ -1,6 +1,4 @@
-'use client';
-
-export default function CheckIcon({ className = "w-4 h-4" }: { className?: string }) {
+export default function PlusIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
     <svg 
       viewBox="0 0 16 16" 
@@ -9,7 +7,14 @@ export default function CheckIcon({ className = "w-4 h-4" }: { className?: strin
       className={className}
     >
       <path 
-        d="M13.3346 4L6.0013 11.3333L2.66797 8" 
+        d="M3.33333 8H12.6667" 
+        stroke="currentColor" 
+        strokeWidth="1.5" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+      />
+      <path 
+        d="M8 3.33333V12.6667" 
         stroke="currentColor" 
         strokeWidth="1.5" 
         strokeLinecap="round" 

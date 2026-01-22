@@ -397,6 +397,7 @@ function EventsPageContent() {
   const { userEmail, userId, userProfile, isOwnerOrManager } = useCommunityContext();
   
   const [events, setEvents] = useState<Event[]>([]);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [community, setCommunity] = useState<Community | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
@@ -453,7 +454,7 @@ function EventsPageContent() {
           setCommunity(communityData);
         }
 
-        // Fetch events for current month
+        // Fetch events for current month (calendar view)
         await fetchEventsForMonth(currentDate.getFullYear(), currentDate.getMonth() + 1);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -462,7 +463,28 @@ function EventsPageContent() {
       }
     };
 
+    const fetchAllEventsInitial = async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/events/community/${communityId}`,
+          token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+        );
+        if (res.ok) {
+          const data = await res.json();
+          // Sort by date - upcoming/newest events first (descending)
+          const sortedEvents = data.sort((a: Event, b: Event) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          setAllEvents(sortedEvents);
+        }
+      } catch (err) {
+        console.error('Error fetching all events:', err);
+      }
+    };
+
     fetchData();
+    fetchAllEventsInitial();
   }, [communityId]);
 
   const fetchEventsForMonth = async (year: number, month: number) => {
@@ -478,6 +500,26 @@ function EventsPageContent() {
       }
     } catch (err) {
       console.error('Error fetching events:', err);
+    }
+  };
+
+  const fetchAllEvents = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/events/community/${communityId}`,
+        token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+      );
+      if (res.ok) {
+        const data = await res.json();
+        // Sort by date - upcoming/newest events first (descending)
+        const sortedEvents = data.sort((a: Event, b: Event) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        setAllEvents(sortedEvents);
+      }
+    } catch (err) {
+      console.error('Error fetching all events:', err);
     }
   };
 
@@ -519,6 +561,7 @@ function EventsPageContent() {
       });
       if (res.ok) {
         setEvents(prev => prev.filter(e => e.id !== eventId));
+        setAllEvents(prev => prev.filter(e => e.id !== eventId));
         setDeleteEventId(null);
       } else {
         alert('שגיאה במחיקת האירוע');
@@ -569,6 +612,11 @@ function EventsPageContent() {
         ? { ...e, userRsvp: isRemoving ? null : status, rsvpCounts: optimisticCounts } 
         : e
     ));
+    setAllEvents(prev => prev.map(e => 
+      e.id === eventId 
+        ? { ...e, userRsvp: isRemoving ? null : status, rsvpCounts: optimisticCounts } 
+        : e
+    ));
 
     try {
       // If clicking same status, remove RSVP
@@ -583,9 +631,15 @@ function EventsPageContent() {
           setEvents(prev => prev.map(e => 
             e.id === eventId ? { ...e, rsvpCounts: data.rsvpCounts } : e
           ));
+          setAllEvents(prev => prev.map(e => 
+            e.id === eventId ? { ...e, rsvpCounts: data.rsvpCounts } : e
+          ));
         } else {
           // Revert on error
           setEvents(prev => prev.map(e => 
+            e.id === eventId ? { ...e, userRsvp: previousRsvp, rsvpCounts: previousCounts } : e
+          ));
+          setAllEvents(prev => prev.map(e => 
             e.id === eventId ? { ...e, userRsvp: previousRsvp, rsvpCounts: previousCounts } : e
           ));
         }
@@ -604,9 +658,15 @@ function EventsPageContent() {
           setEvents(prev => prev.map(e => 
             e.id === eventId ? { ...e, rsvpCounts: data.rsvpCounts } : e
           ));
+          setAllEvents(prev => prev.map(e => 
+            e.id === eventId ? { ...e, rsvpCounts: data.rsvpCounts } : e
+          ));
         } else {
           // Revert on error
           setEvents(prev => prev.map(e => 
+            e.id === eventId ? { ...e, userRsvp: previousRsvp, rsvpCounts: previousCounts } : e
+          ));
+          setAllEvents(prev => prev.map(e => 
             e.id === eventId ? { ...e, userRsvp: previousRsvp, rsvpCounts: previousCounts } : e
           ));
         }
@@ -615,6 +675,9 @@ function EventsPageContent() {
       console.error('RSVP error:', err);
       // Revert on error
       setEvents(prev => prev.map(e => 
+        e.id === eventId ? { ...e, userRsvp: previousRsvp, rsvpCounts: previousCounts } : e
+      ));
+      setAllEvents(prev => prev.map(e => 
         e.id === eventId ? { ...e, userRsvp: previousRsvp, rsvpCounts: previousCounts } : e
       ));
     }
@@ -804,12 +867,12 @@ function EventsPageContent() {
                     {showMonthDropdown && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowMonthDropdown(false)} />
-                        <div className="absolute top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 max-h-64 overflow-y-auto">
+                        <div className="absolute top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-50 max-h-64 overflow-y-auto">
                           {HEBREW_MONTHS.map((month, index) => (
                             <button
                               key={month}
                               onClick={() => handleMonthSelect(index)}
-                              className={`w-full text-right px-4 py-2 text-sm hover:bg-gray-100 ${
+                              className={`w-full text-right px-3 py-2 text-sm hover:bg-gray-100 rounded-md ${
                                 currentDate.getMonth() === index ? 'bg-gray-100 font-medium' : ''
                               }`}
                             >
@@ -836,12 +899,12 @@ function EventsPageContent() {
                     {showYearDropdown && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowYearDropdown(false)} />
-                        <div className="absolute top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 max-h-64 overflow-y-auto">
+                        <div className="absolute top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-50 max-h-64 overflow-y-auto">
                           {Array.from({ length: 11 }, (_, i) => 2020 + i).map((year) => (
                             <button
                               key={year}
                               onClick={() => handleYearSelect(year)}
-                              className={`w-full text-right px-4 py-2 text-sm hover:bg-gray-100 ${
+                              className={`w-full text-right px-3 py-2 text-sm hover:bg-gray-100 rounded-md ${
                                 currentDate.getFullYear() === year ? 'bg-gray-100 font-medium' : ''
                               }`}
                             >
@@ -969,15 +1032,12 @@ function EventsPageContent() {
             </div>
           </div>
         ) : (
-          /* List View - same grid layout as calendar */
+          /* List View - shows all events */
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-6">
             {/* Events List */}
             <div className="space-y-4">
-              {events.filter(e => e.userRsvp !== 'NOT_GOING').length > 0 ? (
-                events
-                  .filter(e => e.userRsvp !== 'NOT_GOING')
-                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                  .map(event => (
+              {allEvents.length > 0 ? (
+                allEvents.map(event => (
                     <EventCard 
                       key={event.id} 
                       event={event} 
@@ -991,7 +1051,7 @@ function EventsPageContent() {
               ) : (
                 <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
                   <FaCalendarAlt className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">אין אירועים בחודש זה</p>
+                  <p className="text-gray-500">אין אירועים קרובים</p>
                 </div>
               )}
             </div>
@@ -1049,6 +1109,7 @@ function EventsPageContent() {
             setShowAddModal(false);
             setAddEventDate(null);
             fetchEventsForMonth(currentDate.getFullYear(), currentDate.getMonth() + 1);
+            fetchAllEvents();
           }}
         />
       )}
@@ -1066,6 +1127,7 @@ function EventsPageContent() {
             setShowEditModal(false);
             setEditingEvent(null);
             fetchEventsForMonth(currentDate.getFullYear(), currentDate.getMonth() + 1);
+            fetchAllEvents();
           }}
         />
       )}
@@ -1183,13 +1245,13 @@ function EventCard({
           {showMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-              <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[120px]" dir="rtl">
+              <div className="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-50 min-w-[120px]" dir="rtl">
                 <button
                   onClick={() => {
                     setShowMenu(false);
                     onEdit?.(event);
                   }}
-                  className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 justify-end"
+                  className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 justify-end rounded-md"
                 >
                   ערוך
                   <FaPen className="w-3 h-3" />
@@ -1199,7 +1261,7 @@ function EventCard({
                     setShowMenu(false);
                     onDelete?.(event.id);
                   }}
-                  className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 justify-end"
+                  className="w-full text-right px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 justify-end rounded-md"
                 >
                   מחק
                   <FaTrashAlt className="w-3 h-3" />

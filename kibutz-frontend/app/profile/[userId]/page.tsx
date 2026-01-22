@@ -531,7 +531,7 @@ export default function MemberProfilePage() {
                       .map((community) => (
                       <div
                         key={community.id}
-                        className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
+                        className="rounded-2xl overflow-hidden hover:shadow-lg bg-white transition-all duration-200"
                       >
                         <Link href={`/communities/${community.slug || community.id}/feed`}>
                           {community.image ? (
@@ -675,7 +675,7 @@ export default function MemberProfilePage() {
                       .map((community) => (
                       <div
                         key={community.id}
-                        className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl bg-white transition-all duration-200"
+                        className="rounded-2xl overflow-hidden hover:shadow-lg bg-white transition-all duration-200"
                       >
                         <Link href={`/communities/${community.slug || community.id}/feed`}>
                           {community.image ? (

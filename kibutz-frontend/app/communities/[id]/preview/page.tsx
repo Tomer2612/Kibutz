@@ -455,13 +455,13 @@ function CommunityPreviewContent() {
                     className="fixed inset-0 z-40"
                     onClick={() => setProfileMenuOpen(false)}
                   />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50" dir="rtl">
+                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 p-1.5 z-50" dir="rtl">
                     <button
                       onClick={() => {
                         setProfileMenuOpen(false);
                         if (userId) router.push(`/profile/${userId}`);
                       }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                      className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2 rounded-lg"
                     >
                       <FaUser className="w-4 h-4" />
                       הפרופיל שלי
@@ -471,12 +471,12 @@ function CommunityPreviewContent() {
                         setProfileMenuOpen(false);
                         router.push('/settings');
                       }}
-                      className="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
+                      className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2 rounded-lg"
                     >
                       <FaCog className="w-4 h-4" />
                       הגדרות
                     </button>
-                    <div className="border-t border-gray-100 my-1"></div>
+                    <div className="border-t border-gray-100 my-1 mx-1"></div>
                     <button
                       onClick={() => {
                         localStorage.removeItem('token');
@@ -484,7 +484,7 @@ function CommunityPreviewContent() {
                         router.push('/');
                         location.reload();
                       }}
-                      className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
+                      className="w-full text-right px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2 rounded-lg"
                     >
                       <FaSignOutAlt className="w-4 h-4" />
                       התנתקות

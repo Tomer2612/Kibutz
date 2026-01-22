@@ -234,7 +234,6 @@ function CommunityFeedContent() {
   const [topMembers, setTopMembers] = useState<TopMember[]>([]);
   const [onlineCount, setOnlineCount] = useState<number>(0);
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
-  const [rulesExpanded, setRulesExpanded] = useState(false);
   
   // Lightbox state
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
@@ -2859,23 +2858,13 @@ function CommunityFeedContent() {
               {community?.rules && community.rules.length > 0 ? (
                 <>
                   <ul className="space-y-2">
-                    {(rulesExpanded ? community.rules : community.rules.slice(0, 3)).map((rule, index) => (
+                    {community.rules.slice(0, 3).map((rule, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <CheckIcon className="w-3.5 h-3.5 flex-shrink-0 text-gray-800 mt-0.5" />
+                        <CheckIcon className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#A7EA7B' }} />
                         <span style={{ fontSize: '14px' }} className="text-gray-600 font-normal">{rule}</span>
                       </li>
                     ))}
                   </ul>
-                  {community.rules.length > 3 && (
-                    <button
-                      type="button"
-                      onClick={() => setRulesExpanded(!rulesExpanded)}
-                      style={{ fontSize: '14px' }}
-                      className="mt-3 text-gray-500 hover:text-gray-700 transition font-normal"
-                    >
-                      {rulesExpanded ? 'הצג פחות' : `הצג עוד ${community.rules.length - 3} כללים`}
-                    </button>
-                  )}
                 </>
               ) : (
                 <p style={{ fontSize: '14px' }} className="text-gray-800 text-center py-2">

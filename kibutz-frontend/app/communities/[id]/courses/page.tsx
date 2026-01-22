@@ -298,7 +298,7 @@ export default function CoursesPage() {
               .map(course => (
               <div
                 key={course.id}
-                className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition group border border-gray-100 relative w-full max-w-[432px]"
+                className="bg-white rounded-2xl overflow-hidden hover:shadow-lg transition group border border-gray-100 relative w-full max-w-[432px]"
                 style={{ height: '510px' }}
               >
                 {/* Edit/Delete Buttons for Owner/Author */}
@@ -331,7 +331,7 @@ export default function CoursesPage() {
                         src={course.image.startsWith('http') ? course.image : `${process.env.NEXT_PUBLIC_API_URL}${course.image}`}
                         alt={course.title}
                         fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">

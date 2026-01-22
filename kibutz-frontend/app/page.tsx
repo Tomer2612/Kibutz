@@ -366,7 +366,7 @@ export default function Home() {
               <div
                 key={community.id}
                 onClick={() => handleCardClick(community)}
-                className="rounded-2xl overflow-hidden bg-white transition-all duration-200 cursor-pointer flex flex-col"
+                className="rounded-2xl overflow-hidden bg-white transition-all duration-200 cursor-pointer flex flex-col hover:shadow-lg"
               >
                 {community.image ? (
                   <img
