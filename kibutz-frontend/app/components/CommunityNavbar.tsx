@@ -134,7 +134,7 @@ export default function CommunityNavbar({
                 <path 
                   d="M1 1L5 5L9 1" 
                   stroke="#374151" 
-                  strokeWidth="1.5" 
+                  strokeWidth="2" 
                   strokeLinecap="round" 
                   strokeLinejoin="round"
                 />
@@ -208,14 +208,14 @@ export default function CommunityNavbar({
             <path 
               d="M15.7538 15.7472L12.4988 12.4922" 
               stroke="currentColor" 
-              strokeWidth="1.5" 
+              strokeWidth="2" 
               strokeLinecap="round" 
               strokeLinejoin="round"
             />
             <path 
               d="M8.25024 14.25C11.564 14.25 14.2502 11.5637 14.2502 8.25C14.2502 4.93629 11.564 2.25 8.25024 2.25C4.93654 2.25 2.25024 4.93629 2.25024 8.25C2.25024 11.5637 4.93654 14.25 8.25024 14.25Z" 
               stroke="currentColor" 
-              strokeWidth="1.5" 
+              strokeWidth="2" 
               strokeLinecap="round" 
               strokeLinejoin="round"
             />

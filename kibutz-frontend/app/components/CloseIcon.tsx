@@ -11,14 +11,14 @@ export default function CloseIcon({ className = "w-4 h-4" }: { className?: strin
       <path 
         d="M12 4L4 12" 
         stroke="currentColor" 
-        strokeWidth="1.5" 
+        strokeWidth="2" 
         strokeLinecap="round" 
         strokeLinejoin="round"
       />
       <path 
         d="M4 4L12 12" 
         stroke="currentColor" 
-        strokeWidth="1.5" 
+        strokeWidth="2" 
         strokeLinecap="round" 
         strokeLinejoin="round"
       />

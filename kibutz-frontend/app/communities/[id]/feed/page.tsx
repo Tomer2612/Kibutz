@@ -1872,9 +1872,9 @@ function CommunityFeedContent() {
                   <div className="flex items-center gap-2">
                     <label className="cursor-pointer w-9 h-9 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition">
                       <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-                        <path d="M15.8333 2.5H4.16667C3.24619 2.5 2.5 3.24619 2.5 4.16667V15.8333C2.5 16.7538 3.24619 17.5 4.16667 17.5H15.8333C16.7538 17.5 17.5 16.7538 17.5 15.8333V4.16667C17.5 3.24619 16.7538 2.5 15.8333 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M7.49992 9.16536C8.42039 9.16536 9.16659 8.41917 9.16659 7.4987C9.16659 6.57822 8.42039 5.83203 7.49992 5.83203C6.57944 5.83203 5.83325 6.57822 5.83325 7.4987C5.83325 8.41917 6.57944 9.16536 7.49992 9.16536Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M17.5 12.5011L14.9283 9.92938C14.6158 9.61693 14.1919 9.44141 13.75 9.44141C13.3081 9.44141 12.8842 9.61693 12.5717 9.92938L5 17.501" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M15.8333 2.5H4.16667C3.24619 2.5 2.5 3.24619 2.5 4.16667V15.8333C2.5 16.7538 3.24619 17.5 4.16667 17.5H15.8333C16.7538 17.5 17.5 16.7538 17.5 15.8333V4.16667C17.5 3.24619 16.7538 2.5 15.8333 2.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M7.49992 9.16536C8.42039 9.16536 9.16659 8.41917 9.16659 7.4987C9.16659 6.57822 8.42039 5.83203 7.49992 5.83203C6.57944 5.83203 5.83325 6.57822 5.83325 7.4987C5.83325 8.41917 6.57944 9.16536 7.49992 9.16536Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M17.5 12.5011L14.9283 9.92938C14.6158 9.61693 14.1919 9.44141 13.75 9.44141C13.3081 9.44141 12.8842 9.61693 12.5717 9.92938L5 17.501" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                       <input
                         type="file"
@@ -1888,8 +1888,8 @@ function CommunityFeedContent() {
                     
                     <label className="cursor-pointer w-9 h-9 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition">
                       <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-                        <path d="M4.99992 18.3346C4.55789 18.3346 4.13397 18.159 3.82141 17.8465C3.50885 17.5339 3.33325 17.11 3.33325 16.668V3.33464C3.33325 2.89261 3.50885 2.46869 3.82141 2.15613C4.13397 1.84357 4.55789 1.66797 4.99992 1.66797H11.6666C11.9304 1.66754 12.1917 1.71931 12.4354 1.82028C12.6791 1.92125 12.9004 2.06944 13.0866 2.2563L16.0766 5.2463C16.264 5.43256 16.4126 5.65409 16.5138 5.89811C16.6151 6.14212 16.667 6.40378 16.6666 6.66797V16.668C16.6666 17.11 16.491 17.5339 16.1784 17.8465C15.8659 18.159 15.4419 18.3346 14.9999 18.3346H4.99992Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M11.6667 1.66797V5.83464C11.6667 6.05565 11.7545 6.26761 11.9108 6.42389C12.0671 6.58017 12.2791 6.66797 12.5001 6.66797H16.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M4.99992 18.3346C4.55789 18.3346 4.13397 18.159 3.82141 17.8465C3.50885 17.5339 3.33325 17.11 3.33325 16.668V3.33464C3.33325 2.89261 3.50885 2.46869 3.82141 2.15613C4.13397 1.84357 4.55789 1.66797 4.99992 1.66797H11.6666C11.9304 1.66754 12.1917 1.71931 12.4354 1.82028C12.6791 1.92125 12.9004 2.06944 13.0866 2.2563L16.0766 5.2463C16.264 5.43256 16.4126 5.65409 16.5138 5.89811C16.6151 6.14212 16.667 6.40378 16.6666 6.66797V16.668C16.6666 17.11 16.491 17.5339 16.1784 17.8465C15.8659 18.159 15.4419 18.3346 14.9999 18.3346H4.99992Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M11.6667 1.66797V5.83464C11.6667 6.05565 11.7545 6.26761 11.9108 6.42389C12.0671 6.58017 12.2791 6.66797 12.5001 6.66797H16.6667" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                       <input
                         type="file"
@@ -1907,8 +1907,8 @@ function CommunityFeedContent() {
                       className={`flex items-center justify-center transition ${showLinkInput ? 'bg-gray-200 text-gray-800' : 'text-gray-600 hover:bg-gray-200'}`}
                     >
                       <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-                        <path d="M8.33325 10.834C8.69113 11.3124 9.14772 11.7083 9.67204 11.9947C10.1964 12.2812 10.7762 12.4516 11.3721 12.4942C11.9681 12.5369 12.5662 12.4509 13.126 12.2421C13.6858 12.0333 14.1942 11.7065 14.6166 11.284L17.1166 8.78396C17.8756 7.99811 18.2956 6.9456 18.2861 5.85312C18.2766 4.76063 17.8384 3.71558 17.0658 2.94304C16.2933 2.17051 15.2482 1.73231 14.1558 1.72281C13.0633 1.71332 12.0108 2.1333 11.2249 2.89229L9.79159 4.31729" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M11.6666 9.16702C11.3087 8.68858 10.8521 8.2927 10.3278 8.00623C9.80347 7.71977 9.22367 7.54942 8.62771 7.50674C8.03176 7.46406 7.4336 7.55004 6.8738 7.75887C6.314 7.96769 5.80566 8.29446 5.38326 8.71702L2.88326 11.217C2.12426 12.0029 1.70429 13.0554 1.71378 14.1479C1.72327 15.2403 2.16148 16.2854 2.93401 17.0579C3.70655 17.8305 4.7516 18.2687 5.84408 18.2782C6.93657 18.2877 7.98908 17.8677 8.77492 17.1087L10.1999 15.6837" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M8.33325 10.834C8.69113 11.3124 9.14772 11.7083 9.67204 11.9947C10.1964 12.2812 10.7762 12.4516 11.3721 12.4942C11.9681 12.5369 12.5662 12.4509 13.126 12.2421C13.6858 12.0333 14.1942 11.7065 14.6166 11.284L17.1166 8.78396C17.8756 7.99811 18.2956 6.9456 18.2861 5.85312C18.2766 4.76063 17.8384 3.71558 17.0658 2.94304C16.2933 2.17051 15.2482 1.73231 14.1558 1.72281C13.0633 1.71332 12.0108 2.1333 11.2249 2.89229L9.79159 4.31729" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M11.6666 9.16702C11.3087 8.68858 10.8521 8.2927 10.3278 8.00623C9.80347 7.71977 9.22367 7.54942 8.62771 7.50674C8.03176 7.46406 7.4336 7.55004 6.8738 7.75887C6.314 7.96769 5.80566 8.29446 5.38326 8.71702L2.88326 11.217C2.12426 12.0029 1.70429 13.0554 1.71378 14.1479C1.72327 15.2403 2.16148 16.2854 2.93401 17.0579C3.70655 17.8305 4.7516 18.2687 5.84408 18.2782C6.93657 18.2877 7.98908 17.8677 8.77492 17.1087L10.1999 15.6837" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </button>
                     
@@ -1919,9 +1919,9 @@ function CommunityFeedContent() {
                     >
                       <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
                         <rect x="3" y="18" width="14" height="1.25" rx="0.5" fill="currentColor"/>
-                        <rect x="4.75" y="5" width="3" height="12" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                        <rect x="8.5" y="1" width="3" height="16" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                        <rect x="12.25" y="8" width="3" height="9" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                        <rect x="4.75" y="5" width="3" height="12" rx="0.75" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        <rect x="8.5" y="1" width="3" height="16" rx="0.75" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        <rect x="12.25" y="8" width="3" height="9" rx="0.75" stroke="currentColor" strokeWidth="2" fill="none"/>
                       </svg>
                     </button>
                   </div>
@@ -2273,9 +2273,9 @@ function CommunityFeedContent() {
                                 <div className="flex items-center gap-2 flex-1">
                                   <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500 flex-shrink-0">
                                     <rect x="3" y="18" width="14" height="1.25" rx="0.5" fill="currentColor"/>
-                                    <rect x="4.75" y="5" width="3" height="12" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                                    <rect x="8.5" y="1" width="3" height="16" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                                    <rect x="12.25" y="8" width="3" height="9" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                                    <rect x="4.75" y="5" width="3" height="12" rx="0.75" stroke="currentColor" strokeWidth="2" fill="none"/>
+                                    <rect x="8.5" y="1" width="3" height="16" rx="0.75" stroke="currentColor" strokeWidth="2" fill="none"/>
+                                    <rect x="12.25" y="8" width="3" height="9" rx="0.75" stroke="currentColor" strokeWidth="2" fill="none"/>
                                   </svg>
                                   {pollToRemove ? (
                                     <span className="flex-1 px-3 py-2 text-right font-medium text-gray-400 line-through">{editPollQuestion}</span>
@@ -2368,9 +2368,9 @@ function CommunityFeedContent() {
                             <div className="flex items-center gap-2 mb-3">
                               <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500">
                                 <rect x="3" y="18" width="14" height="1.25" rx="0.5" fill="currentColor"/>
-                                <rect x="4.75" y="5" width="3" height="12" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                                <rect x="8.5" y="1" width="3" height="16" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                                <rect x="12.25" y="8" width="3" height="9" rx="0.75" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                                <rect x="4.75" y="5" width="3" height="12" rx="0.75" stroke="currentColor" strokeWidth="2" fill="none"/>
+                                <rect x="8.5" y="1" width="3" height="16" rx="0.75" stroke="currentColor" strokeWidth="2" fill="none"/>
+                                <rect x="12.25" y="8" width="3" height="9" rx="0.75" stroke="currentColor" strokeWidth="2" fill="none"/>
                               </svg>
                               <h4 className="font-medium text-gray-900">{post.poll.question}</h4>
                             </div>
@@ -2468,8 +2468,8 @@ function CommunityFeedContent() {
                                   <div className="p-3">
                                     <div className="flex items-start gap-2">
                                       <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0">
-                                        <path d="M8.33325 10.834C8.69113 11.3124 9.14772 11.7083 9.67204 11.9947C10.1964 12.2812 10.7762 12.4516 11.3721 12.4942C11.9681 12.5369 12.5662 12.4509 13.126 12.2421C13.6858 12.0333 14.1942 11.7065 14.6166 11.284L17.1166 8.78396C17.8756 7.99811 18.2956 6.9456 18.2861 5.85312C18.2766 4.76063 17.8384 3.71558 17.0658 2.94304C16.2933 2.17051 15.2482 1.73231 14.1558 1.72281C13.0633 1.71332 12.0108 2.1333 11.2249 2.89229L9.79159 4.31729" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M11.6666 9.16702C11.3087 8.68858 10.8521 8.2927 10.3278 8.00623C9.80347 7.71977 9.22367 7.54942 8.62771 7.50674C8.03176 7.46406 7.4336 7.55004 6.8738 7.75887C6.314 7.96769 5.80566 8.29446 5.38326 8.71702L2.88326 11.217C2.12426 12.0029 1.70429 13.0554 1.71378 14.1479C1.72327 15.2403 2.16148 16.2854 2.93401 17.0579C3.70655 17.8305 4.7516 18.2687 5.84408 18.2782C6.93657 18.2877 7.98908 17.8677 8.77492 17.1087L10.1999 15.6837" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M8.33325 10.834C8.69113 11.3124 9.14772 11.7083 9.67204 11.9947C10.1964 12.2812 10.7762 12.4516 11.3721 12.4942C11.9681 12.5369 12.5662 12.4509 13.126 12.2421C13.6858 12.0333 14.1942 11.7065 14.6166 11.284L17.1166 8.78396C17.8756 7.99811 18.2956 6.9456 18.2861 5.85312C18.2766 4.76063 17.8384 3.71558 17.0658 2.94304C16.2933 2.17051 15.2482 1.73231 14.1558 1.72281C13.0633 1.71332 12.0108 2.1333 11.2249 2.89229L9.79159 4.31729" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M11.6666 9.16702C11.3087 8.68858 10.8521 8.2927 10.3278 8.00623C9.80347 7.71977 9.22367 7.54942 8.62771 7.50674C8.03176 7.46406 7.4336 7.55004 6.8738 7.75887C6.314 7.96769 5.80566 8.29446 5.38326 8.71702L2.88326 11.217C2.12426 12.0029 1.70429 13.0554 1.71378 14.1479C1.72327 15.2403 2.16148 16.2854 2.93401 17.0579C3.70655 17.8305 4.7516 18.2687 5.84408 18.2782C6.93657 18.2877 7.98908 17.8677 8.77492 17.1087L10.1999 15.6837" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                       </svg>
                                       <div className="flex-1 min-w-0">
                                         {preview?.title ? (

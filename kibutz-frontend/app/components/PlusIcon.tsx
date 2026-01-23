@@ -9,14 +9,14 @@ export default function PlusIcon({ className = "w-4 h-4" }: { className?: string
       <path 
         d="M3.33333 8H12.6667" 
         stroke="currentColor" 
-        strokeWidth="1.5" 
+        strokeWidth="2" 
         strokeLinecap="round" 
         strokeLinejoin="round"
       />
       <path 
         d="M8 3.33333V12.6667" 
         stroke="currentColor" 
-        strokeWidth="1.5" 
+        strokeWidth="2" 
         strokeLinecap="round" 
         strokeLinejoin="round"
       />

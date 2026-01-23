@@ -86,7 +86,7 @@ export default function FormSelect({
           <path 
             d="M1 1L5 5L9 1" 
             stroke="currentColor" 
-            strokeWidth="1.5" 
+            strokeWidth="2" 
             strokeLinecap="round" 
             strokeLinejoin="round"
           />
