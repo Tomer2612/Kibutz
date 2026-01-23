@@ -83,7 +83,7 @@ export default function FilterDropdown({
           <path 
             d="M1 1L5 5L9 1" 
             stroke="currentColor" 
-            strokeWidth="2" 
+            strokeWidth="1.5" 
             strokeLinecap="round" 
             strokeLinejoin="round"
           />

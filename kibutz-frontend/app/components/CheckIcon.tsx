@@ -11,7 +11,7 @@ export default function CheckIcon({ className = "w-4 h-4" }: { className?: strin
       <path 
         d="M13.3346 4L6.0013 11.3333L2.66797 8" 
         stroke="currentColor" 
-        strokeWidth="2" 
+        strokeWidth="1.5" 
         strokeLinecap="round" 
         strokeLinejoin="round"
       />
