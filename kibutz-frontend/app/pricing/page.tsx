@@ -220,7 +220,7 @@ function PricingContent() {
                 type="text"
                 value={communityName}
                 onChange={(e) => setCommunityName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
               />
             </div>
             
@@ -302,7 +302,7 @@ function PricingContent() {
                   type="text"
                   value={cardNumber}
                   onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
+                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
                     getCardNumberError() ? 'border-red-400' : 'border-gray-300'
                   }`}
                 />
@@ -335,7 +335,7 @@ function PricingContent() {
                         setCardExpiry(rawValue);
                       }
                     }}
-                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
+                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
                       getExpiryError() ? 'border-red-400' : 'border-gray-300'
                     }`}
                   />
@@ -352,7 +352,7 @@ function PricingContent() {
                     type="text"
                     value={cardCvv}
                     onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
+                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
                       getCvvError() ? 'border-red-400' : 'border-gray-300'
                     }`}
                   />
@@ -392,7 +392,7 @@ function PricingContent() {
         <h1 className="font-semibold text-black mb-4" style={{ fontSize: '3.5rem' }}>
           מחיר אחד. בלי הפתעות.
         </h1>
-        <p className="text-gray-600 text-lg mb-8">
+        <p className="text-gray-600 text-lg">
           פותחים קהילה ומתחילים בלי לחשוב על עלויות נוספות.
         </p>
       </section>
@@ -460,8 +460,7 @@ function PricingContent() {
             >
               <button
                 onClick={() => toggleFaq(index)}
-                className="w-full flex items-center justify-between text-right"
-                style={{ padding: '1rem 2rem' }}
+                className="w-full flex items-center justify-between text-right px-4 py-4"
               >
                 <span className="font-medium text-black">{faq.question}</span>
                 <span className={`transform transition-transform duration-300 ${openFaqs.has(index) ? 'rotate-45' : ''}`}>
@@ -473,7 +472,7 @@ function PricingContent() {
               </button>
               <div className={`grid transition-all duration-300 ease-in-out ${openFaqs.has(index) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                 <div className="overflow-hidden">
-                  <div className="pb-4 text-black text-right" style={{ padding: '0 2rem 1rem 2rem' }}>
+                  <div className="pb-4 text-black text-right px-4">
                     {faq.answer}
                   </div>
                 </div>

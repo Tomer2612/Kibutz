@@ -26,7 +26,8 @@ export default function UserProfileDropdown({
     localStorage.removeItem('userProfileCache');
     // Clear auth cookie
     document.cookie = 'auth-token=; path=/; max-age=0';
-    router.replace('/');
+    // Force full page reload to clear all state
+    window.location.href = '/';
   };
 
   return (

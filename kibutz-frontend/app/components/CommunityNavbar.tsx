@@ -99,7 +99,7 @@ export default function CommunityNavbar({
   const showCommunityDropdown = userCommunities.length > 1;
 
   return (
-    <header dir="rtl" className="relative flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200 h-[72px]">
+    <header dir="rtl" className="sticky top-0 z-40 flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200 h-[72px]">
       {/* Right side: Kibutz Logo + Community name - FIXED WIDTH */}
       <div className="flex items-center gap-6 w-[280px] flex-shrink-0">
         <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
@@ -183,12 +183,12 @@ export default function CommunityNavbar({
           <Link
             key={link.key}
             href={link.href}
-            className={`text-sm transition px-3 py-1.5 whitespace-nowrap text-black ${
+            className={`transition px-3 py-1.5 whitespace-nowrap text-black ${
               activePage === link.key
                 ? 'bg-gray-200 font-normal'
                 : 'hover:bg-gray-50 font-normal'
             }`}
-            style={{ borderRadius: '10px' }}
+            style={{ borderRadius: '10px', fontSize: '16px' }}
           >
             {link.label}
           </Link>
@@ -225,7 +225,7 @@ export default function CommunityNavbar({
             value={searchQuery}
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="חיפוש"
-            className="pl-4 pr-10 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:border-gray-400 w-32"
+            className="pl-4 pr-10 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent w-32"
             tabIndex={showSearch ? 0 : -1}
           />
         </div>

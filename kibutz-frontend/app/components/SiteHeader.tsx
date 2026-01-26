@@ -86,24 +86,24 @@ export default function SiteHeader({ hideNavLinks = false }: SiteHeaderProps) {
 
         {/* Auth Section */}
         {!mounted ? (
-          <div className="w-10 h-10" /> /* Placeholder during SSR */
+          <div className="w-10 h-10" />
         ) : !userEmail ? (
-          <>
+          <div className="flex items-center gap-4">
             <Link
               href="/login"
-              className="border border-black text-black px-6 py-2.5 rounded-lg font-semibold hover:bg-black hover:text-white transition"
+              className="border-2 border-black text-black px-6 py-2 rounded-lg font-semibold hover:bg-black hover:text-white transition"
             >
               כניסה
             </Link>
             <Link
               href="/signup"
-              className="bg-black text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition"
+              className="bg-black text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition"
             >
               הרשמה
             </Link>
-          </>
+          </div>
         ) : (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-5">
             <MessagesBell />
             <NotificationBell />
             <UserProfileDropdown

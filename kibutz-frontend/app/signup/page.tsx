@@ -316,7 +316,7 @@ function SignupContent() {
           
           {/* Right Side - Marketing Content */}
           <div className="hidden lg:block w-full lg:w-1/2 text-right">
-            <h2 className="text-[32px] font-bold text-gray-900 mb-8 leading-tight">
+            <h2 className="text-[32px] text-gray-900 mb-8 leading-tight" style={{ fontWeight: 700 }}>
               פותחים קהילה ומתחילים להרוויח
             </h2>
             
@@ -357,7 +357,7 @@ function SignupContent() {
                 onSubmit={handleSignup}
                 className="w-full flex flex-col gap-4 text-right"
               >
-                <h1 className="text-[21px] font-semibold text-center mb-2">מתחילים כאן</h1>
+                <h1 className="text-[21px] text-center mb-2" style={{ fontWeight: 600 }}>מתחילים כאן</h1>
 
                 {/* Google Button */}
                 <a
@@ -483,6 +483,7 @@ function SignupContent() {
                 />
                 <button
                   type="button"
+                  tabIndex={-1}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute left-3 top-3.5 text-gray-400 hover:text-gray-600"
                 >
@@ -581,6 +582,7 @@ function SignupContent() {
                 />
                 <button
                   type="button"
+                  tabIndex={-1}
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute left-3 top-3.5 text-gray-400 hover:text-gray-600"
                 >

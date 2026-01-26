@@ -549,7 +549,7 @@ function ChatWindow({
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="הקלד הודעה..."
-          className="flex-1 border border-gray-300 rounded-full px-3 py-1.5 text-sm focus:outline-none focus:border-[#3B82F6]"
+          className="flex-1 border border-gray-300 rounded-full px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
           disabled={sending}
         />
         <button

@@ -1456,8 +1456,8 @@ function CommunityFeedContent() {
       {/* Main 3-column layout - only show if member */}
       {isMember !== false && (
       <section className="flex">
-        {/* LEFT: Fixed sidebar attached to left edge */}
-        <div className="hidden lg:block w-[240px] flex-shrink-0 bg-white border-l border-gray-200 min-h-[calc(100vh-64px)]" style={{ padding: '16px' }}>
+        {/* LEFT: Fixed sidebar - full height */}
+        <div className="hidden lg:block w-[240px] flex-shrink-0 bg-white border-l border-gray-200 fixed top-[72px] right-0 bottom-0" style={{ padding: '16px' }}>
           {/* Recent Posts button */}
           <div className="mb-2">
             <button 
@@ -1526,6 +1526,9 @@ function CommunityFeedContent() {
             </div>
           )}
         </div>
+
+        {/* Spacer for fixed sidebar */}
+        <div className="hidden lg:block w-[240px] flex-shrink-0"></div>
 
         {/* Main content area */}
         <div className="flex-1 py-6 px-4 lg:px-6">
@@ -1753,7 +1756,7 @@ function CommunityFeedContent() {
                         onChange={(e) => setNewLinkInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLink(); } }}
                         placeholder="https://example.com"
-                        className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:border-black placeholder:text-[#7A7A83] placeholder:font-normal ${newLinkInput.trim() ? 'text-black' : 'text-[#7A7A83]'}`}
+                        className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent placeholder:text-[#7A7A83] placeholder:font-normal ${newLinkInput.trim() ? 'text-black' : 'text-[#7A7A83]'}`}
                         style={{ fontSize: '14px', fontWeight: 400 }}
                         disabled={addingLink}
                       />
@@ -1823,7 +1826,7 @@ function CommunityFeedContent() {
                       onChange={(e) => setPollQuestion(e.target.value)}
                       placeholder="שאלת הסקר..."
                       style={{ fontSize: '14px' }}
-                      className="w-full bg-gray-200 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:border-gray-400 mb-4 text-right placeholder-gray-500"
+                      className="w-full bg-gray-200 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:ring-1 focus:ring-gray-400 mb-4 text-right placeholder-gray-500"
                     />
 
                     {/* Poll Options */}
@@ -1840,7 +1843,7 @@ function CommunityFeedContent() {
                             }}
                             placeholder={`אפשרות ${index + 1}`}
                             style={{ fontSize: '14px' }}
-                            className="flex-1 bg-white border border-gray-300 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:border-gray-400 text-right placeholder-gray-500"
+                            className="flex-1 bg-white border border-gray-300 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-right placeholder-gray-500"
                           />
                           {pollOptions.length > 2 && (
                             <button
@@ -2160,12 +2163,12 @@ function CommunityFeedContent() {
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
                           placeholder="כותרת (אופציונלי)"
-                          className="w-full p-3 mb-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:border-black"
+                          className="w-full p-3 mb-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                         />
                         <textarea
                           value={editContent}
                           onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full p-3 border border-gray-200 rounded-lg text-right resize-none focus:outline-none focus:border-black"
+                          className="w-full p-3 border border-gray-200 rounded-lg text-right resize-none focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                           rows={4}
                         />
                         
@@ -2284,7 +2287,7 @@ function CommunityFeedContent() {
                                       type="text"
                                       value={editPollQuestion}
                                       onChange={(e) => setEditPollQuestion(e.target.value)}
-                                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:border-black bg-white"
+                                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white"
                                       placeholder="שאלת הסקר"
                                     />
                                   )}
@@ -2320,7 +2323,7 @@ function CommunityFeedContent() {
                                             newOptions[index] = { ...newOptions[index], text: e.target.value };
                                             setEditPollOptions(newOptions);
                                           }}
-                                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:border-black bg-white"
+                                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white"
                                           placeholder={`אפשרות ${index + 1}`}
                                         />
                                         <span className="text-xs text-gray-400 w-16 text-left">
@@ -2625,7 +2628,7 @@ function CommunityFeedContent() {
                                               setEditCommentContent('');
                                             }
                                           }}
-                                          className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-right text-sm focus:outline-none focus:border-black bg-white"
+                                          className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white"
                                           autoFocus
                                         />
                                         <button
@@ -2732,7 +2735,7 @@ function CommunityFeedContent() {
                                 }}
                                 disabled={submittingComment[post.id]}
                                 placeholder="כתבו תגובה..."
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:border-black disabled:opacity-50"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent disabled:opacity-50"
                               />
                               {/* Mention Autocomplete Dropdown */}
                               {showMentionDropdown === post.id && mentionSuggestions.length > 0 && (
@@ -2843,7 +2846,7 @@ function CommunityFeedContent() {
                   <div className="w-3 h-3 bg-[#A7EA7B] rounded-full"></div>
                   <div className="w-3 h-3 bg-[#A7EA7B] rounded-full absolute top-0 left-0 animate-ping opacity-75"></div>
                 </div>
-                <span style={{ fontSize: '14px' }} className="text-gray-600 font-normal">
+                <span style={{ fontSize: '16px' }} className="text-gray-600 font-normal">
                   <span className="font-semibold text-black">{onlineCount}</span> חברים מחוברים עכשיו
                 </span>
               </div>
@@ -2853,7 +2856,7 @@ function CommunityFeedContent() {
             <div className="bg-gray-100 border border-gray-400 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <ClipboardCheckIcon className="w-4 h-4 flex-shrink-0 text-black" />
-                <h3 style={{ fontSize: '16px' }} className="font-semibold text-black">כללי הקהילה</h3>
+                <h3 style={{ fontSize: '18px' }} className="font-semibold text-black">כללי הקהילה</h3>
               </div>
               {community?.rules && community.rules.length > 0 ? (
                 <>
@@ -2861,13 +2864,13 @@ function CommunityFeedContent() {
                     {community.rules.slice(0, 3).map((rule, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <CheckIcon className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-800" />
-                        <span style={{ fontSize: '14px' }} className="text-gray-600 font-normal">{rule}</span>
+                        <span style={{ fontSize: '16px' }} className="text-gray-600 font-normal">{rule}</span>
                       </li>
                     ))}
                   </ul>
                 </>
               ) : (
-                <p style={{ fontSize: '14px' }} className="text-gray-800 text-center py-2">
+                <p style={{ fontSize: '16px' }} className="text-gray-800 text-center py-2">
                   {(isOwner || isManager) ? (
                     <Link href={`/communities/${communityId}/manage`} className="text-gray-800 underline hover:opacity-80">
                       הוסיפו כללים לקהילה
@@ -2883,7 +2886,7 @@ function CommunityFeedContent() {
             <div className="bg-gray-100 border border-gray-400 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <CalendarIcon className="w-4 h-4 flex-shrink-0 text-black" />
-                <h3 style={{ fontSize: '16px' }} className="font-semibold text-black">אירועים קרובים</h3>
+                <h3 style={{ fontSize: '18px' }} className="font-semibold text-black">אירועים קרובים</h3>
               </div>
               {upcomingEvents.length > 0 ? (
                 <div style={{ gap: '12px' }} className="flex flex-col">
@@ -2903,9 +2906,9 @@ function CommunityFeedContent() {
                         href={`/communities/${communityId}/events`}
                         className="block hover:opacity-80 transition"
                       >
-                        <p style={{ fontSize: '14px' }} className="font-semibold text-black truncate">{event.title}</p>
+                        <p style={{ fontSize: '16px' }} className="font-semibold text-black truncate">{event.title}</p>
                         <div className="flex items-center justify-between mt-1">
-                          <p style={{ fontSize: '14px' }} className="text-gray-500 font-normal whitespace-nowrap">
+                          <p style={{ fontSize: '16px' }} className="text-gray-500 font-normal whitespace-nowrap">
                             {dayNum} ב{monthName} · {dayName} · {formatEventTime}
                           </p>
                           {event._count?.rsvps ? (
@@ -2920,7 +2923,7 @@ function CommunityFeedContent() {
                   })}
                 </div>
               ) : (
-                <p style={{ fontSize: '14px' }} className="text-gray-800 text-center py-2">אין אירועים קרובים</p>
+                <p style={{ fontSize: '16px' }} className="text-gray-800 text-center py-2">אין אירועים קרובים</p>
               )}
             </div>
 
@@ -2928,7 +2931,7 @@ function CommunityFeedContent() {
             <div className="bg-gray-100 border border-gray-400 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <AwardIcon className="w-4 h-4 flex-shrink-0 text-black" />
-                <h3 style={{ fontSize: '16px' }} className="font-semibold text-black">חברי קהילה מובילים</h3>
+                <h3 style={{ fontSize: '18px' }} className="font-semibold text-black">חברי קהילה מובילים</h3>
               </div>
               <div className="space-y-4">
                 {topMembers.length > 0 ? (
@@ -2966,11 +2969,11 @@ function CommunityFeedContent() {
                           )}
                         </Link>
                         {/* Name */}
-                        <Link href={`/profile/${member.userId}`} style={{ fontSize: '14px' }} className="font-normal text-black flex-1 hover:underline">
+                        <Link href={`/profile/${member.userId}`} style={{ fontSize: '16px' }} className="font-normal text-black flex-1 hover:underline">
                           {member.name}
                         </Link>
                         {/* Score */}
-                        <span style={{ fontSize: '14px' }} className="text-black font-bold">{member.points}</span>
+                        <span style={{ fontSize: '16px' }} className="text-black font-bold">{member.points}</span>
                       </div>
                     );
                   })

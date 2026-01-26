@@ -153,7 +153,7 @@ function LoginContent() {
               onSubmit={handleLogin}
               className="w-full flex flex-col gap-4 text-right"
             >
-                <h1 className="text-[21px] font-semibold text-center mb-2">התחברות</h1>
+                <h1 className="text-[21px] text-center mb-2" style={{ fontWeight: 600 }}>התחברות</h1>
 
                 {/* Google Button */}
                 <a
@@ -219,6 +219,7 @@ function LoginContent() {
                     />
                     <button
                       type="button"
+                      tabIndex={-1}
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute left-3 top-3.5 text-gray-400 hover:text-gray-600"
                     >

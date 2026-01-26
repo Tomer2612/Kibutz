@@ -248,7 +248,8 @@ export default function CoursesPage() {
           {isOwnerOrManager && (
             <Link
               href={`/communities/${communityId}/courses/create`}
-              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium text-base"
+              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium"
+              style={{ fontSize: '18px' }}
             >
               יצירת קורס חדש
             </Link>

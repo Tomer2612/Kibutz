@@ -1162,7 +1162,7 @@ export default function CreateCoursePage() {
                                                     newQuiz[qIndex] = { ...newQuiz[qIndex], question: e.target.value };
                                                     updateLesson(chapterIndex, lessonIndex, { quiz: newQuiz });
                                                   }}
-                                                  className={`w-full p-2 border rounded focus:border-gray-400 text-sm ${
+                                                  className={`w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-sm ${
                                                     errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_question`]
                                                       ? 'border-red-500'
                                                       : 'border-gray-200'
@@ -1307,7 +1307,7 @@ export default function CreateCoursePage() {
                                                         };
                                                         updateLesson(chapterIndex, lessonIndex, { quiz: newQuiz });
                                                       }}
-                                                      className={`flex-1 p-1.5 border rounded text-sm focus:border-gray-400 ${
+                                                      className={`flex-1 p-1.5 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent ${
                                                         errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_opt_${oIndex}`]
                                                           ? 'border-red-500'
                                                           : 'border-gray-200'

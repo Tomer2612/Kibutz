@@ -77,8 +77,7 @@ export default function SupportPage() {
             >
               <button
                 onClick={() => toggleFaq(index)}
-                className="w-full flex items-center justify-between text-right"
-                style={{ padding: '1rem 2rem' }}
+                className="w-full flex items-center justify-between text-right px-4 py-4"
               >
                 <span className="font-medium text-black">{faq.question}</span>
                 <span className={`transform transition-transform duration-300 ${openFaqs.has(index) ? 'rotate-45' : ''}`}>
@@ -90,7 +89,7 @@ export default function SupportPage() {
               </button>
               <div className={`grid transition-all duration-300 ease-in-out ${openFaqs.has(index) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                 <div className="overflow-hidden">
-                  <div className="pb-4 text-black text-right" style={{ padding: '0 2rem 1rem 2rem' }}>
+                  <div className="pb-4 text-black text-right px-4">
                     {faq.answer}
                   </div>
                 </div>

@@ -560,11 +560,12 @@ export default function SettingsPage() {
                 setActiveTab('profile');
                 setMessage('');
               }}
-              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
                 activeTab === 'profile'
                   ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
+              style={{ fontSize: '16px' }}
             >
               פרטי פרופיל
             </button>
@@ -574,11 +575,12 @@ export default function SettingsPage() {
                 setActiveTab('security');
                 setMessage('');
               }}
-              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
                 activeTab === 'security'
                   ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
+              style={{ fontSize: '16px' }}
             >
               אבטחה
             </button>
@@ -588,11 +590,12 @@ export default function SettingsPage() {
                 setActiveTab('notifications');
                 setMessage('');
               }}
-              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
                 activeTab === 'notifications'
                   ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
+              style={{ fontSize: '16px' }}
             >
               התראות
             </button>
@@ -602,11 +605,12 @@ export default function SettingsPage() {
                 setActiveTab('payment');
                 setMessage('');
               }}
-              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
                 activeTab === 'payment'
                   ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
+              style={{ fontSize: '16px' }}
             >
               תשלומים
             </button>
@@ -682,7 +686,7 @@ export default function SettingsPage() {
                       onChange={(e) => setName(e.target.value.slice(0, 50))}
                       placeholder="שם מלא"
                       maxLength={50}
-                      className="w-full pr-11 pl-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-black text-sm"
+                      className="w-full pr-11 pl-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
                     />
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">{name.length}/50</span>
                   </div>
@@ -701,7 +705,7 @@ export default function SettingsPage() {
                       placeholder="ספרו על עצמכם"
                       maxLength={300}
                       rows={5}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-black text-sm resize-none overflow-y-auto text-right"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm resize-none overflow-y-auto text-right"
                     />
                     <span className="absolute left-3 bottom-3 text-xs text-gray-400">{bio.length}/300</span>
                   </div>
@@ -776,7 +780,7 @@ export default function SettingsPage() {
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         disabled={userProfile?.isGoogleAccount}
-                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-gray-400 text-sm disabled:bg-gray-100"
+                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-sm disabled:bg-gray-100"
                       />
                       <button
                         type="button"
@@ -800,7 +804,7 @@ export default function SettingsPage() {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         disabled={userProfile?.isGoogleAccount}
-                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-gray-400 text-sm disabled:bg-gray-100"
+                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-sm disabled:bg-gray-100"
                       />
                       <button
                         type="button"
@@ -824,7 +828,7 @@ export default function SettingsPage() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         disabled={userProfile?.isGoogleAccount}
-                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-gray-400 text-sm disabled:bg-gray-100"
+                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-sm disabled:bg-gray-100"
                       />
                       <button
                         type="button"
@@ -1185,7 +1189,7 @@ export default function SettingsPage() {
                           type="text"
                           value={cardNumber}
                           onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
                             getCardNumberError() ? 'border-red-400' : 'border-gray-300'
                           }`}
                         />
@@ -1218,7 +1222,7 @@ export default function SettingsPage() {
                                 setCardExpiry(rawValue);
                               }
                             }}
-                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
+                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
                               getExpiryError() ? 'border-red-400' : 'border-gray-300'
                             }`}
                           />
@@ -1235,7 +1239,7 @@ export default function SettingsPage() {
                             type="text"
                             value={cardCvv}
                             onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
+                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
                               getCvvError() ? 'border-red-400' : 'border-gray-300'
                             }`}
                           />

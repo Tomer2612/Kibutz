@@ -545,33 +545,36 @@ export default function ManageCommunityPage() {
             <button
               type="button"
               onClick={() => setActiveTab('general')}
-              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
                 activeTab === 'general'
                   ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
+              style={{ fontSize: '16px' }}
             >
               כללי
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('rules')}
-              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
                 activeTab === 'rules'
                   ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
+              style={{ fontSize: '16px' }}
             >
               כללי הקהילה
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('social')}
-              className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
                 activeTab === 'social'
                   ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
+              style={{ fontSize: '16px' }}
             >
               רשתות חברתיות
             </button>
@@ -579,11 +582,12 @@ export default function ManageCommunityPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('payments')}
-                className={`w-full text-right px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+                className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
                   activeTab === 'payments'
                     ? 'bg-gray-100 text-gray-900'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
+                style={{ fontSize: '16px' }}
               >
                 תשלומים
               </button>
@@ -608,7 +612,7 @@ export default function ManageCommunityPage() {
                     <input
                       type="text"
                       placeholder="לדוגמא: יוגה למומחים"
-                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base"
+                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-right text-base"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
@@ -732,7 +736,7 @@ export default function ManageCommunityPage() {
                   <div className="flex-1">
                     <textarea
                       placeholder="תארו את הקהילה, מה הם הנושאים המרכזיים, מי יכול להצטרף..."
-                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right resize-none text-base"
+                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-right resize-none text-base"
                       rows={6}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -891,7 +895,7 @@ export default function ManageCommunityPage() {
                     <input
                       type="text"
                       placeholder="כלל חדש..."
-                      className="flex-1 p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-right text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="flex-1 p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-right text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
                       value={newRule}
                       onChange={(e) => setNewRule(e.target.value)}
                       onKeyDown={(e) => {
@@ -934,8 +938,8 @@ export default function ManageCommunityPage() {
                           placeholder="קישור לערוץ YouTube"
                           className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
                             youtubeUrl && !youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be')
-                              ? 'border-[#B3261E] focus:border-[#B3261E]'
-                              : 'border-gray-300 focus:border-black'
+                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-transparent'
+                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent'
                           }`}
                           value={youtubeUrl}
                           onChange={(e) => setYoutubeUrl(e.target.value)}
@@ -953,8 +957,8 @@ export default function ManageCommunityPage() {
                           placeholder="קישור לקבוצת WhatsApp"
                           className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
                             whatsappUrl && !whatsappUrl.includes('whatsapp.com') && !whatsappUrl.includes('wa.me') && !whatsappUrl.includes('chat.whatsapp')
-                              ? 'border-[#B3261E] focus:border-[#B3261E]'
-                              : 'border-gray-300 focus:border-black'
+                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-transparent'
+                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent'
                           }`}
                           value={whatsappUrl}
                           onChange={(e) => setWhatsappUrl(e.target.value)}
@@ -972,8 +976,8 @@ export default function ManageCommunityPage() {
                           placeholder="קישור לעמוד Facebook"
                           className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
                             facebookUrl && !facebookUrl.includes('facebook.com') && !facebookUrl.includes('fb.com') && !facebookUrl.includes('fb.me')
-                              ? 'border-[#B3261E] focus:border-[#B3261E]'
-                              : 'border-gray-300 focus:border-black'
+                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-transparent'
+                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent'
                           }`}
                           value={facebookUrl}
                           onChange={(e) => setFacebookUrl(e.target.value)}
@@ -991,8 +995,8 @@ export default function ManageCommunityPage() {
                           placeholder="קישור לעמוד Instagram"
                           className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
                             instagramUrl && !instagramUrl.includes('instagram.com') && !instagramUrl.includes('instagr.am')
-                              ? 'border-[#B3261E] focus:border-[#B3261E]'
-                              : 'border-gray-300 focus:border-black'
+                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-transparent'
+                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent'
                           }`}
                           value={instagramUrl}
                           onChange={(e) => setInstagramUrl(e.target.value)}
@@ -1196,7 +1200,7 @@ export default function ManageCommunityPage() {
                         type="text"
                         value={newCardNumber}
                         onChange={(e) => setNewCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                        className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
+                        className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
                           newCardNumber.length > 0 && newCardNumber.length < 16 ? 'border-red-400' : 'border-gray-300'
                         }`}
                       />
@@ -1229,7 +1233,7 @@ export default function ManageCommunityPage() {
                               setNewCardExpiry(rawValue);
                             }
                           }}
-                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
                             newCardExpiry.length > 0 && (newCardExpiry.length < 5 || (() => {
                               if (newCardExpiry.length !== 5) return false;
                               const [m, y] = newCardExpiry.split('/').map(Number);
@@ -1262,7 +1266,7 @@ export default function ManageCommunityPage() {
                           type="text"
                           value={newCardCvv}
                           onChange={(e) => setNewCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:border-black ${
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
                             newCardCvv.length > 0 && newCardCvv.length < 3 ? 'border-red-400' : 'border-gray-300'
                           }`}
                         />

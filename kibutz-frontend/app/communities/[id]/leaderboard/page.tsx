@@ -167,7 +167,7 @@ export default function LeaderboardPage() {
                       )}
                     </p>
                     {member.rank <= 3 && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-gray-500" style={{ fontSize: '14px' }}>
                         {member.rank === 1 && '🏆 מקום ראשון'}
                         {member.rank === 2 && '🥈 מקום שני'}
                         {member.rank === 3 && '🥉 מקום שלישי'}
@@ -181,7 +181,7 @@ export default function LeaderboardPage() {
                       <span className="font-bold text-gray-900 text-lg">{member.points}</span>
                       <FaStar className="w-4 h-4 text-yellow-500" />
                     </div>
-                    <p className="text-xs text-gray-500">נקודות</p>
+                    <p className="text-gray-500" style={{ fontSize: '14px' }}>נקודות</p>
                   </div>
                 </div>
               ))}

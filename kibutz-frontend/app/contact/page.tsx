@@ -149,40 +149,42 @@ export default function ContactPage() {
                   <label className="block font-medium text-black" style={{ fontSize: '18px' }}>שם מלא</label>
                   <span className="text-xs text-gray-400">{contactName.length}/{CHAR_LIMITS.name}</span>
                 </div>
-                <input
-                  type="text"
-                  value={contactName}
-                  onChange={(e) => setContactName(e.target.value.slice(0, CHAR_LIMITS.name))}
-                  required
-                  maxLength={CHAR_LIMITS.name}
-                  className="w-full p-3 border border-gray-300 focus:outline-none focus:border-black text-right"
-                  style={{ borderRadius: '10px' }}
-                />
+                <div className="border border-gray-300 bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all" style={{ borderRadius: '10px' }}>
+                  <input
+                    type="text"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value.slice(0, CHAR_LIMITS.name))}
+                    required
+                    maxLength={CHAR_LIMITS.name}
+                    className="w-full p-3 bg-transparent focus:outline-none text-right"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block font-medium text-black" style={{ fontSize: '18px', marginBottom: '10px' }}>אימייל</label>
-                <input
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => {
-                    setContactEmail(e.target.value);
-                    if (emailTouched) {
-                      if (!e.target.value) {
-                        setEmailError('נא להזין אימייל');
-                      } else if (!isValidEmail(e.target.value)) {
-                        setEmailError('כתובת אימייל לא תקינה');
-                      } else {
-                        setEmailError('');
-                      }
-                    }
-                  }}
-                  onBlur={validateEmail}
-                  required
-                  className={`w-full p-3 border focus:outline-none focus:border-black text-right ${
+                <div className={`border bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all ${
                     emailTouched && emailError ? 'border-red-400' : 'border-gray-300'
-                  }`}
-                  style={{ borderRadius: '10px' }}
-                />
+                  }`} style={{ borderRadius: '10px' }}>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => {
+                      setContactEmail(e.target.value);
+                      if (emailTouched) {
+                        if (!e.target.value) {
+                          setEmailError('נא להזין אימייל');
+                        } else if (!isValidEmail(e.target.value)) {
+                          setEmailError('כתובת אימייל לא תקינה');
+                        } else {
+                          setEmailError('');
+                        }
+                      }
+                    }}
+                    onBlur={validateEmail}
+                    required
+                    className="w-full p-3 bg-transparent focus:outline-none text-right"
+                  />
+                </div>
                 {emailTouched && emailError && (
                   <p className="text-red-500 text-sm mt-1">{emailError}</p>
                 )}
@@ -192,30 +194,33 @@ export default function ContactPage() {
                   <label className="block font-medium text-black" style={{ fontSize: '18px' }}>נושא</label>
                   <span className="text-xs text-gray-400">{contactSubject.length}/{CHAR_LIMITS.subject}</span>
                 </div>
-                <input
-                  type="text"
-                  value={contactSubject}
-                  onChange={(e) => setContactSubject(e.target.value.slice(0, CHAR_LIMITS.subject))}
-                  required
-                  maxLength={CHAR_LIMITS.subject}
-                  className="w-full p-3 border border-gray-300 focus:outline-none focus:border-black text-right"
-                  style={{ borderRadius: '10px' }}
-                />
+                <div className="border border-gray-300 bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all" style={{ borderRadius: '10px' }}>
+                  <input
+                    type="text"
+                    value={contactSubject}
+                    onChange={(e) => setContactSubject(e.target.value.slice(0, CHAR_LIMITS.subject))}
+                    required
+                    maxLength={CHAR_LIMITS.subject}
+                    className="w-full p-3 bg-transparent focus:outline-none text-right"
+                  />
+                </div>
               </div>
               <div>
                 <div className="flex justify-between items-center" style={{ marginBottom: '10px' }}>
                   <label className="block font-medium text-black" style={{ fontSize: '18px' }}>תיאור</label>
                   <span className="text-xs text-gray-400">{contactMessage.length}/{CHAR_LIMITS.message}</span>
                 </div>
-                <textarea
-                  value={contactMessage}
-                  onChange={(e) => setContactMessage(e.target.value.slice(0, CHAR_LIMITS.message))}
-                  required
-                  rows={5}
-                  maxLength={CHAR_LIMITS.message}
-                  className="w-full p-3 border border-gray-300 focus:outline-none focus:border-black text-right resize-none overflow-y-auto"
-                  style={{ borderRadius: '10px', direction: 'ltr' }}
-                />
+                <div className="border border-gray-300 bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all" style={{ borderRadius: '10px' }}>
+                  <textarea
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value.slice(0, CHAR_LIMITS.message))}
+                    required
+                    rows={5}
+                    maxLength={CHAR_LIMITS.message}
+                    className="w-full p-3 bg-transparent focus:outline-none text-right resize-none overflow-y-auto"
+                    style={{ direction: 'ltr' }}
+                  />
+                </div>
               </div>
               <button
                 type="submit"

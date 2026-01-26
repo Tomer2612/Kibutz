@@ -264,7 +264,7 @@ export default function Home() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 justify-center mb-6 w-full max-w-5xl mx-auto px-4">
-        <div className="flex items-center flex-grow max-w-xs rounded-lg border border-[#D0D0D4] bg-white px-4 py-3 focus-within:border-black transition-colors">
+        <div className="flex items-center flex-grow max-w-xs rounded-lg border border-[#D0D0D4] bg-white px-4 py-3 focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all">
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
             fill="none" 
