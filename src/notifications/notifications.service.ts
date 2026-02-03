@@ -121,8 +121,8 @@ export class NotificationsService {
         : [],
     ]);
 
-    const postMap = new Map(posts.map(p => [p.id, p]));
-    const communityMap = new Map(communities.map(c => [c.id, c]));
+    const postMap = new Map(posts.map(p => [p.id, p] as const));
+    const communityMap = new Map(communities.map(c => [c.id, c] as const));
 
     const notifications = rawNotifications.map(n => ({
       ...n,
