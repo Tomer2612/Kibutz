@@ -6,6 +6,12 @@ const ACCESS_PASSWORD = 'Withly2612';
 export async function POST(request: Request) {
   try {
     const { password } = await request.json();
+    
+    console.log('Access gate attempt:', { 
+      received: password, 
+      expected: ACCESS_PASSWORD,
+      match: password === ACCESS_PASSWORD 
+    });
 
     if (password === ACCESS_PASSWORD) {
       const response = NextResponse.json({ success: true });
