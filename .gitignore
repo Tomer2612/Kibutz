@@ -71,11 +71,7 @@ credentials.json
 # -----------------------------
 # Server / Deployment secrets
 # -----------------------------
-server/server-access.txt
-server/*.pem
-server/ssh-config.txt
-server/nginx.conf
-server/deployment-guide.txt
+server/
 
 # -----------------------------
 # OS / Editor junk
