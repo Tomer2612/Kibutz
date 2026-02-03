@@ -15,20 +15,26 @@ export default function AccessGatePage() {
     setError('');
 
     try {
+      console.log('Sending password:', password);
       const res = await fetch('/api/access-gate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
 
+      console.log('Response status:', res.status);
+      
       if (res.ok) {
         // Refresh the page to let middleware check the new cookie
         router.refresh();
         window.location.href = '/';
       } else {
+        const data = await res.json().catch(() => ({}));
+        console.log('Error response:', data);
         setError('קוד גישה שגוי');
       }
-    } catch {
+    } catch (err) {
+      console.error('Fetch error:', err);
       setError('שגיאה בבדיקת הקוד');
     } finally {
       setLoading(false);
