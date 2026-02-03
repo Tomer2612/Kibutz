@@ -1,10 +1,11 @@
-export default function CalendarIcon({ className = "w-4 h-4" }: { className?: string }) {
+export default function CalendarIcon({ className = "w-4 h-4", onClick }: { className?: string; onClick?: () => void }) {
   return (
     <svg 
       viewBox="0 0 16 16" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      onClick={onClick}
     >
       <path 
         d="M5.33398 1.33203V3.9987" 
