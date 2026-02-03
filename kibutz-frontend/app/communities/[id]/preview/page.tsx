@@ -9,6 +9,7 @@ import SiteHeader from '../../../components/SiteHeader';
 import PlayIcon from '../../../components/icons/PlayIcon';
 import CalendarIcon from '../../../components/icons/CalendarIcon';
 import LockIcon from '../../../components/icons/LockIcon';
+import CloseIcon from '../../../components/icons/CloseIcon';
 
 interface Community {
   id: string;
@@ -763,7 +764,7 @@ function CommunityPreviewContent() {
               onClick={() => setShowPaymentModal(false)}
               className="absolute top-4 left-4 text-gray-400 hover:text-gray-600"
             >
-              <FaTimes className="w-5 h-5" />
+              <CloseIcon className="w-5 h-5" />
             </button>
 
             <h2 className="text-2xl font-bold text-center mb-8">מתחילים 7 ימי ניסיון חינם</h2>

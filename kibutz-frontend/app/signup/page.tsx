@@ -11,29 +11,7 @@ import MailIcon from '../components/icons/MailIcon';
 import KeyIcon from '../components/icons/KeyIcon';
 import CheckIcon from '../components/icons/CheckIcon';
 import CloseIcon from '../components/icons/CloseIcon';
-
-// User Icon component
-const UserIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg 
-    viewBox="0 0 16 16" 
-    fill="none" 
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-  >
-    <path 
-      d="M8.00008 8.66667C9.84103 8.66667 11.3334 7.17428 11.3334 5.33333C11.3334 3.49238 9.84103 2 8.00008 2C6.15913 2 4.66675 3.49238 4.66675 5.33333C4.66675 7.17428 6.15913 8.66667 8.00008 8.66667Z" 
-      stroke="currentColor" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    />
-    <path 
-      d="M13.3334 13.9974C13.3334 12.5829 12.7715 11.2264 11.7713 10.2262C10.7711 9.22597 9.41457 8.66406 8.00008 8.66406C6.58559 8.66406 5.22904 9.22597 4.22885 10.2262C3.22865 11.2264 2.66675 12.5829 2.66675 13.9974" 
-      stroke="currentColor" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+import UserIcon from '../components/icons/UserIcon';
 
 // Checkmark Icon component
 const CheckmarkIcon = ({ className = "w-3 h-2.5" }: { className?: string }) => (

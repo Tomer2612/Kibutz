@@ -1,10 +1,13 @@
-export default function UserIcon({ className = "w-4 h-4" }: { className?: string }) {
+import React from 'react';
+
+export default function UserIcon({ className = "w-4 h-4", style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg 
       viewBox="0 0 16 16" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      style={style}
     >
       <path 
         d="M7.99996 8.66667C9.84091 8.66667 11.3333 7.17428 11.3333 5.33333C11.3333 3.49238 9.84091 2 7.99996 2C6.15901 2 4.66663 3.49238 4.66663 5.33333C4.66663 7.17428 6.15901 8.66667 7.99996 8.66667Z" 
