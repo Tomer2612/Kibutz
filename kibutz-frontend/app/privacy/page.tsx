@@ -6,7 +6,7 @@ import SiteFooter from '../components/SiteFooter';
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-gray-100" dir="rtl">
+    <main className="min-h-screen" dir="rtl" style={{ backgroundColor: '#F4F4F5' }}>
       <SiteHeader />
 
       {/* Hero Section */}
@@ -14,19 +14,19 @@ export default function PrivacyPage() {
         <h1 className="font-semibold text-black" style={{ fontSize: '3.5rem' }}>
           מדיניות פרטיות
         </h1>
-        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+        <p className="text-lg max-w-2xl mx-auto" style={{ color: '#52525B' }}>
           כיצד אנו אוספים, משתמשים ומגנים על המידע שלכם
         </p>
-        <p className="text-gray-500 text-sm mt-4" style={{ marginBottom: '2rem' }}>
+        <p className="text-sm mt-4" style={{ marginBottom: '2rem', color: '#7A7A83' }}>
           עודכן לאחרונה: ינואר 2026
         </p>
       </section>
 
       {/* Introduction */}
       <section className="max-w-4xl mx-auto px-4 pb-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-sm p-8" style={{ border: '1px solid #E1E1E2' }}>
           <h2 className="text-2xl font-bold text-black mb-4">מבוא</h2>
-          <div className="space-y-4 text-gray-700 leading-relaxed">
+          <div className="space-y-4 leading-relaxed" style={{ color: '#52525B' }}>
             <p>
               ב-<strong>Kibutz</strong> אנו מחויבים להגן על פרטיות המשתמשים שלנו. מדיניות פרטיות זו מסבירה כיצד אנו אוספים, משתמשים, מאחסנים ומגנים על המידע האישי שלכם בעת השימוש בפלטפורמה שלנו.
             </p>
@@ -39,9 +39,9 @@ export default function PrivacyPage() {
 
       {/* Information We Collect */}
       <section className="max-w-4xl mx-auto px-4 pb-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-sm p-8" style={{ border: '1px solid #E1E1E2' }}>
           <h2 className="text-2xl font-bold text-black mb-6">המידע שאנו אוספים</h2>
-          <div className="space-y-6 text-gray-700 leading-relaxed">
+          <div className="space-y-6 leading-relaxed" style={{ color: '#52525B' }}>
             <div>
               <h3 className="font-semibold text-black mb-2">מידע שאתם מספקים לנו</h3>
               <ul className="list-disc list-inside space-y-2 mr-4">
@@ -65,9 +65,9 @@ export default function PrivacyPage() {
 
       {/* How We Use Information */}
       <section className="max-w-4xl mx-auto px-4 pb-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-sm p-8" style={{ border: '1px solid #E1E1E2' }}>
           <h2 className="text-2xl font-bold text-black mb-6">כיצד אנו משתמשים במידע</h2>
-          <div className="space-y-4 text-gray-700 leading-relaxed">
+          <div className="space-y-4 leading-relaxed" style={{ color: '#52525B' }}>
             <p>אנו משתמשים במידע שנאסף למטרות הבאות:</p>
             <ul className="list-disc list-inside space-y-2 mr-4">
               <li>הפעלת הפלטפורמה ומתן השירותים</li>
@@ -88,9 +88,9 @@ export default function PrivacyPage() {
 
       {/* Information Sharing */}
       <section className="max-w-4xl mx-auto px-4 pb-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-sm p-8" style={{ border: '1px solid #E1E1E2' }}>
           <h2 className="text-2xl font-bold text-black mb-6">שיתוף מידע עם צדדים שלישיים</h2>
-          <div className="space-y-4 text-gray-700 leading-relaxed">
+          <div className="space-y-4 leading-relaxed" style={{ color: '#52525B' }}>
             <p>
               אנו <strong>לא מוכרים</strong> את המידע האישי שלכם לצדדים שלישיים. 
               אנו עשויים לשתף מידע רק במקרים הבאים:
@@ -107,9 +107,9 @@ export default function PrivacyPage() {
 
       {/* Data Security */}
       <section className="max-w-4xl mx-auto px-4 pb-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-sm p-8" style={{ border: '1px solid #E1E1E2' }}>
           <h2 className="text-2xl font-bold text-black mb-6">אבטחת מידע</h2>
-          <div className="space-y-4 text-gray-700 leading-relaxed">
+          <div className="space-y-4 leading-relaxed" style={{ color: '#52525B' }}>
             <p>
               אנו נוקטים באמצעי אבטחה מתקדמים להגנה על המידע שלכם:
             </p>
@@ -130,9 +130,9 @@ export default function PrivacyPage() {
 
       {/* Your Rights */}
       <section className="max-w-4xl mx-auto px-4 pb-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-sm p-8" style={{ border: '1px solid #E1E1E2' }}>
           <h2 className="text-2xl font-bold text-black mb-6">הזכויות שלכם</h2>
-          <div className="space-y-4 text-gray-700 leading-relaxed">
+          <div className="space-y-4 leading-relaxed" style={{ color: '#52525B' }}>
             <p>בהתאם לחוק הגנת הפרטיות, יש לכם את הזכויות הבאות:</p>
             <ul className="list-disc list-inside space-y-2 mr-4">
               <li><strong>גישה:</strong> לבקש עותק של המידע האישי שלכם</li>
@@ -143,7 +143,7 @@ export default function PrivacyPage() {
             </ul>
             <p>
               לממוש זכויות אלו, פנו אלינו דרך עמוד{' '}
-              <Link href="/contact" className="text-blue-600 hover:underline">צרו קשר</Link>
+              <Link href="/contact" className="hover:underline" style={{ color: '#003233' }}>צרו קשר</Link>
               {' '}או בדואר אלקטרוני.
             </p>
           </div>
@@ -152,9 +152,9 @@ export default function PrivacyPage() {
 
       {/* Cookies */}
       <section className="max-w-4xl mx-auto px-4 pb-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-sm p-8" style={{ border: '1px solid #E1E1E2' }}>
           <h2 className="text-2xl font-bold text-black mb-6">קובצי Cookie</h2>
-          <div className="space-y-4 text-gray-700 leading-relaxed">
+          <div className="space-y-4 leading-relaxed" style={{ color: '#52525B' }}>
             <p>
               אנו משתמשים בקובצי Cookie ו-Local Storage לצרכים הבאים:
             </p>

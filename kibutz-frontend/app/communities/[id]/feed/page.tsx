@@ -9,7 +9,6 @@ import {
   FaComments,
   FaHeart,
   FaRegHeart,
-  FaEdit,
   FaTrash,
   FaEllipsisH,
   FaTimes,
@@ -21,7 +20,6 @@ import {
   FaFilePdf,
   FaCheck,
   FaExternalLinkAlt,
-  FaThumbtack,
   FaTrophy,
   FaMedal,
   FaPoll,
@@ -32,21 +30,23 @@ import {
 import { useCommunityContext } from '../CommunityContext';
 import FormSelect from '../../../components/FormSelect';
 import FilterDropdown from '../../../components/FilterDropdown';
-import SearchXIcon from '../../../components/SearchXIcon';
-import ClipboardCheckIcon from '../../../components/ClipboardCheckIcon';
-import CalendarIcon from '../../../components/CalendarIcon';
-import AwardIcon from '../../../components/AwardIcon';
-import CheckIcon from '../../../components/CheckIcon';
-import UsersIcon from '../../../components/UsersIcon';
-import CloseIcon from '../../../components/CloseIcon';
-import TrashCircleIcon from '../../../components/TrashCircleIcon';
-import TrashIcon from '../../../components/TrashIcon';
-import MoreDotsIcon from '../../../components/MoreDotsIcon';
-import BookmarkIcon from '../../../components/BookmarkIcon';
-import BookmarkFilledIcon from '../../../components/BookmarkFilledIcon';
-import HeartIcon from '../../../components/HeartIcon';
-import HeartFilledIcon from '../../../components/HeartFilledIcon';
-import CommentIcon from '../../../components/CommentIcon';
+import SearchXIcon from '../../../components/icons/SearchXIcon';
+import ClipboardCheckIcon from '../../../components/icons/ClipboardCheckIcon';
+import CalendarIcon from '../../../components/icons/CalendarIcon';
+import AwardIcon from '../../../components/icons/AwardIcon';
+import CheckIcon from '../../../components/icons/CheckIcon';
+import UsersIcon from '../../../components/icons/UsersIcon';
+import CloseIcon from '../../../components/icons/CloseIcon';
+import TrashCircleIcon from '../../../components/icons/TrashCircleIcon';
+import TrashIcon from '../../../components/icons/TrashIcon';
+import MoreDotsIcon from '../../../components/icons/MoreDotsIcon';
+import BookmarkIcon from '../../../components/icons/BookmarkIcon';
+import BookmarkFilledIcon from '../../../components/icons/BookmarkFilledIcon';
+import HeartIcon from '../../../components/icons/HeartIcon';
+import HeartFilledIcon from '../../../components/icons/HeartFilledIcon';
+import CommentIcon from '../../../components/icons/CommentIcon';
+import PinIcon from '../../../components/icons/PinIcon';
+import EditIcon from '../../../components/icons/EditIcon';
 
 interface Community {
   id: string;
@@ -1709,9 +1709,9 @@ function CommunityFeedContent() {
                         />
                         <button
                           onClick={() => removeSelectedImage(index)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#B3261E] flex items-center justify-center"
                         >
-                          <FaTimes className="w-3 h-3" />
+                          <CloseIcon className="w-2.5 h-2.5 text-white" />
                         </button>
                       </div>
                     ))}
@@ -1756,7 +1756,7 @@ function CommunityFeedContent() {
                         onChange={(e) => setNewLinkInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLink(); } }}
                         placeholder="https://example.com"
-                        className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent placeholder:text-[#7A7A83] placeholder:font-normal ${newLinkInput.trim() ? 'text-black' : 'text-[#7A7A83]'}`}
+                        className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-black placeholder:text-[#7A7A83] placeholder:font-normal ${newLinkInput.trim() ? 'text-black' : 'text-[#7A7A83]'}`}
                         style={{ fontSize: '14px', fontWeight: 400 }}
                         disabled={addingLink}
                       />
@@ -1843,7 +1843,7 @@ function CommunityFeedContent() {
                             }}
                             placeholder={`אפשרות ${index + 1}`}
                             style={{ fontSize: '14px' }}
-                            className="flex-1 bg-white border border-gray-300 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-right placeholder-gray-500"
+                            className="flex-1 bg-white border border-gray-300 rounded-lg p-3 text-gray-800 font-normal focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-black text-right placeholder-gray-500"
                           />
                           {pollOptions.length > 2 && (
                             <button
@@ -2062,7 +2062,7 @@ function CommunityFeedContent() {
                       {/* Pinned indicator - beside save icon */}
                       {post.isPinned && (
                         <div className="flex items-center gap-1.5 text-[#52525B] text-sm font-medium px-2 py-1 rounded-lg">
-                          <FaThumbtack className="w-3 h-3" />
+                          <PinIcon className="w-3 h-3" />
                           <span>פוסט מוצמד</span>
                         </div>
                       )}
@@ -2100,7 +2100,7 @@ function CommunityFeedContent() {
                                     post.isPinned ? 'text-yellow-600' : 'text-[#3F3F46]'
                                   }`}
                                 >
-                                  <FaThumbtack className="w-3.5 h-3.5" />
+                                  <PinIcon className="w-3.5 h-3.5" />
                                   {post.isPinned ? 'בטל הצמדה' : 'הצמד פוסט'}
                                 </button>
                               )}
@@ -2132,7 +2132,7 @@ function CommunityFeedContent() {
                                   }}
                                   className="w-full px-3 py-2.5 text-right text-sm text-[#3F3F46] rounded-lg hover:bg-[#F4F4F5] flex items-center gap-3 transition"
                                 >
-                                  <FaEdit className="w-3.5 h-3.5" />
+                                  <EditIcon className="w-3.5 h-3.5" />
                                   עריכה
                                 </button>
                               )}
@@ -2163,12 +2163,12 @@ function CommunityFeedContent() {
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
                           placeholder="כותרת (אופציונלי)"
-                          className="w-full p-3 mb-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                          className="w-full p-3 mb-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
                         />
                         <textarea
                           value={editContent}
                           onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full p-3 border border-gray-200 rounded-lg text-right resize-none focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                          className="w-full p-3 border border-gray-200 rounded-lg text-right resize-none focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
                           rows={4}
                         />
                         
@@ -2197,9 +2197,9 @@ function CommunityFeedContent() {
                                     ) : (
                                       <button
                                         onClick={() => setImagesToRemove(prev => [...prev, image])}
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                        className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#B3261E] flex items-center justify-center"
                                       >
-                                        <FaTimes className="w-3 h-3" />
+                                        <CloseIcon className="w-2.5 h-2.5 text-white" />
                                       </button>
                                     )}
                                   </div>
@@ -2287,7 +2287,7 @@ function CommunityFeedContent() {
                                       type="text"
                                       value={editPollQuestion}
                                       onChange={(e) => setEditPollQuestion(e.target.value)}
-                                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white"
+                                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right font-medium focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
                                       placeholder="שאלת הסקר"
                                     />
                                   )}
@@ -2323,7 +2323,7 @@ function CommunityFeedContent() {
                                             newOptions[index] = { ...newOptions[index], text: e.target.value };
                                             setEditPollOptions(newOptions);
                                           }}
-                                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white"
+                                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
                                           placeholder={`אפשרות ${index + 1}`}
                                         />
                                         <span className="text-xs text-gray-400 w-16 text-left">
@@ -2628,7 +2628,7 @@ function CommunityFeedContent() {
                                               setEditCommentContent('');
                                             }
                                           }}
-                                          className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white"
+                                          className="flex-1 px-2 py-1 border border-gray-300 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
                                           autoFocus
                                         />
                                         <button
@@ -2675,7 +2675,7 @@ function CommunityFeedContent() {
                                                 }}
                                                 className="w-full px-3 py-2.5 text-right text-sm text-[#3F3F46] rounded-lg hover:bg-[#F4F4F5] flex items-center gap-3 transition"
                                               >
-                                                <FaEdit className="w-3.5 h-3.5" />
+                                                <EditIcon className="w-3.5 h-3.5" />
                                                 עריכה
                                               </button>
                                               <button
@@ -2735,7 +2735,7 @@ function CommunityFeedContent() {
                                 }}
                                 disabled={submittingComment[post.id]}
                                 placeholder="כתבו תגובה..."
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent disabled:opacity-50"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:border-black disabled:opacity-50"
                               />
                               {/* Mention Autocomplete Dropdown */}
                               {showMentionDropdown === post.id && mentionSuggestions.length > 0 && (

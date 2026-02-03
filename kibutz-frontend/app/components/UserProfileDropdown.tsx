@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa';
 import Avatar from './Avatar';
+import UserIcon from './icons/UserIcon';
+import SettingsIcon from './icons/SettingsIcon';
+import LogoutIcon from './icons/LogoutIcon';
 
 interface UserProfileDropdownProps {
   userEmail: string;
@@ -61,7 +63,7 @@ export default function UserProfileDropdown({
               }}
               className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2 rounded-lg"
             >
-              <FaUser className="w-4 h-4" />
+              <UserIcon className="w-4 h-4" />
               הפרופיל שלי
             </button>
             <button
@@ -71,7 +73,7 @@ export default function UserProfileDropdown({
               }}
               className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2 rounded-lg"
             >
-              <FaCog className="w-4 h-4" />
+              <SettingsIcon className="w-4 h-4" />
               הגדרות
             </button>
             <div className="border-t border-gray-100 my-1 mx-1"></div>
@@ -79,7 +81,7 @@ export default function UserProfileDropdown({
               onClick={handleLogout}
               className="w-full text-right px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2 rounded-lg"
             >
-              <FaSignOutAlt className="w-4 h-4" />
+              <LogoutIcon className="w-4 h-4" />
               התנתקות
             </button>
           </div>

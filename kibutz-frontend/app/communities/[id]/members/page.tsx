@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCommunityContext } from '../CommunityContext';
-import { FaCrown, FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo, FaSearch } from 'react-icons/fa';
-import SearchXIcon from '../../../components/SearchXIcon';
-import UserRemoveIcon from '../../../components/UserRemoveIcon';
-import CloseIcon from '../../../components/CloseIcon';
+import { FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo, FaSearch } from 'react-icons/fa';
+import SearchXIcon from '../../../components/icons/SearchXIcon';
+import UserRemoveIcon from '../../../components/icons/UserRemoveIcon';
+import CloseIcon from '../../../components/icons/CloseIcon';
+import CrownIcon from '../../../components/icons/CrownIcon';
 
 interface Member {
   id: string;
@@ -166,21 +167,21 @@ export default function CommunityMembersPage() {
     switch (role) {
       case 'OWNER':
         return (
-          <span className="inline-flex items-center gap-1 text-[12px] font-medium bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
-            <FaCrown className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: '#A7EA7B', color: '#163300' }}>
+            <CrownIcon className="w-3 h-3" />
             בעלים
           </span>
         );
       case 'MANAGER':
         return (
-          <span className="inline-flex items-center text-[12px] font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-            מנהל
+          <span className="inline-flex items-center text-[12px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: '#91DCED', color: '#003233' }}>
+            מנהל קהילה
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center text-[12px] font-medium bg-[#E4E4E7] text-[#52525B] px-2 py-0.5 rounded-full">
-            חבר
+          <span className="inline-flex items-center text-[12px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: '#E1E1E2', color: '#52525B' }}>
+            חבר קהילה
           </span>
         );
     }
@@ -334,7 +335,7 @@ export default function CommunityMembersPage() {
                     </div>
                   )}
                   {member.isOnline && (
-                    <span className="absolute bottom-0 left-0 w-3.5 h-3.5 bg-[#A7EA7B] border-2 border-white rounded-full"></span>
+                    <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#A7EA7B] border-2 border-white rounded-full"></span>
                   )}
                 </Link>
 

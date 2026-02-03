@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaTrophy, FaMedal, FaUsers, FaStar, FaHeart, FaComment, FaFileAlt, FaUser } from 'react-icons/fa';
+import { FaTrophy, FaMedal, FaUsers, FaStar } from 'react-icons/fa';
 import { useCommunityContext } from '../CommunityContext';
+import TrophyIcon from '../../../components/icons/TrophyIcon';
 
 interface Community {
   id: string;
@@ -111,10 +112,10 @@ export default function LeaderboardPage() {
       <section className="max-w-5xl mx-auto py-8 px-4">
         {/* Title */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-yellow-100 rounded-full mb-3">
-            <FaTrophy className="w-7 h-7 text-yellow-500" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-3" style={{ backgroundColor: '#A7EA7B' }}>
+            <TrophyIcon className="w-7 h-7 text-black" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">עשרת המובילים</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">עשרת המובילים</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6">
@@ -160,28 +161,21 @@ export default function LeaderboardPage() {
                       <Link href={`/profile/${member.userId}`} className="hover:underline">
                         {member.name}
                       </Link>
-                      {member.userId === userId && (
-                        <span className="mr-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                          אתה
-                        </span>
-                      )}
                     </p>
                     {member.rank <= 3 && (
                       <p className="text-gray-500" style={{ fontSize: '14px' }}>
-                        {member.rank === 1 && '🏆 מקום ראשון'}
-                        {member.rank === 2 && '🥈 מקום שני'}
-                        {member.rank === 3 && '🥉 מקום שלישי'}
+                        {member.rank === 1 && 'מקום ראשון'}
+                        {member.rank === 2 && 'מקום שני'}
+                        {member.rank === 3 && 'מקום שלישי'}
                       </p>
                     )}
                   </div>
 
                   {/* Points */}
-                  <div className="text-left">
-                    <div className="flex items-center gap-1">
-                      <span className="font-bold text-gray-900 text-lg">{member.points}</span>
-                      <FaStar className="w-4 h-4 text-yellow-500" />
-                    </div>
-                    <p className="text-gray-500" style={{ fontSize: '14px' }}>נקודות</p>
+                  <div className="text-left flex items-center gap-1.5">
+                    <span className="font-bold text-gray-900 text-lg">{member.points}</span>
+                    <FaStar className="w-4 h-4 text-yellow-500" />
+                    <span className="text-gray-500" style={{ fontSize: '14px' }}>נקודות</span>
                   </div>
                 </div>
               ))}

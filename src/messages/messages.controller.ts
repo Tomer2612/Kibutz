@@ -24,6 +24,14 @@ export class MessagesController {
     return this.messagesService.getUnreadCount(req.user.userId);
   }
 
+  // Mark all messages as read (must be before parameterized routes)
+  @UseGuards(AuthGuard('jwt'))
+  @Post('read-all')
+  async markAllAsRead(@Req() req) {
+    await this.messagesService.markAllAsRead(req.user.userId);
+    return { success: true };
+  }
+
   // Get or create conversation with a user
   @UseGuards(AuthGuard('jwt'))
   @Post('conversations/:userId')
@@ -69,5 +77,13 @@ export class MessagesController {
   async markAsRead(@Req() req, @Param('conversationId') conversationId: string) {
     await this.messagesService.markConversationAsRead(conversationId, req.user.userId);
     return { success: true };
+  }
+
+  // Check if conversation exists with a user
+  @UseGuards(AuthGuard('jwt'))
+  @Get('has-conversation/:userId')
+  async hasConversation(@Req() req, @Param('userId') otherUserId: string) {
+    const hasConversation = await this.messagesService.hasConversation(req.user.userId, otherUserId);
+    return { hasConversation };
   }
 }

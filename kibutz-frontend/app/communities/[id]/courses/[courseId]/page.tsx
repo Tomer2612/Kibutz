@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaCheck, FaChevronDown, FaChevronUp, FaClock, FaEdit, FaTrash, FaFileAlt, FaVideo, FaUsers, FaTimes, FaQuestionCircle, FaCheckCircle, FaTimesCircle, FaLink, FaImage, FaLayerGroup } from 'react-icons/fa';
+import PlayIcon from '../../../../components/icons/PlayIcon';
 
 // Declare YouTube Player types
 declare global {
@@ -457,19 +458,20 @@ function CourseViewerContent() {
   };
 
   const getYouTubeVideoId = (url: string): string | null => {
-    const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
-    return match && match[2].length === 11 ? match[2] : null;
+    const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    return match ? match[1] : null;
   };
 
   const getYouTubeEmbedUrl = (url: string) => {
     const videoId = getYouTubeVideoId(url);
-    if (videoId) return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0&modestbranding=1&autoplay=1`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    if (videoId) return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0&modestbranding=1&autoplay=1&origin=${origin}`;
     return url;
   };
 
   const getYouTubeThumbnail = (url: string): string | null => {
     const videoId = getYouTubeVideoId(url);
-    return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
+    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
   };
 
   const getChapterCompletion = (chapter: Chapter) => {
@@ -659,7 +661,7 @@ function CourseViewerContent() {
                   
                   return (
                     <div key="video" className="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
-                      <div className="aspect-video relative">
+                      <div className="aspect-video relative bg-black">
                         {videoActivated ? (
                           <iframe 
                             id="youtube-player" 
@@ -672,20 +674,18 @@ function CourseViewerContent() {
                         ) : (
                           <button
                             onClick={() => setVideoActivated(true)}
-                            className="w-full h-full relative group cursor-pointer"
+                            className="absolute inset-0 group cursor-pointer"
                           >
                             {thumbnail && (
                               <img 
                                 src={thumbnail} 
                                 alt="Video thumbnail"
-                                className="w-full h-full object-cover"
+                                className="block w-full h-full object-cover"
                               />
                             )}
-                            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                              <div className="w-16 h-16 md:w-20 md:h-20 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                                <svg className="w-8 h-8 md:w-10 md:h-10 text-white mr-[-4px]" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="group-hover:scale-110 transition-transform">
+                                <PlayIcon className="w-16 h-16 md:w-20 md:h-20" />
                               </div>
                             </div>
                           </button>

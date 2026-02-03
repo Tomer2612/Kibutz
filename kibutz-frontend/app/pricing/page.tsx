@@ -7,7 +7,9 @@ import { jwtDecode } from 'jwt-decode';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import FormSelect from '../components/FormSelect';
-import { FaCheck, FaTimes, FaCreditCard, FaCalendarAlt, FaLock } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaCreditCard } from 'react-icons/fa';
+import CalendarIcon from '../components/icons/CalendarIcon';
+import LockIcon from '../components/icons/LockIcon';
 
 interface FAQ {
   question: string;
@@ -208,19 +210,20 @@ function PricingContent() {
   // Step 1: Create Community Details Modal (name + category)
   if (currentStep === 'create') {
     return (
-      <main className="min-h-screen bg-gray-100 flex items-center justify-center" dir="rtl">
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F4F4F5' }} dir="rtl">
         <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
           <h2 className="text-2xl font-bold text-center mb-2">פרטי הקהילה</h2>
-          <p className="text-center text-gray-500 mb-8">אפשר לערוך ולשנות את הכל גם אחרי ההקמה.</p>
+          <p className="text-center mb-8" style={{ color: '#71717A' }}>אפשר לערוך ולשנות את הכל גם אחרי ההקמה.</p>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 text-right">שם הקהילה</label>
+              <label className="block text-sm font-medium mb-2 text-right" style={{ color: '#3F3F46' }}>שם הקהילה</label>
               <input
                 type="text"
                 value={communityName}
                 onChange={(e) => setCommunityName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                style={{ borderColor: '#D0D0D4' }}
               />
             </div>
             
@@ -290,32 +293,31 @@ function PricingContent() {
   // Step 2: Payment Modal
   if (currentStep === 'payment') {
     return (
-      <main className="min-h-screen bg-gray-100 flex items-center justify-center" dir="rtl">
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F4F4F5' }} dir="rtl">
         <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
           <h2 className="text-2xl font-bold text-center mb-8">מתחילים 7 ימי ניסיון חינם</h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 text-right">מספר כרטיס</label>
+              <label className="block text-sm font-medium mb-2 text-right" style={{ color: '#3F3F46' }}>מספר כרטיס</label>
               <div className="relative">
                 <input
                   type="text"
                   value={cardNumber}
                   onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
-                    getCardNumberError() ? 'border-red-400' : 'border-gray-300'
-                  }`}
+                  className="w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                  style={{ borderColor: getCardNumberError() ? '#B3261E' : '#D0D0D4' }}
                 />
-                <FaCreditCard className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <FaCreditCard className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#A1A1AA' }} />
               </div>
               {getCardNumberError() && (
-                <p className="text-red-500 text-sm mt-1">{getCardNumberError()}</p>
+                <p className="text-sm mt-1" style={{ color: '#B3261E' }}>{getCardNumberError()}</p>
               )}
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">תוקף</label>
+                <label className="block text-sm font-medium mb-2 text-right" style={{ color: '#3F3F46' }}>תוקף</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -335,31 +337,29 @@ function PricingContent() {
                         setCardExpiry(rawValue);
                       }
                     }}
-                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
-                      getExpiryError() ? 'border-red-400' : 'border-gray-300'
-                    }`}
+                    className="w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                    style={{ borderColor: getExpiryError() ? '#B3261E' : '#D0D0D4' }}
                   />
-                  <FaCalendarAlt className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <CalendarIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A1A1AA]" />
                 </div>
                 {getExpiryError() && (
-                  <p className="text-red-500 text-sm mt-1">{getExpiryError()}</p>
+                  <p className="text-sm mt-1" style={{ color: '#B3261E' }}>{getExpiryError()}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 text-right">CVV</label>
+                <label className="block text-sm font-medium mb-2 text-right" style={{ color: '#3F3F46' }}>CVV</label>
                 <div className="relative">
                   <input
                     type="text"
                     value={cardCvv}
                     onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
-                      getCvvError() ? 'border-red-400' : 'border-gray-300'
-                    }`}
+                    className="w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                    style={{ borderColor: getCvvError() ? '#B3261E' : '#D0D0D4' }}
                   />
-                  <FaLock className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <LockIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A1A1AA]" />
                 </div>
                 {getCvvError() && (
-                  <p className="text-red-500 text-sm mt-1">{getCvvError()}</p>
+                  <p className="text-sm mt-1" style={{ color: '#B3261E' }}>{getCvvError()}</p>
                 )}
               </div>
             </div>
@@ -373,7 +373,7 @@ function PricingContent() {
             {creatingCommunity ? 'מקים קהילה...' : 'הקמת קהילה'}
           </button>
           
-          <p className="text-center text-sm text-gray-500 mt-4">
+          <p className="text-center text-sm mt-4" style={{ color: '#71717A' }}>
             תזכורת תשלח במייל 3 ימים לפני סיום הניסיון. אפשר<br />
             לבטל בקליק דרך הגדרות הקהילה.
           </p>
@@ -383,7 +383,7 @@ function PricingContent() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100" dir="rtl">
+    <main className="min-h-screen" style={{ backgroundColor: '#F4F4F5' }} dir="rtl">
       {/* Header */}
       <SiteHeader />
 
@@ -392,7 +392,7 @@ function PricingContent() {
         <h1 className="font-semibold text-black mb-4" style={{ fontSize: '3.5rem' }}>
           מחיר אחד. בלי הפתעות.
         </h1>
-        <p className="text-gray-600 text-lg">
+        <p className="text-lg" style={{ color: '#52525B' }}>
           פותחים קהילה ומתחילים בלי לחשוב על עלויות נוספות.
         </p>
       </section>
@@ -400,14 +400,14 @@ function PricingContent() {
       {/* Pricing Card */}
       <section className="flex justify-center px-4 pb-16">
         <div
-          className="bg-white rounded-2xl border border-gray-400 p-8 flex flex-col"
-          style={{ width: '300px', minHeight: '380px' }}
+          className="bg-white rounded-2xl border p-8 flex flex-col"
+          style={{ width: '300px', minHeight: '380px', borderColor: '#A1A1AA' }}
         >
           {/* Price */}
           <div className="mb-6">
             <div className="flex items-baseline gap-1">
               <span className="text-5xl font-bold text-black">{plan.price}</span>
-              <span className="text-gray-800" style={{ fontSize: '18px' }}>₪/{plan.period}</span>
+              <span style={{ fontSize: '18px', color: '#3F3F46' }}>₪/{plan.period}</span>
             </div>
           </div>
 
@@ -455,8 +455,8 @@ function PricingContent() {
           {faqs.map((faq, index) => (
             <div
               key={index}
-              className="bg-white border border-gray-400 overflow-hidden hover:bg-gray-50 transition"
-              style={{ borderRadius: '16px' }}
+              className="bg-white border overflow-hidden transition"
+              style={{ borderRadius: '16px', borderColor: '#A1A1AA' }}
             >
               <button
                 onClick={() => toggleFaq(index)}

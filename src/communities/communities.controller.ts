@@ -100,6 +100,7 @@ export class CommunitiesController {
       facebookUrl?: string;
       instagramUrl?: string;
       existingGalleryImages?: string;
+      existingGalleryVideos?: string;
       existingPrimaryImage?: string;
       existingLogo?: string;
       price?: string;
@@ -139,6 +140,8 @@ export class CommunitiesController {
     const existingGallery = body.existingGalleryImages ? JSON.parse(body.existingGalleryImages) : [];
     const galleryImages = [...existingGallery, ...newGalleryPaths];
     
+    const galleryVideos = body.existingGalleryVideos ? JSON.parse(body.existingGalleryVideos) : [];
+    
     const price = body.price !== undefined ? parseFloat(body.price) : undefined;
     
     return this.communitiesService.update(
@@ -154,6 +157,7 @@ export class CommunitiesController {
       body.facebookUrl,
       body.instagramUrl,
       galleryImages,
+      galleryVideos,
       price,
       body.trialCancelled,
       body.cardLastFour,

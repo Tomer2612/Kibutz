@@ -7,9 +7,9 @@ import { useRouter } from 'next/navigation';
 import SiteHeader from './components/SiteHeader';
 import SiteFooter from './components/SiteFooter';
 import FilterDropdown from './components/FilterDropdown';
-import SearchXIcon from './components/SearchXIcon';
-import ChevronLeftIcon from './components/ChevronLeftIcon';
-import ChevronRightIcon from './components/ChevronRightIcon';
+import SearchXIcon from './components/icons/SearchXIcon';
+import ChevronLeftIcon from './components/icons/ChevronLeftIcon';
+import ChevronRightIcon from './components/icons/ChevronRightIcon';
 
 const COMMUNITY_TOPICS = [
   'אנימציה',
@@ -53,7 +53,7 @@ const TOPIC_COLORS: Record<string, { bg: string; text: string; border: string }>
 };
 
 const getTopicColor = (topic: string) => {
-  return TOPIC_COLORS[topic] || { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' };
+  return TOPIC_COLORS[topic] || { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200', bgHex: '#F4F4F5', textHex: '#3F3F46', borderHex: '#E1E1E2' };
 };
 
 // Helper function to get visible page numbers (max 10, sliding window)
@@ -237,7 +237,7 @@ export default function Home() {
         <h1 className="font-semibold text-black mb-3" style={{ fontSize: '3.5rem' }}>
           מאגר הקהילות הגדול בארץ
         </h1>
-        <p className="text-gray-600 text-lg">
+        <p className="text-lg" style={{ color: '#52525B' }}>
           חפשו, הצטרפו או צרו קהילה לפי תחומי עניין.
         </p>
       </section>
@@ -280,7 +280,8 @@ export default function Home() {
             placeholder="חפשו קהילה"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="mr-3 flex-1 bg-transparent outline-none focus:ring-0 text-right placeholder:text-gray-400"
+            className="mr-3 flex-1 bg-transparent outline-none focus:ring-0 text-right"
+            style={{ '--placeholder-color': '#A1A1AA' } as React.CSSProperties}
             dir="rtl"
           />
         </div>
@@ -319,7 +320,7 @@ export default function Home() {
       {/* Active filters indicator */}
       {(searchTerm || selectedTopic || selectedSize || selectedPrice) && (
         <div className="flex justify-center gap-2 mb-6">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm" style={{ color: '#71717A' }}>
             מציג {filteredCommunities.length} מתוך {communities.length} קהילות
           </span>
           <button
@@ -340,7 +341,7 @@ export default function Home() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl px-4 mx-auto pb-8">
         {loading ? (
           <div className="col-span-full text-center py-12">
-            <p className="text-gray-500 text-lg">טוען קהילות...</p>
+            <p className="text-lg" style={{ color: '#71717A' }}>טוען קהילות...</p>
           </div>
         ) : filteredCommunities.length > 0 ? (
           filteredCommunities
@@ -376,8 +377,8 @@ export default function Home() {
                     style={{ aspectRatio: '16/9' }}
                   />
                 ) : (
-                  <div className="w-full bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center" style={{ aspectRatio: '16/9' }}>
-                    <span className="text-gray-400 font-medium">תמונת קהילה</span>
+                  <div className="w-full flex items-center justify-center" style={{ aspectRatio: '16/9', background: 'linear-gradient(to bottom right, #DBEAFE, #DCFCE7)' }}>
+                    <span className="font-medium" style={{ color: '#A1A1AA' }}>תמונת קהילה</span>
                   </div>
                 )}
                 <div className="p-5 text-right flex-1 flex flex-col" dir="rtl">
@@ -389,8 +390,8 @@ export default function Home() {
                         className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-gray-400 text-lg font-bold">{community.name.charAt(0)}</span>
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F4F4F5' }}>
+                        <span className="text-lg font-bold" style={{ color: '#A1A1AA' }}>{community.name.charAt(0)}</span>
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
@@ -458,9 +459,9 @@ export default function Home() {
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className={`flex items-center justify-center transition ${
-                currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-[#3F3F46] hover:text-black'
+                currentPage === 1 ? 'cursor-not-allowed' : 'hover:text-black'
               }`}
-              style={{ width: 32, height: 32 }}
+              style={{ color: currentPage === 1 ? '#D0D0D4' : '#3F3F46', width: 32, height: 32 }}
             >
               <ChevronRightIcon className="w-5 h-5" />
             </button>
@@ -470,10 +471,10 @@ export default function Home() {
                 onClick={() => setCurrentPage(page)}
                 className={`flex items-center justify-center font-medium text-[16px] transition ${
                   page === currentPage
-                    ? 'bg-[#71717A] text-white'
-                    : 'bg-white text-[#71717A] hover:bg-gray-50'
+                    ? 'text-white'
+                    : ''
                 }`}
-                style={{ width: 32, height: 32, borderRadius: '50%' }}
+                style={{ backgroundColor: page === currentPage ? '#71717A' : 'white', color: page === currentPage ? 'white' : '#71717A', width: 32, height: 32, borderRadius: '50%' }}
               >
                 {page}
               </button>
@@ -482,9 +483,9 @@ export default function Home() {
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
               className={`flex items-center justify-center transition ${
-                currentPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-[#3F3F46] hover:text-black'
+                currentPage >= totalPages ? 'cursor-not-allowed' : 'hover:text-black'
               }`}
-              style={{ width: 32, height: 32 }}
+              style={{ color: currentPage >= totalPages ? '#D0D0D4' : '#3F3F46', width: 32, height: 32 }}
             >
               <ChevronLeftIcon className="w-5 h-5" />
             </button>

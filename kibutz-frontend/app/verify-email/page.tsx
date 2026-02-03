@@ -48,21 +48,22 @@ function VerifyEmailContent() {
       <div className="bg-white rounded-xl p-8 shadow-md w-full max-w-sm flex flex-col items-center gap-4 text-center">
         {status === 'loading' && (
           <>
-            <FaSpinner className="w-16 h-16 text-gray-400 animate-spin" />
+            <FaSpinner className="w-16 h-16 animate-spin" style={{ color: '#A1A1AA' }} />
             <h1 className="text-xl font-bold">מאמת את האימייל...</h1>
-            <p className="text-gray-500">אנא המתן</p>
+            <p style={{ color: '#7A7A83' }}>אנא המתן</p>
           </>
         )}
 
         {status === 'success' && (
           <>
-            <FaCheckCircle className="w-16 h-16 text-green-500" />
-            <h1 className="text-xl font-bold text-green-600">אימות הושלם!</h1>
-            <p className="text-gray-600">{message}</p>
+            <FaCheckCircle className="w-16 h-16" style={{ color: '#163300' }} />
+            <h1 className="text-xl font-bold" style={{ color: '#163300' }}>אימות הושלם!</h1>
+            <p style={{ color: '#52525B' }}>{message}</p>
             <button
               onClick={() => router.push('/login')}
-              className="mt-4 bg-black text-white py-2 px-6 rounded hover:bg-gray-800"
-            >
+              className="mt-4 bg-black text-white py-2 px-6 rounded transition-colors"
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3F3F46'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'black'}>
               להתחברות
             </button>
           </>
@@ -70,12 +71,14 @@ function VerifyEmailContent() {
 
         {status === 'error' && (
           <>
-            <FaTimesCircle className="w-16 h-16 text-red-500" />
-            <h1 className="text-xl font-bold text-red-600">אימות נכשל</h1>
-            <p className="text-gray-600">{message}</p>
+            <FaTimesCircle className="w-16 h-16" style={{ color: '#B3261E' }} />
+            <h1 className="text-xl font-bold" style={{ color: '#B3261E' }}>אימות נכשל</h1>
+            <p style={{ color: '#52525B' }}>{message}</p>
             <button
               onClick={() => router.push('/login')}
-              className="mt-4 bg-black text-white py-2 px-6 rounded hover:bg-gray-800"
+              className="mt-4 bg-black text-white py-2 px-6 rounded transition-colors"
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3F3F46'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'black'}
             >
               חזרה להתחברות
             </button>

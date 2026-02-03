@@ -31,6 +31,14 @@ a, button, input, select, textarea {
   transition: all 0.15s ease-in-out;
 }
 
+/* Override browser :invalid styling - keep consistent border */
+input:invalid,
+textarea:invalid,
+select:invalid {
+  box-shadow: none;
+  outline: none;
+}
+
 /* Smooth image loading */
 img {
   transition: opacity 0.3s ease-in-out;
@@ -474,4 +482,29 @@ textarea:invalid {
 input::-webkit-validation-bubble-message,
 input::-moz-validation-bubble-message {
   display: none;
+}
+
+/* Remove browser autofill blue background and preserve border */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: #000000 !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Autofill for auth inputs - preserve border styling */
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus {
+  border: 1px solid #D0D0D4 !important;
+}
+
+/* Focus ring only for auth form inputs (login/signup pages) */
+.auth-input:focus {
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px #000000 !important;
 }

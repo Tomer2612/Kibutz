@@ -225,14 +225,16 @@ export default function CommunityNavbar({
             value={searchQuery}
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="חיפוש"
-            className="pl-4 pr-10 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent w-32"
+            className="pl-4 pr-10 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-black w-32"
             tabIndex={showSearch ? 0 : -1}
           />
         </div>
 
         {/* Messages and Notification Bells */}
-        {userEmail && <MessagesBell />}
-        {userEmail && <NotificationBell />}
+        <div className="flex items-center gap-1">
+          {userEmail && <MessagesBell />}
+          {userEmail && <NotificationBell />}
+        </div>
 
         {/* User Avatar with Dropdown */}
         {userEmail && (

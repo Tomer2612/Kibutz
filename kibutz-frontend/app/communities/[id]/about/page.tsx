@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCommunityContext } from '../CommunityContext';
-import { FaUsers, FaCalendarAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaLink, FaSignOutAlt } from 'react-icons/fa';
+import { FaUsers, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaLink, FaSignOutAlt } from 'react-icons/fa';
+import PlayIcon from '../../../components/icons/PlayIcon';
 
 interface Community {
   id: string;
@@ -23,6 +24,7 @@ interface Community {
   facebookUrl?: string | null;
   instagramUrl?: string | null;
   galleryImages?: string[];
+  galleryVideos?: string[];
   owner?: {
     id: string;
     name: string;
@@ -38,50 +40,158 @@ interface UserProfile {
   profileImage?: string;
 }
 
+// Helper to extract YouTube video ID
+function getYouTubeVideoId(url: string): string | null {
+  const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+  return match ? match[1] : null;
+}
+
+// Gallery media item type
+interface GalleryItem {
+  type: 'image' | 'video';
+  src: string;
+  videoId?: string;
+}
+
 // Gallery Component with slideshow functionality
-function CommunityGallery({ primaryImage, galleryImages, communityName }: { 
+function CommunityGallery({ primaryImage, galleryImages, galleryVideos, communityName }: { 
   primaryImage?: string | null; 
   galleryImages: string[];
+  galleryVideos: string[];
   communityName: string;
 }) {
-  // Combine primary + gallery images
-  const allImages = [
-    ...(primaryImage ? [primaryImage] : []),
-    ...galleryImages,
+  // Build unified media array: videos first, then images
+  const allMedia: GalleryItem[] = [
+    ...galleryVideos.map(url => ({
+      type: 'video' as const,
+      src: url,
+      videoId: getYouTubeVideoId(url) || undefined,
+    })),
+    ...(primaryImage ? [{ type: 'image' as const, src: primaryImage }] : []),
+    ...galleryImages.map(img => ({ type: 'image' as const, src: img })),
   ];
   
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [videoActivated, setVideoActivated] = useState(false);
   
-  if (allImages.length === 0) return null;
+  // Find first image index for advancing after video ends
+  const firstImageIndex = allMedia.findIndex(item => item.type === 'image');
   
   const goToPrev = () => {
-    setCurrentIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? allMedia.length - 1 : prev - 1));
+    setIsVideoPlaying(false);
+    setVideoActivated(false);
   };
   
   const goToNext = () => {
-    setCurrentIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev === allMedia.length - 1 ? 0 : prev + 1));
+    setIsVideoPlaying(false);
+    setVideoActivated(false);
   };
+
+  // Handle video end - advance to images
+  const handleVideoEnd = () => {
+    if (firstImageIndex !== -1) {
+      setCurrentIndex(firstImageIndex);
+    } else {
+      goToNext();
+    }
+    setVideoActivated(false);
+    setIsVideoPlaying(false);
+  };
+
+  // Listen for YouTube postMessage events
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== 'https://www.youtube.com') return;
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        // YouTube sends state change as { event: 'onStateChange', info: 0 } when video ends
+        // Also check for infoDelivery format
+        if ((data.event === 'onStateChange' && data.info === 0) ||
+            (data.info && data.info.playerState === 0)) {
+          handleVideoEnd();
+        }
+      } catch {}
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [firstImageIndex, allMedia.length]);
+  
+  // Auto-rotate every 10 seconds (pause on video)
+  useEffect(() => {
+    if (allMedia.length <= 1) return;
+    
+    const currentItem = allMedia[currentIndex];
+    if (currentItem?.type === 'video' && isVideoPlaying) return;
+    
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev === allMedia.length - 1 ? 0 : prev + 1));
+      setIsVideoPlaying(false);
+      setVideoActivated(false);
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [allMedia.length, currentIndex, isVideoPlaying]);
+  
+  if (allMedia.length === 0) return null;
+  
+  const currentItem = allMedia[currentIndex];
   
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-      {/* Main Image with Navigation */}
-      <div className="relative">
-        <img
-          src={`${process.env.NEXT_PUBLIC_API_URL}${allImages[currentIndex]}`}
-          alt={`${communityName} - תמונה ${currentIndex + 1}`}
-          className="w-full h-80 object-cover"
-        />
-        {/* Navigation Arrows - only show if more than 1 image */}
-        {allImages.length > 1 && (
+      {/* Main Image/Video with Navigation */}
+      <div className="relative aspect-video bg-black">
+        {currentItem.type === 'video' && currentItem.videoId ? (
+          videoActivated ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${currentItem.videoId}?rel=0&autoplay=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+              title={`${communityName} - סרטון ${currentIndex + 1}`}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              onMouseEnter={() => setIsVideoPlaying(true)}
+              onMouseLeave={() => setIsVideoPlaying(false)}
+            />
+          ) : (
+            <button
+              onClick={() => {
+                setVideoActivated(true);
+                setIsVideoPlaying(true);
+              }}
+              className="absolute inset-0 group cursor-pointer"
+            >
+              <img
+                src={`https://img.youtube.com/vi/${currentItem.videoId}/hqdefault.jpg`}
+                alt="Video thumbnail"
+                className="block w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="group-hover:scale-110 transition-transform">
+                  <PlayIcon className="w-16 h-16 md:w-20 md:h-20" />
+                </div>
+              </div>
+            </button>
+          )
+        ) : (
+          <img
+            src={`${process.env.NEXT_PUBLIC_API_URL}${currentItem.src}`}
+            alt={`${communityName} - תמונה ${currentIndex + 1}`}
+            className="w-full h-full object-cover"
+          />
+        )}
+        {/* Navigation Arrows - only show if more than 1 item */}
+        {allMedia.length > 1 && (
           <>
             <button 
-              onClick={goToPrev}
+              onClick={goToNext}
               className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
             >
               <FaChevronLeft className="w-4 h-4 text-gray-700" />
             </button>
             <button 
-              onClick={goToNext}
+              onClick={goToPrev}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
             >
               <FaChevronRight className="w-4 h-4 text-gray-700" />
@@ -90,21 +200,37 @@ function CommunityGallery({ primaryImage, galleryImages, communityName }: {
         )}
       </div>
       {/* Thumbnail Strip */}
-      {allImages.length > 1 && (
+      {allMedia.length > 1 && (
         <div className="flex gap-2 p-3 bg-gray-50 justify-center overflow-x-auto">
-          {allImages.map((img, idx) => (
+          {allMedia.map((item, idx) => (
             <button
               key={idx}
-              onClick={() => setCurrentIndex(idx)}
-              className={`w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition ${
-                idx === currentIndex ? 'border-blue-500' : 'border-transparent hover:border-gray-300'
+              onClick={() => {
+                setCurrentIndex(idx);
+                setIsVideoPlaying(false);
+              }}
+              className={`w-24 h-[54px] rounded-lg overflow-hidden flex-shrink-0 border-2 transition relative ${
+                idx === currentIndex ? 'border-[#A7EA7B]' : 'border-transparent hover:border-gray-300'
               }`}
             >
-              <img
-                src={`${process.env.NEXT_PUBLIC_API_URL}${img}`}
-                alt={`Thumbnail ${idx + 1}`}
-                className="w-full h-full object-cover"
-              />
+              {item.type === 'video' && item.videoId ? (
+                <>
+                  <img
+                    src={`https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg`}
+                    alt={`Thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <PlayIcon className="w-8 h-8" />
+                  </div>
+                </>
+              ) : (
+                <img
+                  src={`${process.env.NEXT_PUBLIC_API_URL}${item.src}`}
+                  alt={`Thumbnail ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              )}
             </button>
           ))}
         </div>
@@ -286,10 +412,10 @@ export default function CommunityAboutPage() {
                     <img
                       src={ownerData.profileImage.startsWith('http') ? ownerData.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${ownerData.profileImage}`}
                       alt={ownerData.name}
-                      className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                      className="w-24 h-24 rounded-full object-cover border-[5px] border-white"
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-pink-100 flex items-center justify-center text-2xl font-bold text-pink-600 border-4 border-white shadow-md">
+                    <div className="w-24 h-24 rounded-full bg-pink-100 flex items-center justify-center text-2xl font-bold text-pink-600 border-[5px] border-white">
                       {ownerData?.name?.charAt(0) || 'U'}
                     </div>
                   )}
@@ -305,12 +431,9 @@ export default function CommunityAboutPage() {
               </div>
             </div>
 
-            {/* Community Details Card */}
+            {/* Community Details Section */}
+            <h4 className="text-lg font-semibold text-black mb-3">פרטים נוספים על הקהילה</h4>
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <div className="p-5 border-b border-gray-100">
-                <h4 className="text-sm font-medium text-gray-500 mb-2">פרטים נוספים על הקהילה</h4>
-              </div>
-            
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-4 text-center p-5 border-b border-gray-100">
                 <div>
@@ -442,11 +565,12 @@ export default function CommunityAboutPage() {
               </p>
             </div>
 
-            {/* Community Image Slideshow */}
-            {(community.image || (community.galleryImages && community.galleryImages.length > 0)) && (
+            {/* Community Image/Video Slideshow */}
+            {(community.image || (community.galleryImages && community.galleryImages.length > 0) || (community.galleryVideos && community.galleryVideos.length > 0)) && (
               <CommunityGallery 
                 primaryImage={community.image} 
                 galleryImages={community.galleryImages || []} 
+                galleryVideos={community.galleryVideos || []}
                 communityName={community.name}
               />
             )}

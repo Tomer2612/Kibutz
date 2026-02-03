@@ -2,10 +2,14 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FaEye, FaEyeSlash, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
-import { HiOutlineMail, HiOutlineKey } from 'react-icons/hi';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import Image from 'next/image';
 import Link from 'next/link';
+import SiteHeader from '../components/SiteHeader';
+import GoogleIcon from '../components/icons/GoogleIcon';
+import MailIcon from '../components/icons/MailIcon';
+import KeyIcon from '../components/icons/KeyIcon';
+import CloseIcon from '../components/icons/CloseIcon';
 
 function LoginContent() {
   const router = useRouter();
@@ -68,6 +72,28 @@ function LoginContent() {
     setMessage('');
     setEmailError('');
     setPasswordError('');
+
+    // Validate fields before submitting
+    if (!email.trim()) {
+      setEmailError('יש להזין כתובת אימייל');
+      scrollToField('login-email');
+      return;
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError('כתובת אימייל לא תקינה');
+      scrollToField('login-email');
+      return;
+    }
+
+    if (!password) {
+      setPasswordError('יש להזין סיסמה');
+      scrollToField('login-password');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -138,12 +164,7 @@ function LoginContent() {
   return (
     <main className="min-h-screen flex flex-col" dir="rtl" style={{ backgroundColor: '#F4F4F5' }}>
       {/* Top Navbar */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-          Kibutz
-        </Link>
-        <div></div>
-      </header>
+      <SiteHeader hideAuthButtons={true} />
 
       {/* Content Area */}
       <div className="flex-1 flex items-center justify-center px-6 py-8">
@@ -158,42 +179,40 @@ function LoginContent() {
                 {/* Google Button */}
                 <a
                   href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
-                  className="flex items-center justify-center gap-2 p-3 rounded-lg text-[16px] hover:opacity-80 transition"
-                  style={{ backgroundColor: '#F4F4F5' }}
+                  className="flex items-center justify-center gap-2 p-3 rounded-lg text-[16px] hover:opacity-80 transition border"
+                  style={{ borderColor: '#E1E1E2', backgroundColor: '#F4F4F5' }}
                 >
                   התחברות מהירה עם Google
-                  <Image src="https://developers.google.com/identity/images/g-logo.png" alt="Google" width={600} height={300} className="w-5 h-5" />
+                  <GoogleIcon className="w-5 h-5" />
                 </a>
 
-                <div className="relative my-3 text-center text-[12px] text-gray-400">
+                <div className="relative my-3 text-center text-[12px]" style={{ color: '#A1A1AA' }}>
                   <span className="bg-white px-3 relative z-10">או באמצעות מייל</span>
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200"></div>
+                    <div className="w-full" style={{ borderTop: '1px solid #E1E1E2' }}></div>
                   </div>
                 </div>
 
                 {/* Email Field */}
                 <div>
                   <div className="relative">
-                    <HiOutlineMail className="absolute right-3 top-3.5 text-gray-400 pointer-events-none w-5 h-5" />
+                    <MailIcon className="absolute right-3 top-3.5 pointer-events-none w-5 h-5 text-black" />
                     <input
                       id="login-email"
-                      type="email"
+                      type="text"
                       placeholder="כתובת אימייל"
-                      className={`w-full p-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
-                        emailError ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-black'
-                      }`}
+                      className={`auth-input w-full p-3 pr-10 border rounded-lg focus:outline-none text-[14px]`}
+                      style={{ borderColor: emailError ? '#B3261E' : '#D0D0D4' }}
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
                         if (emailError) setEmailError('');
                       }}
-                      required
                     />
                   </div>
                   {emailError && (
-                    <div className="mt-1 flex items-center gap-1 text-sm text-red-600">
-                      <FaTimes className="w-3 h-3" />
+                    <div className="mt-2 flex items-center gap-2 text-sm p-2 rounded-lg" style={{ color: '#B3261E', backgroundColor: '#FEE2E2' }}>
+                      <CloseIcon className="w-4 h-4 flex-shrink-0" />
                       <p>{emailError}</p>
                     </div>
                   )}
@@ -202,57 +221,62 @@ function LoginContent() {
                 {/* Password Field */}
                 <div>
                   <div className="relative">
-                    <HiOutlineKey className="absolute right-3 top-3.5 text-gray-400 w-5 h-5" />
+                    <KeyIcon className="absolute right-3 top-3.5 w-5 h-5 text-black" />
                     <input
                       id="login-password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="סיסמה"
-                      className={`w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
-                        passwordError ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-black'
-                      }`}
+                      className={`auth-input w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none text-[14px]`}
+                      style={{ borderColor: passwordError ? '#B3261E' : '#D0D0D4' }}
                       value={password}
                       onChange={(e) => {
                         setPassword(e.target.value);
                         if (passwordError) setPasswordError('');
                       }}
-                      required
                     />
                     <button
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-3.5 text-gray-400 hover:text-gray-600"
+                      className="absolute left-3 top-3.5 transition-colors"
+                      style={{ color: '#A1A1AA' }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = '#52525B'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = '#A1A1AA'}
                     >
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
                   {passwordError && (
-                    <div className="mt-1 flex items-center gap-1 text-sm text-red-600">
-                      <FaTimes className="w-3 h-3" />
+                    <div className="mt-2 flex items-center gap-2 text-sm p-2 rounded-lg" style={{ color: '#B3261E', backgroundColor: '#FEE2E2' }}>
+                      <CloseIcon className="w-4 h-4 flex-shrink-0" />
                       <p>{passwordError}</p>
                     </div>
                   )}
                 </div>
 
                 <div className="text-left">
-                  <a href="/forgot-password" className="text-[14px] text-gray-600 hover:underline">
+                  <a href="/forgot-password" className="text-[14px] hover:underline" style={{ color: '#52525B' }}>
                     שכחת סיסמה?
                   </a>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="bg-black text-white py-3 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                  disabled={isSubmitting || !email || !password}
+                  className="bg-black text-white py-3 transition-colors font-medium disabled:cursor-not-allowed"
+                  style={{ borderRadius: '12px', backgroundColor: (isSubmitting || !email || !password) ? '#D0D0D4' : 'black' }}
+                  onMouseEnter={(e) => !(isSubmitting || !email || !password) && (e.currentTarget.style.backgroundColor = '#3F3F46')}
+                  onMouseLeave={(e) => !(isSubmitting || !email || !password) && (e.currentTarget.style.backgroundColor = 'black')}
                 >
                   {isSubmitting ? 'מתחבר...' : 'התחברות'}
                 </button>
 
                 {message && (
-                  <div className={`flex items-center gap-2 text-[14px] p-2 rounded-lg ${
-                    messageType === 'error' ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'
-                  }`}>
-                    <FaExclamationTriangle className="w-4 h-4 flex-shrink-0" />
+                  <div className="flex items-center gap-2 text-[14px] p-2 rounded-lg" style={{ 
+                    color: messageType === 'error' ? '#B3261E' : '#003233',
+                    backgroundColor: messageType === 'error' ? '#FEE2E2' : '#E0F2FE'
+                  }}>
+                    <CloseIcon className="w-4 h-4 flex-shrink-0" />
                     <p>{message}</p>
                   </div>
                 )}

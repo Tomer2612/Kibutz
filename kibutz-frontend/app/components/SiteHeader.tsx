@@ -17,9 +17,11 @@ interface JwtPayload {
 interface SiteHeaderProps {
   // Optional: override the default nav links
   hideNavLinks?: boolean;
+  // Optional: hide login/signup buttons
+  hideAuthButtons?: boolean;
 }
 
-export default function SiteHeader({ hideNavLinks = false }: SiteHeaderProps) {
+export default function SiteHeader({ hideNavLinks = false, hideAuthButtons = false }: SiteHeaderProps) {
   const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export default function SiteHeader({ hideNavLinks = false }: SiteHeaderProps) {
   }, []);
 
   return (
-    <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
+    <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b h-[72px]" style={{ borderColor: '#E1E1E2' }}>
       <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
         Kibutz
       </Link>
@@ -88,22 +90,24 @@ export default function SiteHeader({ hideNavLinks = false }: SiteHeaderProps) {
         {!mounted ? (
           <div className="w-10 h-10" />
         ) : !userEmail ? (
-          <div className="flex items-center gap-4">
-            <Link
-              href="/login"
-              className="border-2 border-black text-black px-6 py-2 rounded-lg font-semibold hover:bg-black hover:text-white transition"
-            >
-              כניסה
-            </Link>
-            <Link
-              href="/signup"
-              className="bg-black text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition"
+          !hideAuthButtons && (
+            <div className="flex items-center gap-4">
+              <Link
+                href="/login"
+                className="border-2 border-black text-black px-6 py-2 rounded-lg font-semibold hover:bg-black hover:text-white transition"
+              >
+                כניסה
+              </Link>
+              <Link
+                href="/signup"
+                className="bg-black text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition"
             >
               הרשמה
             </Link>
           </div>
+          )
         ) : (
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3">
             <MessagesBell />
             <NotificationBell />
             <UserProfileDropdown

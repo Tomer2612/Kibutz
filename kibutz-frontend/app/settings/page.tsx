@@ -6,7 +6,13 @@ import { jwtDecode } from 'jwt-decode';
 import SiteHeader from '../components/SiteHeader';
 import FormSelect from '../components/FormSelect';
 import { HiOutlineUser, HiOutlineCamera, HiOutlineCog6Tooth, HiOutlineArrowRightOnRectangle, HiOutlineLink, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeSlash, HiOutlineBell, HiOutlineShieldCheck, HiOutlineHeart, HiOutlineChatBubbleLeft, HiOutlineChatBubbleOvalLeft, HiOutlineUserPlus, HiOutlineUsers, HiOutlineEnvelope, HiOutlineMapPin, HiOutlineDocumentText, HiOutlineAtSymbol, HiOutlineCreditCard } from 'react-icons/hi2';
-import { FaPowerOff, FaTrash, FaCreditCard, FaCalendarAlt, FaLock, FaTimes } from 'react-icons/fa';
+import { FaTimes } from 'react-icons/fa';
+import PowerIcon from '../components/icons/PowerIcon';
+import PowerOffIcon from '../components/icons/PowerOffIcon';
+import CreditCardIcon from '../components/icons/CreditCardIcon';
+import TrashIcon from '../components/icons/TrashIcon';
+import LockIcon from '../components/icons/LockIcon';
+import CalendarIcon from '../components/icons/CalendarIcon';
 
 // Password requirements (same as signup)
 const passwordRequirements = [
@@ -326,8 +332,14 @@ export default function SettingsPage() {
         setImagePreview(updatedProfile.profileImage.startsWith('http') ? updatedProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${updatedProfile.profileImage}`);
       }
       
-      // Redirect to profile page after successful save
-      router.push(`/profile/${userId}`);
+      // Show success message
+      setMessage('השינויים נשמרו בהצלחה');
+      setMessageType('success');
+      
+      // Redirect to profile page after short delay
+      setTimeout(() => {
+        router.push(`/profile/${userId}`);
+      }, 1500);
     } catch (err: any) {
       console.error('Profile update error:', err);
       setMessage(err.message || 'שגיאה בעדכון הפרופיל');
@@ -541,16 +553,16 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 text-right" dir="rtl">
+    <main className="min-h-screen text-right" style={{ backgroundColor: '#F4F4F5' }} dir="rtl">
       <SiteHeader />
 
       {/* Main Layout with Sidebar */}
       <div className="flex min-h-[calc(100vh-65px)]">
         {/* Right Sidebar - Settings Tabs */}
-        <aside className="w-64 bg-white border-l border-gray-200 p-6 flex-shrink-0">
+        <aside className="w-64 bg-white border-l p-6 flex-shrink-0" style={{ borderColor: '#E1E1E2' }}>
           <div className="flex items-center gap-2 mb-6">
-            <HiOutlineCog6Tooth className="w-5 h-5 text-gray-600" />
-            <h2 className="text-base font-semibold text-gray-900">הגדרות</h2>
+            <HiOutlineCog6Tooth className="w-5 h-5" style={{ color: '#52525B' }} />
+            <h2 className="text-base font-semibold" style={{ color: '#1D1D20' }}>הגדרות</h2>
           </div>
           
           <nav className="space-y-1">
@@ -560,12 +572,12 @@ export default function SettingsPage() {
                 setActiveTab('profile');
                 setMessage('');
               }}
-              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
-                activeTab === 'profile'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-              style={{ fontSize: '16px' }}
+              className="w-full text-right px-4 py-2.5 rounded-lg font-medium transition"
+              style={{
+                fontSize: '16px',
+                backgroundColor: activeTab === 'profile' ? '#F4F4F5' : 'transparent',
+                color: activeTab === 'profile' ? '#1D1D20' : '#52525B'
+              }}
             >
               פרטי פרופיל
             </button>
@@ -575,12 +587,12 @@ export default function SettingsPage() {
                 setActiveTab('security');
                 setMessage('');
               }}
-              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
-                activeTab === 'security'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-              style={{ fontSize: '16px' }}
+              className="w-full text-right px-4 py-2.5 rounded-lg font-medium transition"
+              style={{
+                fontSize: '16px',
+                backgroundColor: activeTab === 'security' ? '#F4F4F5' : 'transparent',
+                color: activeTab === 'security' ? '#1D1D20' : '#52525B'
+              }}
             >
               אבטחה
             </button>
@@ -590,12 +602,12 @@ export default function SettingsPage() {
                 setActiveTab('notifications');
                 setMessage('');
               }}
-              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
-                activeTab === 'notifications'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-              style={{ fontSize: '16px' }}
+              className="w-full text-right px-4 py-2.5 rounded-lg font-medium transition"
+              style={{
+                fontSize: '16px',
+                backgroundColor: activeTab === 'notifications' ? '#F4F4F5' : 'transparent',
+                color: activeTab === 'notifications' ? '#1D1D20' : '#52525B'
+              }}
             >
               התראות
             </button>
@@ -605,12 +617,12 @@ export default function SettingsPage() {
                 setActiveTab('payment');
                 setMessage('');
               }}
-              className={`w-full text-right px-4 py-2.5 rounded-lg font-medium transition ${
-                activeTab === 'payment'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-              style={{ fontSize: '16px' }}
+              className="w-full text-right px-4 py-2.5 rounded-lg font-medium transition"
+              style={{
+                fontSize: '16px',
+                backgroundColor: activeTab === 'payment' ? '#F4F4F5' : 'transparent',
+                color: activeTab === 'payment' ? '#1D1D20' : '#52525B'
+              }}
             >
               תשלומים
             </button>
@@ -622,27 +634,27 @@ export default function SettingsPage() {
           <form onSubmit={handleSubmit} className="max-w-3xl">
             {/* Profile Tab */}
             {activeTab === 'profile' && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+              <div className="bg-white rounded-xl border p-6 space-y-6" style={{ borderColor: '#E1E1E2' }}>
                 {/* Profile Photo */}
                 <div className="flex items-center gap-8">
-                  <h3 className="text-sm font-medium text-gray-900 w-32 flex-shrink-0">תמונת פרופיל</h3>
+                  <h3 className="text-sm font-medium w-32 flex-shrink-0" style={{ color: '#1D1D20' }}>תמונת פרופיל</h3>
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       {imagePreview ? (
                         <img
                           src={imagePreview}
                           alt="Profile"
-                          className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                          className="w-20 h-20 rounded-full object-cover border-2" style={{ borderColor: '#E1E1E2' }}
                         />
                       ) : (
-                        <div className="w-20 h-20 rounded-full bg-pink-100 flex items-center justify-center text-xl font-bold text-pink-600 border-2 border-gray-200">
+                        <div className="w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold border-2" style={{ backgroundColor: '#FCE7F3', color: '#DB2777', borderColor: '#E1E1E2' }}>
                           {name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
                         </div>
                       )}
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="absolute bottom-0 right-0 w-7 h-7 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition"
+                        className="absolute bottom-0 right-0 w-7 h-7 bg-black rounded-full flex items-center justify-center hover:opacity-90 transition"
                       >
                         <HiOutlineCamera className="w-4 h-4 text-white" />
                       </button>
@@ -654,49 +666,50 @@ export default function SettingsPage() {
                       onChange={handleImageChange}
                       className="hidden"
                     />
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm" style={{ color: '#71717A' }}>
                       <p>לחצו על האייקון לשינוי התמונה</p>
-                      <p className="text-xs text-gray-400">JPG, PNG עד 5MB</p>
+                      <p className="text-xs" style={{ color: '#A1A1AA' }}>JPG, PNG עד 5MB</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Email */}
                 <div className="flex items-center gap-8">
-                  <h3 className="text-sm font-medium text-gray-900 w-32 flex-shrink-0">אימייל</h3>
+                  <h3 className="text-sm font-medium w-32 flex-shrink-0" style={{ color: '#1D1D20' }}>אימייל</h3>
                   <div className="flex-1 relative">
-                    <HiOutlineEnvelope className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <HiOutlineEnvelope className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#A1A1AA' }} />
                     <input
                       type="email"
                       value={userEmail || ''}
                       disabled
-                      className="w-full pr-11 pl-4 py-3 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 text-sm"
+                      className="w-full pr-11 pl-4 py-3 rounded-lg border text-sm"
+                      style={{ borderColor: '#E1E1E2', backgroundColor: '#F4F4F5', color: '#71717A' }}
                     />
                   </div>
                 </div>
 
                 {/* Full Name */}
                 <div className="flex items-center gap-8">
-                  <h3 className="text-sm font-medium text-gray-900 w-32 flex-shrink-0">שם מלא</h3>
+                  <h3 className="text-sm font-medium w-32 flex-shrink-0" style={{ color: '#1D1D20' }}>שם מלא</h3>
                   <div className="flex-1 relative">
-                    <HiOutlineUser className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <HiOutlineUser className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#A1A1AA' }} />
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value.slice(0, 50))}
                       placeholder="שם מלא"
                       maxLength={50}
-                      className="w-full pr-11 pl-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                      className="w-full pr-11 pl-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm"
+                      style={{ borderColor: '#E1E1E2' }}
                     />
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">{name.length}/50</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#A1A1AA' }}>{name.length}/50</span>
                   </div>
                 </div>
 
                 {/* Bio */}
                 <div className="flex items-start gap-8">
                   <div className="w-32 flex-shrink-0">
-                    <h3 className="text-sm font-medium text-gray-900">תיאור</h3>
-                    <p className="text-xs text-gray-500">ספרו על עצמכם</p>
+                    <h3 className="text-sm font-medium" style={{ color: '#1D1D20' }}>תיאור</h3>
+                    <p className="text-xs" style={{ color: '#71717A' }}>ספרו על עצמכם</p>
                   </div>
                   <div className="flex-1 min-w-[400px] relative">
                     <textarea
@@ -705,15 +718,16 @@ export default function SettingsPage() {
                       placeholder="ספרו על עצמכם"
                       maxLength={300}
                       rows={5}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm resize-none overflow-y-auto text-right"
+                      className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm resize-none overflow-y-auto text-right"
+                      style={{ borderColor: '#E1E1E2' }}
                     />
-                    <span className="absolute left-3 bottom-3 text-xs text-gray-400">{bio.length}/300</span>
+                    <span className="absolute left-3 bottom-3 text-xs" style={{ color: '#A1A1AA' }}>{bio.length}/300</span>
                   </div>
                 </div>
 
                 {/* Location */}
                 <div className="flex items-center gap-8">
-                  <h3 className="text-sm font-medium text-gray-900 w-32 flex-shrink-0">עיר מגורים</h3>
+                  <h3 className="text-sm font-medium w-32 flex-shrink-0" style={{ color: '#1D1D20' }}>עיר מגורים</h3>
                   <div className="flex-1">
                     <FormSelect
                       value={location}
@@ -727,21 +741,26 @@ export default function SettingsPage() {
                 {/* Online Status */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900">הסטטוס שלי</h3>
-                    <p className="text-xs text-gray-500">כרגע מוצג כמחובר לכל חברי הקהילות</p>
+                    <h3 className="text-sm font-medium" style={{ color: '#1D1D20' }}>הסטטוס שלי</h3>
+                    <p className="text-xs" style={{ color: '#71717A' }}>כרגע מוצג כמחובר לכל חברי הקהילות</p>
                   </div>
                   <button
                     type="button"
                     onClick={handleToggleOnlineStatus}
                     disabled={settingOffline}
-                    className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    className="flex items-center gap-2 px-3 py-2 rounded-full border bg-white text-sm font-medium transition"
+                    style={{ borderColor: '#E1E1E2', color: '#3F3F46' }}
                   >
-                    <FaPowerOff className="w-4 h-4 text-gray-600" />
-                    {showOnline ? 'הפוך ללא מחובר' : 'הפוך למחובר'}
                     <div 
-                      className="w-2.5 h-2.5 rounded-full border border-gray-900" 
-                      style={{ backgroundColor: showOnline ? '#A7EA7B' : '#D1D5DB' }} 
+                      className="w-2.5 h-2.5 rounded-full border" 
+                      style={{ borderColor: '#1D1D20', backgroundColor: showOnline ? '#A7EA7B' : '#D1D5DB' }} 
                     />
+                    {showOnline ? 'הפוך ללא מחובר' : 'הפוך למחובר'}
+                    {showOnline ? (
+                      <PowerOffIcon className="w-4 h-4" style={{ color: '#52525B' }} />
+                    ) : (
+                      <PowerIcon className="w-4 h-4" style={{ color: '#52525B' }} />
+                    )}
                   </button>
                 </div>
 
@@ -750,7 +769,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="w-full py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50"
+                    className="w-full py-3 bg-black text-white rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
                   >
                     {saving ? 'שומר...' : 'שמור שינויים'}
                   </button>
@@ -760,19 +779,19 @@ export default function SettingsPage() {
 
             {/* Security Tab */}
             {activeTab === 'security' && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+              <div className="bg-white rounded-xl border p-6 space-y-6" style={{ borderColor: '#E1E1E2' }}>
                 {/* Change Password Section */}
                 <div className={userProfile?.isGoogleAccount ? 'opacity-50 pointer-events-none' : ''}>
-                  <h3 className="text-base font-semibold text-gray-900 mb-4">שינוי סיסמא</h3>
+                  <h3 className="text-base font-semibold mb-4" style={{ color: '#1D1D20' }}>שינוי סיסמא</h3>
                   {userProfile?.isGoogleAccount && (
-                    <p className="text-sm text-gray-500 mb-4">לא ניתן לשנות סיסמא עבור חשבונות Google</p>
+                    <p className="text-sm mb-4" style={{ color: '#71717A' }}>לא ניתן לשנות סיסמא עבור חשבונות Google</p>
                   )}
                 
                   {/* Current Password */}
                   <div className="flex items-center gap-8 mb-4">
                     <div className="w-40 flex-shrink-0">
-                      <h4 className="text-sm font-medium text-gray-900">סיסמא נוכחית</h4>
-                      <p className="text-xs text-gray-500">הזינו את הסיסמא הנוכחית</p>
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>סיסמא נוכחית</h4>
+                      <p className="text-xs" style={{ color: '#71717A' }}>הזינו את הסיסמא הנוכחית</p>
                     </div>
                     <div className="relative flex-1">
                       <input
@@ -780,12 +799,15 @@ export default function SettingsPage() {
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         disabled={userProfile?.isGoogleAccount}
-                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-sm disabled:bg-gray-100"
+                        className="w-full pl-12 pr-4 py-3 rounded-full border focus:outline-none focus:ring-1 focus:border-black text-sm"
+                        style={{ borderColor: '#E1E1E2' }}
                       />
                       <button
                         type="button"
+                        tabIndex={-1}
                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute left-4 top-1/2 -translate-y-1/2"
+                        style={{ color: '#A1A1AA' }}
                       >
                         {showCurrentPassword ? <HiOutlineEye className="w-5 h-5" /> : <HiOutlineEyeSlash className="w-5 h-5" />}
                       </button>
@@ -795,8 +817,8 @@ export default function SettingsPage() {
                   {/* New Password */}
                   <div className="flex items-center gap-8 mb-4">
                     <div className="w-40 flex-shrink-0">
-                      <h4 className="text-sm font-medium text-gray-900">סיסמא חדשה</h4>
-                      <p className="text-xs text-gray-500">הזינו את הסיסמא החדשה</p>
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>סיסמא חדשה</h4>
+                      <p className="text-xs" style={{ color: '#71717A' }}>הזינו את הסיסמא החדשה</p>
                     </div>
                     <div className="relative flex-1">
                       <input
@@ -804,12 +826,15 @@ export default function SettingsPage() {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         disabled={userProfile?.isGoogleAccount}
-                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-sm disabled:bg-gray-100"
+                        className="w-full pl-12 pr-4 py-3 rounded-full border focus:outline-none focus:ring-1 focus:border-black text-sm"
+                        style={{ borderColor: '#E1E1E2' }}
                       />
                       <button
                         type="button"
+                        tabIndex={-1}
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute left-4 top-1/2 -translate-y-1/2"
+                        style={{ color: '#A1A1AA' }}
                       >
                         {showNewPassword ? <HiOutlineEye className="w-5 h-5" /> : <HiOutlineEyeSlash className="w-5 h-5" />}
                       </button>
@@ -819,8 +844,8 @@ export default function SettingsPage() {
                   {/* Confirm Password */}
                   <div className="flex items-center gap-8 mb-4">
                     <div className="w-40 flex-shrink-0">
-                      <h4 className="text-sm font-medium text-gray-900">אישור סיסמא חדשה</h4>
-                      <p className="text-xs text-gray-500">הזינו שוב את הסיסמא החדשה</p>
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>אישור סיסמא חדשה</h4>
+                      <p className="text-xs" style={{ color: '#71717A' }}>הזינו שוב את הסיסמא החדשה</p>
                     </div>
                     <div className="relative flex-1">
                       <input
@@ -828,12 +853,15 @@ export default function SettingsPage() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         disabled={userProfile?.isGoogleAccount}
-                        className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-sm disabled:bg-gray-100"
+                        className="w-full pl-12 pr-4 py-3 rounded-full border focus:outline-none focus:ring-1 focus:border-black text-sm"
+                        style={{ borderColor: '#E1E1E2' }}
                       />
                       <button
                         type="button"
+                        tabIndex={-1}
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute left-4 top-1/2 -translate-y-1/2"
+                        style={{ color: '#A1A1AA' }}
                       >
                         {showConfirmPassword ? <HiOutlineEye className="w-5 h-5" /> : <HiOutlineEyeSlash className="w-5 h-5" />}
                       </button>
@@ -846,7 +874,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={handleChangePassword}
                       disabled={changingPassword || userProfile?.isGoogleAccount}
-                      className="px-6 py-2.5 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50 text-sm"
+                      className="px-6 py-2.5 bg-black text-white rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 text-sm"
                     >
                       {changingPassword ? 'משנה...' : 'שנה סיסמא'}
                     </button>
@@ -854,14 +882,14 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Delete Account */}
-                <div className="pt-6 border-t border-gray-200">
+                <div className="pt-6 border-t" style={{ borderColor: '#E1E1E2' }}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h4 className="text-sm font-medium text-gray-900">מחיקת חשבון</h4>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>מחיקת חשבון</h4>
+                      <p className="text-xs mt-1" style={{ color: '#71717A' }}>
                         מחיקת החשבון היא פעולה בלתי הפיכה. כל הנתונים שלך יימחקו לצמיתות, כולל:
                       </p>
-                      <ul className="text-xs text-gray-500 mt-2 space-y-1 list-disc list-inside">
+                      <ul className="text-xs mt-2 space-y-1 list-disc list-inside" style={{ color: '#71717A' }}>
                         <li>כל הפוסטים שפרסמת</li>
                         <li>הקהילות שאתה הבעלים שלהן</li>
                         <li>כל התגובות שכתבת</li>
@@ -874,7 +902,7 @@ export default function SettingsPage() {
                       style={{ backgroundColor: '#B3261E' }}
                     >
                       אני רוצה למחוק את החשבון שלי
-                      <FaTrash className="w-4 h-4" />
+                      <TrashIcon className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -883,145 +911,152 @@ export default function SettingsPage() {
 
             {/* Notifications Tab */}
             {activeTab === 'notifications' && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white rounded-xl border p-6" style={{ borderColor: '#E1E1E2' }}>
                 <div className="space-y-6">
                   {/* Likes */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">לייקים</h4>
-                      <p className="text-xs text-gray-500">קבל התראה כשמישהו אוהב את הפוסט שלך</p>
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>לייקים</h4>
+                      <p className="text-xs" style={{ color: '#71717A' }}>קבל התראה כשמישהו אוהב את הפוסט שלך</p>
                     </div>
                     <button
                       type="button"
                       onClick={toggleNotifyLikes}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border bg-white text-sm font-medium transition"
+                      style={{ borderColor: '#E1E1E2', color: '#3F3F46' }}
                     >
-                      <HiOutlineHeart className="w-5 h-5 text-gray-400" />
-                      {notifyLikes ? 'בטל התראות' : 'הפעל התראות'}
                       <div 
-                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
-                        style={{ backgroundColor: notifyLikes ? '#A7EA7B' : '#D1D5DB' }} 
+                        className="w-2.5 h-2.5 rounded-full border" 
+                        style={{ borderColor: '#1D1D20', backgroundColor: notifyLikes ? '#A7EA7B' : '#D1D5DB' }} 
                       />
+                      {notifyLikes ? 'בטל התראות' : 'הפעל התראות'}
+                      <HiOutlineHeart className="w-5 h-5" style={{ color: '#A1A1AA' }} />
                     </button>
                   </div>
 
                   {/* Comments */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">תגובות</h4>
-                      <p className="text-xs text-gray-500">קבל התראה כשמישהו מגיב על הפוסט שלך</p>
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>תגובות</h4>
+                      <p className="text-xs" style={{ color: '#71717A' }}>קבל התראה כשמישהו מגיב על הפוסט שלך</p>
                     </div>
                     <button
                       type="button"
                       onClick={toggleNotifyComments}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border bg-white text-sm font-medium transition"
+                      style={{ borderColor: '#E1E1E2', color: '#3F3F46' }}
                     >
-                      <HiOutlineChatBubbleOvalLeft className="w-5 h-5 text-gray-400" />
-                      {notifyComments ? 'בטל התראות' : 'הפעל התראות'}
                       <div 
-                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
-                        style={{ backgroundColor: notifyComments ? '#A7EA7B' : '#D1D5DB' }} 
+                        className="w-2.5 h-2.5 rounded-full border" 
+                        style={{ borderColor: '#1D1D20', backgroundColor: notifyComments ? '#A7EA7B' : '#D1D5DB' }} 
                       />
+                      {notifyComments ? 'בטל התראות' : 'הפעל התראות'}
+                      <HiOutlineChatBubbleOvalLeft className="w-5 h-5" style={{ color: '#A1A1AA' }} />
                     </button>
                   </div>
 
                   {/* New Followers */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">עוקבים חדשים</h4>
-                      <p className="text-xs text-gray-500">קבל התראה כשמישהו מתחיל לעקוב אחריך</p>
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>עוקבים חדשים</h4>
+                      <p className="text-xs" style={{ color: '#71717A' }}>קבל התראה כשמישהו מתחיל לעקוב אחריך</p>
                     </div>
                     <button
                       type="button"
                       onClick={toggleNotifyFollows}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border bg-white text-sm font-medium transition"
+                      style={{ borderColor: '#E1E1E2', color: '#3F3F46' }}
                     >
-                      <HiOutlineUsers className="w-5 h-5 text-gray-400" />
-                      {notifyFollows ? 'בטל התראות' : 'הפעל התראות'}
                       <div 
-                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
-                        style={{ backgroundColor: notifyFollows ? '#A7EA7B' : '#D1D5DB' }} 
+                        className="w-2.5 h-2.5 rounded-full border" 
+                        style={{ borderColor: '#1D1D20', backgroundColor: notifyFollows ? '#A7EA7B' : '#D1D5DB' }} 
                       />
+                      {notifyFollows ? 'בטל התראות' : 'הפעל התראות'}
+                      <HiOutlineUsers className="w-5 h-5" style={{ color: '#A1A1AA' }} />
                     </button>
                   </div>
 
                   {/* New Posts */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">פוסטים חדשים</h4>
-                      <p className="text-xs text-gray-500">קבל התראה כשמישהו שאתה עוקב אחריו מפרסם</p>
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>פוסטים חדשים</h4>
+                      <p className="text-xs" style={{ color: '#71717A' }}>קבל התראה כשמישהו שאתה עוקב אחריו מפרסם</p>
                     </div>
                     <button
                       type="button"
                       onClick={toggleNotifyNewPosts}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border bg-white text-sm font-medium transition"
+                      style={{ borderColor: '#E1E1E2', color: '#3F3F46' }}
                     >
-                      <HiOutlineDocumentText className="w-5 h-5 text-gray-400" />
-                      {notifyNewPosts ? 'בטל התראות' : 'הפעל התראות'}
                       <div 
-                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
-                        style={{ backgroundColor: notifyNewPosts ? '#A7EA7B' : '#D1D5DB' }} 
+                        className="w-2.5 h-2.5 rounded-full border" 
+                        style={{ borderColor: '#1D1D20', backgroundColor: notifyNewPosts ? '#A7EA7B' : '#D1D5DB' }} 
                       />
+                      {notifyNewPosts ? 'בטל התראות' : 'הפעל התראות'}
+                      <HiOutlineDocumentText className="w-5 h-5" style={{ color: '#A1A1AA' }} />
                     </button>
                   </div>
 
                   {/* Mentions */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">אזכורים</h4>
-                      <p className="text-xs text-gray-500">קבל התראה כשמישהו מזכיר אותך בתגובה</p>
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>אזכורים</h4>
+                      <p className="text-xs" style={{ color: '#71717A' }}>קבל התראה כשמישהו מזכיר אותך בתגובה</p>
                     </div>
                     <button
                       type="button"
                       onClick={toggleNotifyMentions}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border bg-white text-sm font-medium transition"
+                      style={{ borderColor: '#E1E1E2', color: '#3F3F46' }}
                     >
-                      <HiOutlineAtSymbol className="w-5 h-5 text-gray-400" />
-                      {notifyMentions ? 'בטל התראות' : 'הפעל התראות'}
                       <div 
-                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
-                        style={{ backgroundColor: notifyMentions ? '#A7EA7B' : '#D1D5DB' }} 
+                        className="w-2.5 h-2.5 rounded-full border" 
+                        style={{ borderColor: '#1D1D20', backgroundColor: notifyMentions ? '#A7EA7B' : '#D1D5DB' }} 
                       />
+                      {notifyMentions ? 'בטל התראות' : 'הפעל התראות'}
+                      <HiOutlineAtSymbol className="w-5 h-5" style={{ color: '#A1A1AA' }} />
                     </button>
                   </div>
 
                   {/* Community Joins */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">הצטרפות לקהילה</h4>
-                      <p className="text-xs text-gray-500">קבל התראה כשמישהו מצטרף לקהילה שלך</p>
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>הצטרפות לקהילה</h4>
+                      <p className="text-xs" style={{ color: '#71717A' }}>קבל התראה כשמישהו מצטרף לקהילה שלך</p>
                     </div>
                     <button
                       type="button"
                       onClick={toggleNotifyCommunityJoins}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border bg-white text-sm font-medium transition"
+                      style={{ borderColor: '#E1E1E2', color: '#3F3F46' }}
                     >
-                      <HiOutlineUserPlus className="w-5 h-5 text-gray-400" />
-                      {notifyCommunityJoins ? 'בטל התראות' : 'הפעל התראות'}
                       <div 
-                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
-                        style={{ backgroundColor: notifyCommunityJoins ? '#A7EA7B' : '#D1D5DB' }} 
+                        className="w-2.5 h-2.5 rounded-full border" 
+                        style={{ borderColor: '#1D1D20', backgroundColor: notifyCommunityJoins ? '#A7EA7B' : '#D1D5DB' }} 
                       />
+                      {notifyCommunityJoins ? 'בטל התראות' : 'הפעל התראות'}
+                      <HiOutlineUserPlus className="w-5 h-5" style={{ color: '#A1A1AA' }} />
                     </button>
                   </div>
 
                   {/* Private Messages */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">הודעות פרטיות</h4>
-                      <p className="text-xs text-gray-500">קבל התראה כשמישהו שולח לך הודעה</p>
+                      <h4 className="text-sm font-medium" style={{ color: '#1D1D20' }}>הודעות פרטיות</h4>
+                      <p className="text-xs" style={{ color: '#71717A' }}>קבל התראה כשמישהו שולח לך הודעה</p>
                     </div>
                     <button
                       type="button"
                       onClick={toggleNotifyMessages}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                      className="flex items-center gap-2 px-3 py-2 rounded-full border bg-white text-sm font-medium transition"
+                      style={{ borderColor: '#E1E1E2', color: '#3F3F46' }}
                     >
-                      <HiOutlineChatBubbleLeft className="w-5 h-5 text-gray-400" />
-                      {notifyMessages ? 'בטל התראות' : 'הפעל התראות'}
                       <div 
-                        className="w-2.5 h-2.5 rounded-full border border-gray-900" 
-                        style={{ backgroundColor: notifyMessages ? '#A7EA7B' : '#D1D5DB' }} 
+                        className="w-2.5 h-2.5 rounded-full border" 
+                        style={{ borderColor: '#1D1D20', backgroundColor: notifyMessages ? '#A7EA7B' : '#D1D5DB' }} 
                       />
+                      {notifyMessages ? 'בטל התראות' : 'הפעל התראות'}
+                      <HiOutlineChatBubbleLeft className="w-5 h-5" style={{ color: '#A1A1AA' }} />
                     </button>
                   </div>
                 </div>
@@ -1032,14 +1067,14 @@ export default function SettingsPage() {
             {activeTab === 'payment' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold text-gray-800">אמצעי תשלום</h2>
+                  <h2 className="text-lg font-bold" style={{ color: '#3F3F46' }}>אמצעי תשלום</h2>
                   <button
                     type="button"
                     onClick={() => setShowAddCardModal(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl font-medium hover:opacity-90 transition"
                   >
-                    <FaCreditCard className="w-4 h-4" />
                     הוסף כרטיס
+                    <CreditCardIcon className="w-4 h-4" />
                   </button>
                 </div>
 
@@ -1048,8 +1083,8 @@ export default function SettingsPage() {
                   <div className="space-y-3">
                     {/* Sort by createdAt - most recent first */}
                     {[...paymentMethods].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((method, index) => (
-                      <div key={method.id} className={`flex items-center justify-between p-4 rounded-xl border ${index === 0 ? 'bg-white border-gray-300 shadow-sm' : 'bg-gray-50 border-gray-200'}`}>
-                        <div className="flex items-center gap-3 text-gray-700">
+                      <div key={method.id} className="flex items-center justify-between p-4 rounded-xl border" style={{ backgroundColor: index === 0 ? 'white' : '#F4F4F5', borderColor: index === 0 ? '#D0D0D4' : '#E1E1E2' }}>
+                        <div className="flex items-center gap-3" style={{ color: '#3F3F46' }}>
                           {/* Radio-style dot - clickable for non-primary cards */}
                           <button
                             type="button"
@@ -1080,16 +1115,13 @@ export default function SettingsPage() {
                               }
                             }}
                             disabled={settingPrimaryId === method.id}
-                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${
-                              index === 0 
-                                ? 'border-black cursor-default' 
-                                : 'border-gray-400 hover:border-gray-600 cursor-pointer'
-                            }`}
+                            className="flex items-center justify-center transition cursor-pointer"
+                            style={{ width: '20px', height: '20px', minWidth: '20px', minHeight: '20px', borderRadius: '50%', border: '2px solid', borderColor: index === 0 ? 'black' : '#D0D0D4' }}
                           >
                             {settingPrimaryId === method.id ? (
-                              <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                              <div className="border-2 border-t-transparent animate-spin" style={{ width: '12px', height: '12px', borderRadius: '50%', borderColor: '#A1A1AA' }}></div>
                             ) : index === 0 ? (
-                              <div className="w-2.5 h-2.5 rounded-full bg-black"></div>
+                              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'black' }}></div>
                             ) : null}
                           </button>
                           <div>
@@ -1123,13 +1155,14 @@ export default function SettingsPage() {
                                 }
                               }}
                               disabled={deletingCardId === method.id}
-                              className="flex items-center gap-1 text-sm text-red-500 hover:text-red-600 transition"
+                              className="flex items-center gap-1 text-sm transition"
+                              style={{ color: '#B3261E' }}
                             >
                               {deletingCardId === method.id ? (
-                                <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                                <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#B3261E' }}></div>
                               ) : (
                                 <>
-                                  <FaTrash className="w-3 h-3" />
+                                  <TrashIcon className="w-3.5 h-3.5" />
                                   הסר
                                 </>
 
@@ -1141,19 +1174,19 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
-                    <HiOutlineCreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 mb-2">אין כרטיסים שמורים</p>
-                    <p className="text-gray-400 text-sm">הוסף כרטיס אשראי לתשלומים מהירים</p>
+                  <div className="text-center py-12 rounded-xl border" style={{ backgroundColor: '#F4F4F5', borderColor: '#E1E1E2' }}>
+                    <HiOutlineCreditCard className="w-12 h-12 mx-auto mb-4" style={{ color: '#D0D0D4' }} />
+                    <p className="mb-2" style={{ color: '#71717A' }}>אין כרטיסים שמורים</p>
+                    <p className="text-sm" style={{ color: '#A1A1AA' }}>הוסף כרטיס אשראי לתשלומים מהירים</p>
                   </div>
                 )}
 
                 {/* Security Note */}
-                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                  <FaLock className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-4 rounded-lg" style={{ backgroundColor: '#91DCED' }}>
+                  <LockIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-medium text-blue-800">מאובטח ומוצפן</h4>
-                    <p className="text-xs text-blue-600 mt-1">
+                    <h4 className="font-semibold" style={{ fontSize: '18px', color: '#000000' }}>מאובטח ומוצפן</h4>
+                    <p className="mt-1" style={{ fontSize: '16px', color: '#000000' }}>
                       פרטי התשלום שלך מוגנים בהצפנה מתקדמת ועומדים בסטנדרטים הגבוהים ביותר.
 מספר הכרטיס המלא אינו נשמר במערכות שלנו.
                     </p>
@@ -1174,7 +1207,8 @@ export default function SettingsPage() {
                       setCardExpiry('');
                       setCardCvv('');
                     }}
-                    className="absolute top-4 left-4 text-gray-400 hover:text-gray-600"
+                    className="absolute top-4 left-4"
+                    style={{ color: '#A1A1AA' }}
                   >
                     <FaTimes className="w-5 h-5" />
                   </button>
@@ -1183,26 +1217,25 @@ export default function SettingsPage() {
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2 text-right">מספר כרטיס</label>
+                      <label className="block text-sm font-medium mb-2 text-right" style={{ color: '#3F3F46' }}>מספר כרטיס</label>
                       <div className="relative">
                         <input
                           type="text"
                           value={cardNumber}
                           onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
-                            getCardNumberError() ? 'border-red-400' : 'border-gray-300'
-                          }`}
+                          className="w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                          style={{ borderColor: getCardNumberError() ? '#B3261E' : '#D0D0D4' }}
                         />
-                        <FaCreditCard className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <CreditCardIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#A1A1AA' }} />
                       </div>
                       {getCardNumberError() && (
-                        <p className="text-red-500 text-sm mt-1">{getCardNumberError()}</p>
+                        <p className="text-sm mt-1" style={{ color: '#B3261E' }}>{getCardNumberError()}</p>
                       )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2 text-right">תוקף</label>
+                        <label className="block text-sm font-medium mb-2 text-right" style={{ color: '#3F3F46' }}>תוקף</label>
                         <div className="relative">
                           <input
                             type="text"
@@ -1222,31 +1255,29 @@ export default function SettingsPage() {
                                 setCardExpiry(rawValue);
                               }
                             }}
-                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
-                              getExpiryError() ? 'border-red-400' : 'border-gray-300'
-                            }`}
+                            className="w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                            style={{ borderColor: getExpiryError() ? '#B3261E' : '#D0D0D4' }}
                           />
-                          <FaCalendarAlt className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <CalendarIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A1A1AA]" />
                         </div>
                         {getExpiryError() && (
-                          <p className="text-red-500 text-sm mt-1">{getExpiryError()}</p>
+                          <p className="text-sm mt-1" style={{ color: '#B3261E' }}>{getExpiryError()}</p>
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2 text-right">CVV</label>
+                        <label className="block text-sm font-medium mb-2 text-right" style={{ color: '#3F3F46' }}>CVV</label>
                         <div className="relative">
                           <input
                             type="text"
                             value={cardCvv}
                             onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                            className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
-                              getCvvError() ? 'border-red-400' : 'border-gray-300'
-                            }`}
+                            className="w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                            style={{ borderColor: getCvvError() ? '#B3261E' : '#D0D0D4' }}
                           />
-                          <FaLock className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <LockIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A1A1AA]" />
                         </div>
                         {getCvvError() && (
-                          <p className="text-red-500 text-sm mt-1">{getCvvError()}</p>
+                          <p className="text-sm mt-1" style={{ color: '#B3261E' }}>{getCvvError()}</p>
                         )}
                       </div>
                     </div>
@@ -1304,11 +1335,11 @@ export default function SettingsPage() {
             {/* Message Display */}
             {message && (
               <div
-                className={`mt-6 p-4 rounded-lg ${
-                  messageType === 'error'
-                    ? 'bg-red-50 text-red-600 border border-red-200'
-                    : 'bg-green-50 text-green-600 border border-green-200'
-                }`}
+                className="mt-6 p-4 rounded-lg"
+                style={messageType === 'error' 
+                  ? { backgroundColor: '#FEF2F2', color: '#B3261E', border: '1px solid #FECACA' }
+                  : { backgroundColor: '#A7EA7B', color: 'black', fontSize: '16px', fontWeight: 400 }
+                }
               >
                 {message}
               </div>
@@ -1321,8 +1352,8 @@ export default function SettingsPage() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6" dir="rtl">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">אישור מחיקת חשבון</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-xl font-bold mb-4" style={{ color: '#1D1D20' }}>אישור מחיקת חשבון</h3>
+            <p className="mb-4" style={{ color: '#52525B' }}>
               פעולה זו בלתי הפיכה. כדי לאשר, הקלידו: <strong>&quot;מחק את החשבון שלי&quot;</strong>
             </p>
             <input
@@ -1330,13 +1361,15 @@ export default function SettingsPage() {
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
               placeholder="הקלידו כאן"
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm mb-4"
+              className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 text-sm mb-4"
+              style={{ borderColor: '#E1E1E2' }}
             />
             <div className="flex gap-3">
               <button
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount || deleteConfirmText !== 'מחק את החשבון שלי'}
-                className="flex-1 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition disabled:opacity-50"
+                className="flex-1 py-2.5 text-white rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
+                style={{ backgroundColor: '#B3261E' }}
               >
                 {deletingAccount ? 'מוחק...' : 'מחק לצמיתות'}
               </button>
@@ -1345,7 +1378,8 @@ export default function SettingsPage() {
                   setShowDeleteConfirm(false);
                   setDeleteConfirmText('');
                 }}
-                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition"
+                className="flex-1 py-2.5 rounded-lg font-medium transition"
+                style={{ backgroundColor: '#F4F4F5', color: '#3F3F46' }}
               >
                 ביטול
               </button>

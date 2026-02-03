@@ -27,17 +27,17 @@ export class NotificationsController {
     return this.notificationsService.getUnreadCount(req.user.userId);
   }
 
+  // Mark all notifications as read (must be before parameterized routes)
+  @Post('read-all')
+  async markAllAsRead(@Req() req) {
+    await this.notificationsService.markAllAsRead(req.user.userId);
+    return { success: true };
+  }
+
   // Mark a specific notification as read
   @Post(':id/read')
   async markAsRead(@Req() req, @Param('id') id: string) {
     await this.notificationsService.markAsRead(id, req.user.userId);
-    return { success: true };
-  }
-
-  // Mark all notifications as read
-  @Post('read-all')
-  async markAllAsRead(@Req() req) {
-    await this.notificationsService.markAllAsRead(req.user.userId);
     return { success: true };
   }
 

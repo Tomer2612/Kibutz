@@ -74,7 +74,7 @@ export class NotificationsService {
 
   // Get notifications for a user
   async getNotifications(userId: string, limit = 50, offset = 0) {
-    const [notifications, total, unreadCount] = await Promise.all([
+    const [rawNotifications, total, unreadCount] = await Promise.all([
       this.prisma.notification.findMany({
         where: { recipientId: userId },
         include: {
@@ -97,6 +97,38 @@ export class NotificationsService {
         where: { recipientId: userId, isRead: false },
       }),
     ]);
+
+    // Enrich notifications with post and community data
+    const postIds = [...new Set(rawNotifications.filter(n => n.postId).map(n => n.postId))];
+    const communityIds = [...new Set(rawNotifications.filter(n => n.communityId).map(n => n.communityId))];
+
+    const [posts, communities] = await Promise.all([
+      postIds.length > 0 
+        ? this.prisma.post.findMany({
+            where: { id: { in: postIds as string[] } },
+            select: { 
+              id: true, 
+              title: true,
+              community: { select: { id: true, name: true } }
+            },
+          })
+        : [],
+      communityIds.length > 0
+        ? this.prisma.community.findMany({
+            where: { id: { in: communityIds as string[] } },
+            select: { id: true, name: true },
+          })
+        : [],
+    ]);
+
+    const postMap = new Map(posts.map(p => [p.id, p]));
+    const communityMap = new Map(communities.map(c => [c.id, c]));
+
+    const notifications = rawNotifications.map(n => ({
+      ...n,
+      post: n.postId ? postMap.get(n.postId) : undefined,
+      community: n.communityId ? communityMap.get(n.communityId) : undefined,
+    }));
 
     return { notifications, total, unreadCount };
   }
@@ -155,6 +187,40 @@ export class NotificationsService {
   }
 
   async notifyFollow(followedUserId: string, actorId: string) {
+    // Rate limit: Check if there's already a FOLLOW notification from this actor in the last 24 hours
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const existingNotification = await this.prisma.notification.findFirst({
+      where: {
+        type: 'FOLLOW',
+        recipientId: followedUserId,
+        actorId: actorId,
+        createdAt: { gte: twentyFourHoursAgo },
+      },
+    });
+
+    // If notification exists within 24h, just update its timestamp instead of creating new
+    if (existingNotification) {
+      const updated = await this.prisma.notification.update({
+        where: { id: existingNotification.id },
+        data: { 
+          createdAt: new Date(),
+          isRead: false, // Mark as unread again
+        },
+        include: {
+          actor: {
+            select: { id: true, name: true, profileImage: true },
+          },
+        },
+      });
+      
+      // Emit real-time notification via WebSocket for the updated notification
+      if (updated && this.messagesGateway) {
+        this.messagesGateway.sendNotificationToUser(followedUserId, updated);
+      }
+      
+      return updated;
+    }
+
     return this.create({
       type: 'FOLLOW',
       recipientId: followedUserId,

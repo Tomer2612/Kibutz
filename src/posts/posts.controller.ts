@@ -4,7 +4,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { createReadStream, existsSync } from 'fs';
 import { Response } from 'express';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { PostsService } from './posts.service';
 import { AuthGuard } from '@nestjs/passport';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -288,6 +288,7 @@ export class PostsController {
   }
 
   // Get link preview metadata
+  @SkipThrottle()
   @Get('link-preview')
   async getLinkPreview(@Query('url') url: string) {
     return this.postsService.getLinkPreview(url);

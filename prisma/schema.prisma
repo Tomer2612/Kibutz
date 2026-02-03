@@ -105,6 +105,7 @@ model Community {
   memberCount    Int               @default(0)
   facebookUrl    String?
   galleryImages  String[]
+  galleryVideos  String[]
   instagramUrl   String?
   whatsappUrl    String?
   youtubeUrl     String?

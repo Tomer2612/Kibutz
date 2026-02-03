@@ -115,27 +115,39 @@ const getGroupedNotificationText = (group: GroupedNotification) => {
   }
 };
 
-const getGroupedNotificationLink = (group: GroupedNotification) => {
+const getGroupedNotificationLink = (group: GroupedNotification): string | null => {
   switch (group.type) {
     case 'LIKE':
     case 'COMMENT':
-    case 'MENTION':
-      if (group.communityId && group.postId) {
-        return `/communities/${group.communityId}/feed?postId=${group.postId}`;
+    case 'MENTION': {
+      // Try to get communityId from direct field or from post.community
+      const communityId = group.communityId || group.post?.community?.id;
+      const postId = group.postId || group.post?.id;
+      if (communityId && postId) {
+        return `/communities/${communityId}/feed?postId=${postId}`;
+      }
+      // Fallback: just link to communities if we have communityId only
+      if (communityId) {
+        return `/communities/${communityId}/feed`;
       }
       return null;
-    case 'FOLLOW':
+    }
+    case 'FOLLOW': {
       // Link to first follower's profile
-      if (group.notifications[0]?.actor?.id) {
-        return `/profile/${group.notifications[0].actor.id}`;
+      const actorId = group.notifications[0]?.actor?.id;
+      if (actorId) {
+        return `/profile/${actorId}`;
       }
       return null;
+    }
     case 'NEW_POST':
-    case 'COMMUNITY_JOIN':
-      if (group.communityId) {
-        return `/communities/${group.communityId}/feed`;
+    case 'COMMUNITY_JOIN': {
+      const communityId = group.communityId || group.community?.id;
+      if (communityId) {
+        return `/communities/${communityId}/feed`;
       }
       return null;
+    }
     default:
       return null;
   }
@@ -147,10 +159,14 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const justMarkedReadRef = useRef(false);
 
   // Fetch unread count on mount
   useEffect(() => {
     const fetchUnreadCount = async () => {
+      // Skip fetch if we just marked all as read (give server time to process)
+      if (justMarkedReadRef.current) return;
+      
       const token = localStorage.getItem('token');
       if (!token) return;
 
@@ -253,13 +269,23 @@ export default function NotificationBell() {
     if (!token) return;
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/read-all`, {
+      // 1. Call API to update database
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/read-all`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      setUnreadCount(0);
+
+      if (res.ok) {
+        // 2. Update local state
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setUnreadCount(0);
+        
+        // 3. Set flag to prevent fetches from overriding our local state
+        justMarkedReadRef.current = true;
+        setTimeout(() => {
+          justMarkedReadRef.current = false;
+        }, 10000);
+      }
     } catch (err) {
       console.error('Failed to mark all as read:', err);
     }
@@ -290,7 +316,7 @@ export default function NotificationBell() {
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-500 hover:text-gray-700 transition"
+        className="relative p-2 text-gray-500 hover:text-gray-700 transition flex items-center justify-center"
         aria-label="התראות"
       >
         {/* Outline Bell Icon */}
@@ -311,7 +337,7 @@ export default function NotificationBell() {
           />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 bg-[#1a3a4a] text-white text-[10px] font-semibold rounded-full min-w-[18px] h-[18px] flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 bg-[#A7EA7B] text-black text-[11px] font-semibold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -369,13 +395,8 @@ export default function NotificationBell() {
                 const link = getGroupedNotificationLink(group);
                 const avatars = getGroupAvatars(group);
                 
-                const content = (
-                  <div
-                    className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition cursor-pointer ${
-                      !group.isRead ? 'bg-blue-50/50' : ''
-                    }`}
-                    onClick={() => handleGroupClick(group)}
-                  >
+                const innerContent = (
+                  <>
                     {/* Stacked Avatars */}
                     <div className="flex-shrink-0 relative" style={{ width: avatars.length > 1 ? 44 : 40, height: 40 }}>
                       {avatars.map((actor, i) => (
@@ -411,12 +432,38 @@ export default function NotificationBell() {
                         {formatDistanceToNow(new Date(group.latestAt), { addSuffix: true, locale: he })}
                       </p>
                     </div>
+                  </>
+                );
 
-                    {/* Mark as Read button */}
+                return (
+                  <div
+                    key={group.key}
+                    className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition ${
+                      !group.isRead ? 'bg-[#FCFCFC]' : ''
+                    }`}
+                  >
+                    {link ? (
+                      <Link
+                        href={link}
+                        className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer"
+                        onClick={() => handleGroupClick(group)}
+                      >
+                        {innerContent}
+                      </Link>
+                    ) : (
+                      <div
+                        className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer"
+                        onClick={() => handleGroupClick(group)}
+                      >
+                        {innerContent}
+                      </div>
+                    )}
+
+                    {/* Mark as Read button - OUTSIDE the Link */}
                     {!group.isRead && (
                       <button
                         onClick={(e) => markGroupAsRead(group, e)}
-                        className="flex-shrink-0 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition"
+                        className="flex-shrink-0 p-1.5 text-gray-400 hover:text-[#65A30D] hover:bg-[#A7EA7B]/20 rounded-full transition"
                         title="סמן כנקרא"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -426,16 +473,6 @@ export default function NotificationBell() {
                     )}
                   </div>
                 );
-
-                if (link) {
-                  return (
-                    <Link key={group.key} href={link}>
-                      {content}
-                    </Link>
-                  );
-                }
-
-                return <div key={group.key}>{content}</div>;
               })
             )}
             </div>

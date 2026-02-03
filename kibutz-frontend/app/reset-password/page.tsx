@@ -2,7 +2,8 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FaLock, FaCheckCircle, FaTimesCircle, FaCheck, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaCheckCircle, FaTimesCircle, FaCheck, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
+import LockIcon from '../components/icons/LockIcon';
 
 // Password requirements
 const passwordRequirements = [
@@ -34,11 +35,11 @@ function ResetPasswordContent() {
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
 
   const getStrengthColor = () => {
-    if (passwordStrength === 0) return 'bg-gray-200';
-    if (passwordStrength === 1) return 'bg-red-500';
-    if (passwordStrength === 2) return 'bg-orange-500';
-    if (passwordStrength === 3) return 'bg-yellow-500';
-    return 'bg-green-500';
+    if (passwordStrength === 0) return '#E1E1E2';
+    if (passwordStrength === 1) return '#B3261E';
+    if (passwordStrength === 2) return '#F59E0B';
+    if (passwordStrength === 3) return '#F59E0B';
+    return '#163300';
   };
 
   const getStrengthText = () => {
@@ -113,14 +114,16 @@ function ResetPasswordContent() {
         <div className="text-2xl font-extrabold font-[cursive] mb-4">Kibutz</div>
 
         <div className="bg-white rounded-xl p-8 shadow-md w-full max-w-sm flex flex-col items-center gap-4 text-center">
-          <FaTimesCircle className="w-16 h-16 text-red-500" />
-          <h1 className="text-xl font-bold text-red-600">קישור לא תקין</h1>
-          <p className="text-gray-600">
+          <FaTimesCircle className="w-16 h-16" style={{ color: '#B3261E' }} />
+          <h1 className="text-xl font-bold" style={{ color: '#B3261E' }}>קישור לא תקין</h1>
+          <p style={{ color: '#52525B' }}>
             הקישור לאיפוס הסיסמה אינו תקין או פג תוקפו
           </p>
           <a
             href="/forgot-password"
-            className="mt-4 bg-black text-white py-2 px-6 rounded hover:bg-gray-800"
+            className="mt-4 bg-black text-white py-2 px-6 rounded transition-colors"
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3F3F46'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'black'}
           >
             בקש קישור חדש
           </a>
@@ -135,14 +138,16 @@ function ResetPasswordContent() {
         <div className="text-2xl font-extrabold font-[cursive] mb-4">Kibutz</div>
 
         <div className="bg-white rounded-xl p-8 shadow-md w-full max-w-sm flex flex-col items-center gap-4 text-center">
-          <FaCheckCircle className="w-16 h-16 text-green-500" />
-          <h1 className="text-xl font-bold text-green-600">הסיסמה אופסה בהצלחה!</h1>
-          <p className="text-gray-600">
+          <FaCheckCircle className="w-16 h-16" style={{ color: '#163300' }} />
+          <h1 className="text-xl font-bold" style={{ color: '#163300' }}>הסיסמה אופסה בהצלחה!</h1>
+          <p style={{ color: '#52525B' }}>
             כעת תוכל להתחבר עם הסיסמה החדשה
           </p>
           <button
             onClick={() => router.push('/login')}
-            className="mt-4 bg-black text-white py-2 px-6 rounded hover:bg-gray-800"
+            className="mt-4 bg-black text-white py-2 px-6 rounded transition-colors"
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3F3F46'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'black'}
           >
             להתחברות
           </button>
@@ -157,12 +162,14 @@ function ResetPasswordContent() {
         <div className="text-2xl font-extrabold font-[cursive] mb-4">Kibutz</div>
 
         <div className="bg-white rounded-xl p-8 shadow-md w-full max-w-sm flex flex-col items-center gap-4 text-center">
-          <FaTimesCircle className="w-16 h-16 text-red-500" />
-          <h1 className="text-xl font-bold text-red-600">איפוס נכשל</h1>
-          <p className="text-gray-600">{error}</p>
+          <FaTimesCircle className="w-16 h-16" style={{ color: '#B3261E' }} />
+          <h1 className="text-xl font-bold" style={{ color: '#B3261E' }}>איפוס נכשל</h1>
+          <p style={{ color: '#52525B' }}>{error}</p>
           <a
             href="/forgot-password"
-            className="mt-4 bg-black text-white py-2 px-6 rounded hover:bg-gray-800"
+            className="mt-4 bg-black text-white py-2 px-6 rounded transition-colors"
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3F3F46'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'black'}
           >
             בקש קישור חדש
           </a>
@@ -181,27 +188,28 @@ function ResetPasswordContent() {
       >
         <h1 className="text-xl font-bold text-center">איפוס סיסמה</h1>
         
-        <p className="text-sm text-gray-600 text-center">
+        <p className="text-sm text-center" style={{ color: '#52525B' }}>
           הזן את הסיסמה החדשה שלך
         </p>
 
         {/* Password Field */}
         <div>
           <div className="relative">
-            <FaLock className="absolute right-3 top-3 text-gray-400" />
+            <LockIcon className="absolute right-3 top-3 w-4 h-4" style={{ color: '#A1A1AA' }} />
             <input
               id="reset-password"
               type={showPassword ? 'text' : 'password'}
               placeholder="סיסמה חדשה *"
-              className={`w-full p-2 pr-10 pl-10 border rounded focus:outline-none focus:ring-2 ${
-                passwordError
-                  ? 'border-red-400 focus:ring-red-400'
+              className="w-full p-2 pr-10 pl-10 border rounded focus:outline-none focus:ring-2"
+              style={{
+                borderColor: passwordError
+                  ? '#B3261E'
                   : password && isPasswordValid 
-                  ? 'border-green-400 focus:ring-green-400' 
+                  ? '#163300' 
                   : password && !isPasswordValid
-                  ? 'border-orange-400 focus:ring-orange-400'
-                  : 'border-gray-300 focus:ring-black'
-              }`}
+                  ? '#F59E0B'
+                  : '#D0D0D4'
+              }}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -214,7 +222,10 @@ function ResetPasswordContent() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute left-3 top-3 text-gray-400 hover:text-gray-600"
+              className="absolute left-3 top-3 transition-colors"
+              style={{ color: '#A1A1AA' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#52525B'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#A1A1AA'}
             >
               {showPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
@@ -224,31 +235,31 @@ function ResetPasswordContent() {
           {password && (
             <div className="mt-2">
               <div className="flex items-center gap-2 mb-2">
-                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#E1E1E2' }}>
                   <div 
-                    className={`h-full transition-all duration-300 ${getStrengthColor()}`}
-                    style={{ width: `${(passwordStrength / 4) * 100}%` }}
+                    className="h-full transition-all duration-300"
+                    style={{ width: `${(passwordStrength / 4) * 100}%`, backgroundColor: getStrengthColor() }}
                   />
                 </div>
-                <span className={`text-xs font-medium ${
-                  passwordStrength === 4 ? 'text-green-600' : 
-                  passwordStrength >= 3 ? 'text-yellow-600' : 'text-red-600'
-                }`}>
+                <span className="text-xs font-medium" style={{
+                  color: passwordStrength === 4 ? '#163300' : 
+                  passwordStrength >= 3 ? '#F59E0B' : '#B3261E'
+                }}>
                   {getStrengthText()}
                 </span>
               </div>
 
               {/* Requirements List */}
               {(passwordFocused || !isPasswordValid) && (
-                <div className="bg-gray-50 rounded p-3 space-y-1">
+                <div className="rounded p-3 space-y-1" style={{ backgroundColor: '#FCFCFC' }}>
                   {passwordRequirements.map(req => (
                     <div key={req.id} className="flex items-center gap-2 text-sm">
                       {req.test(password) ? (
-                        <FaCheck className="w-3 h-3 text-green-500" />
+                        <FaCheck className="w-3 h-3" style={{ color: '#163300' }} />
                       ) : (
-                        <FaTimes className="w-3 h-3 text-gray-300" />
+                        <FaTimes className="w-3 h-3" style={{ color: '#D0D0D4' }} />
                       )}
-                      <span className={req.test(password) ? 'text-green-600' : 'text-gray-500'}>
+                      <span style={{ color: req.test(password) ? '#163300' : '#7A7A83' }}>
                         {req.label}
                       </span>
                     </div>
@@ -258,7 +269,7 @@ function ResetPasswordContent() {
             </div>
           )}
           {passwordError && (
-            <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+            <p className="mt-1 text-sm flex items-center gap-1" style={{ color: '#B3261E' }}>
               <FaTimes className="w-3 h-3" />
               {passwordError}
             </p>
@@ -268,20 +279,21 @@ function ResetPasswordContent() {
         {/* Confirm Password Field */}
         <div>
           <div className="relative">
-            <FaLock className="absolute right-3 top-3 text-gray-400" />
+            <LockIcon className="absolute right-3 top-3 w-4 h-4" style={{ color: '#A1A1AA' }} />
             <input
               id="reset-confirm-password"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="אימות סיסמה *"
-              className={`w-full p-2 pr-10 pl-10 border rounded focus:outline-none focus:ring-2 ${
-                confirmPasswordError
-                  ? 'border-red-400 focus:ring-red-400'
+              className="w-full p-2 pr-10 pl-10 border rounded focus:outline-none focus:ring-2"
+              style={{
+                borderColor: confirmPasswordError
+                  ? '#B3261E'
                   : confirmPassword && passwordsMatch 
-                  ? 'border-green-400 focus:ring-green-400' 
+                  ? '#163300' 
                   : confirmPassword && !passwordsMatch
-                  ? 'border-red-400 focus:ring-red-400'
-                  : 'border-gray-300 focus:ring-black'
-              }`}
+                  ? '#B3261E'
+                  : '#D0D0D4'
+              }}
               value={confirmPassword}
               onChange={(e) => {
                 setConfirmPassword(e.target.value);
@@ -292,25 +304,28 @@ function ResetPasswordContent() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute left-3 top-3 text-gray-400 hover:text-gray-600"
+              className="absolute left-3 top-3 transition-colors"
+              style={{ color: '#A1A1AA' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#52525B'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#A1A1AA'}
             >
               {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
           </div>
           {confirmPassword && !passwordsMatch && (
-            <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+            <p className="mt-1 text-sm flex items-center gap-1" style={{ color: '#B3261E' }}>
               <FaTimes className="w-3 h-3" />
               הסיסמאות אינן תואמות
             </p>
           )}
           {confirmPassword && passwordsMatch && (
-            <p className="mt-1 text-sm text-green-500 flex items-center gap-1">
+            <p className="mt-1 text-sm flex items-center gap-1" style={{ color: '#163300' }}>
               <FaCheck className="w-3 h-3" />
               הסיסמאות תואמות
             </p>
           )}
           {confirmPasswordError && (
-            <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+            <p className="mt-1 text-sm flex items-center gap-1" style={{ color: '#B3261E' }}>
               <FaTimes className="w-3 h-3" />
               {confirmPasswordError}
             </p>
@@ -320,12 +335,15 @@ function ResetPasswordContent() {
         <button
           type="submit"
           disabled={loading || !isPasswordValid || !passwordsMatch}
-          className="bg-black text-white py-2 rounded hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="bg-black text-white py-2 rounded transition-colors disabled:cursor-not-allowed"
+          style={{ backgroundColor: (loading || !isPasswordValid || !passwordsMatch) ? '#A1A1AA' : 'black' }}
+          onMouseEnter={(e) => !(loading || !isPasswordValid || !passwordsMatch) && (e.currentTarget.style.backgroundColor = '#3F3F46')}
+          onMouseLeave={(e) => !(loading || !isPasswordValid || !passwordsMatch) && (e.currentTarget.style.backgroundColor = 'black')}
         >
           {loading ? 'מאפס...' : 'אפס סיסמה'}
         </button>
 
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
+        {error && <p className="text-center text-sm" style={{ color: '#B3261E' }}>{error}</p>}
       </form>
     </main>
   );

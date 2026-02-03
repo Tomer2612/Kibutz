@@ -746,7 +746,7 @@ export default function EditCoursePage() {
                 {userProfile?.name?.charAt(0) || userEmail?.charAt(0)?.toUpperCase()}
               </div>
             )}
-            <span className="absolute bottom-0 left-0 w-3 h-3 bg-[#A7EA7B] border-2 border-white rounded-full"></span>
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#A7EA7B] border-2 border-white rounded-full"></span>
           </button>
           
           {profileMenuOpen && (
@@ -1383,7 +1383,7 @@ export default function EditCoursePage() {
                                                     newQuestions[qIndex] = { ...newQuestions[qIndex], question: e.target.value };
                                                     updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                   }}
-                                                  className={`w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-sm ${
+                                                  className={`w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-black text-sm ${
                                                     errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_question`]
                                                       ? 'border-red-500'
                                                       : 'border-gray-200'
@@ -1520,7 +1520,7 @@ export default function EditCoursePage() {
                                                         newQuestions[qIndex].options[optIndex].text = e.target.value;
                                                         updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                       }}
-                                                      className={`flex-1 p-1.5 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent ${
+                                                      className={`flex-1 p-1.5 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-black ${
                                                         errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_opt_${optIndex}`]
                                                           ? 'border-red-500'
                                                           : 'border-gray-200'

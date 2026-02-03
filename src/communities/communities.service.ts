@@ -17,10 +17,11 @@ export class CommunitiesService {
     facebookUrl?: string | null,
     instagramUrl?: string | null,
     galleryImages?: string[],
+    galleryVideos?: string[],
     price?: number | null,
   ) {
     try {
-      console.log('Creating community with:', { name, description, ownerId, image, logo, topic, youtubeUrl, whatsappUrl, facebookUrl, instagramUrl, galleryImages, price });
+      console.log('Creating community with:', { name, description, ownerId, image, logo, topic, youtubeUrl, whatsappUrl, facebookUrl, instagramUrl, galleryImages, galleryVideos, price });
       
       // Create community
       const community = await this.prisma.community.create({
@@ -38,6 +39,7 @@ export class CommunitiesService {
           facebookUrl: facebookUrl || null,
           instagramUrl: instagramUrl || null,
           galleryImages: galleryImages || [],
+          galleryVideos: galleryVideos || [],
           trialStartDate: new Date(),
         } as any,
       });
@@ -143,6 +145,7 @@ export class CommunitiesService {
     facebookUrl?: string | null,
     instagramUrl?: string | null,
     galleryImages?: string[],
+    galleryVideos?: string[],
     price?: number | null,
     trialCancelled?: boolean,
     cardLastFour?: string | null,
@@ -198,6 +201,9 @@ export class CommunitiesService {
       }
       if (galleryImages !== undefined) {
         updateData.galleryImages = galleryImages;
+      }
+      if (galleryVideos !== undefined) {
+        updateData.galleryVideos = galleryVideos;
       }
       if (price !== undefined) {
         updateData.price = price;

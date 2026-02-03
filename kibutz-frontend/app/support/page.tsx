@@ -56,7 +56,7 @@ export default function SupportPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100" dir="rtl">
+    <main className="min-h-screen" dir="rtl" style={{ backgroundColor: '#F4F4F5' }}>
       <SiteHeader />
 
       {/* Hero Section */}
@@ -72,8 +72,10 @@ export default function SupportPage() {
           {faqs.map((faq, index) => (
             <div
               key={index}
-              className="bg-white border border-gray-400 overflow-hidden hover:bg-gray-50 transition"
-              style={{ borderRadius: '16px' }}
+              className="bg-white overflow-hidden transition"
+              style={{ borderRadius: '16px', border: '1px solid #A1A1AA' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FCFCFC'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
             >
               <button
                 onClick={() => toggleFaq(index)}

@@ -6,16 +6,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { FaPlay, FaTimes } from 'react-icons/fa';
 import { useCommunityContext } from '../CommunityContext';
-import SearchXIcon from '../../../components/SearchXIcon';
-import BookIcon from '../../../components/BookIcon';
-import StopwatchIcon from '../../../components/StopwatchIcon';
-import EditIcon from '../../../components/EditIcon';
-import TrashIcon from '../../../components/TrashIcon';
-import NotebookCircleIcon from '../../../components/NotebookCircleIcon';
-import TrashCircleIcon from '../../../components/TrashCircleIcon';
-import CloseIcon from '../../../components/CloseIcon';
-import ChevronLeftIcon from '../../../components/ChevronLeftIcon';
-import ChevronRightIcon from '../../../components/ChevronRightIcon';
+import SearchXIcon from '../../../components/icons/SearchXIcon';
+import BookIcon from '../../../components/icons/BookIcon';
+import StopwatchIcon from '../../../components/icons/StopwatchIcon';
+import EditIcon from '../../../components/icons/EditIcon';
+import TrashIcon from '../../../components/icons/TrashIcon';
+import NotebookCircleIcon from '../../../components/icons/NotebookCircleIcon';
+import TrashCircleIcon from '../../../components/icons/TrashCircleIcon';
+import CloseIcon from '../../../components/icons/CloseIcon';
+import ChevronLeftIcon from '../../../components/icons/ChevronLeftIcon';
+import ChevronRightIcon from '../../../components/icons/ChevronRightIcon';
 
 interface Course {
   id: string;

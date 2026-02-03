@@ -9,7 +9,6 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { he } from 'date-fns/locale';
 import { getMonth, getYear } from 'date-fns';
 import { 
-  FaCalendarAlt, 
   FaPlus, 
   FaChevronRight, 
   FaChevronLeft,
@@ -25,6 +24,7 @@ import {
   FaEllipsisV,
   FaChevronDown
 } from 'react-icons/fa';
+import CalendarIcon from '../../../components/icons/CalendarIcon';
 
 // Short Hebrew day names for calendar - return single letter based on day name
 const formatWeekDay = (nameOfDay: string) => {
@@ -184,10 +184,10 @@ function DateInput({
         onChange={handleChange}
         placeholder="dd/mm/yyyy"
         maxLength={10}
-        className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black bg-white text-right"
+        className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black bg-white text-right"
         dir="ltr"
       />
-      <FaCalendarAlt
+      <CalendarIcon
         className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600"
         onClick={onIconClick}
       />
@@ -285,7 +285,7 @@ function TimePicker({
         onChange={handleChange}
         placeholder="hh:mm"
         maxLength={5}
-        className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black bg-white text-right"
+        className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black bg-white text-right"
         dir="ltr"
       />
       <FaClock
@@ -1050,7 +1050,7 @@ function EventsPageContent() {
                   ))
               ) : (
                 <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-                  <FaCalendarAlt className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">אין אירועים קרובים</p>
                 </div>
               )}
@@ -1535,7 +1535,7 @@ function AddEventModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="מפגש קהילה"
               maxLength={30}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
             />
             <div className="text-xs text-gray-400 text-left mt-1">{title.length} / 30</div>
           </div>
@@ -1718,7 +1718,7 @@ function AddEventModal({
                   value={locationUrl}
                   onChange={(e) => setLocationUrl(e.target.value)}
                   placeholder="קישור למפגש"
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
                 />
               </div>
             ) : (
@@ -1727,7 +1727,7 @@ function AddEventModal({
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
                 placeholder="כתובת או שם המקום"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
               />
             )}
           </div>
@@ -1741,7 +1741,7 @@ function AddEventModal({
               placeholder="בואו להנות מחברה טובה."
               rows={3}
               maxLength={300}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none text-black text-right"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black resize-none text-black text-right"
             />
             <div className="text-xs text-gray-400 text-left mt-1">{description.length} / 300</div>
           </div>
@@ -2005,7 +2005,7 @@ function EditEventModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="מפגש קהילה"
               maxLength={30}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
             />
             <div className="text-xs text-gray-400 text-left mt-1">{title.length} / 30</div>
           </div>
@@ -2188,7 +2188,7 @@ function EditEventModal({
                   value={locationUrl}
                   onChange={(e) => setLocationUrl(e.target.value)}
                   placeholder="קישור למפגש"
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
                 />
               </div>
             ) : (
@@ -2197,7 +2197,7 @@ function EditEventModal({
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
                 placeholder="כתובת או שם המקום"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
               />
             )}
           </div>
@@ -2211,7 +2211,7 @@ function EditEventModal({
               placeholder="בואו להנות מחברה טובה."
               rows={3}
               maxLength={300}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none text-black text-right"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black resize-none text-black text-right"
             />
             <div className="text-xs text-gray-400 text-left mt-1">{description.length} / 300</div>
           </div>

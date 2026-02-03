@@ -3,35 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaUsers, FaMapMarkerAlt, FaCalendarAlt, FaSignInAlt, FaClock, FaCamera } from 'react-icons/fa';
+import { FaUsers, FaMapMarkerAlt, FaSignInAlt } from 'react-icons/fa';
 import SiteHeader from '../../components/SiteHeader';
-import ChevronLeftIcon from '../../components/ChevronLeftIcon';
-import ChevronRightIcon from '../../components/ChevronRightIcon';
-
-// Topic color mapping - synced with homepage
-const TOPIC_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  'אנימציה': { bg: 'bg-pink-100', text: 'text-pink-600', border: 'border-pink-200' },
-  'אוכל, בישול ותזונה': { bg: 'bg-orange-100', text: 'text-orange-600', border: 'border-orange-200' },
-  'עזרה ותמיכה': { bg: 'bg-teal-100', text: 'text-teal-600', border: 'border-teal-200' },
-  'עיצוב גרפי': { bg: 'bg-purple-100', text: 'text-purple-600', border: 'border-purple-200' },
-  'עיצוב מותגים': { bg: 'bg-indigo-100', text: 'text-indigo-600', border: 'border-indigo-200' },
-  'עריכת וידאו': { bg: 'bg-red-100', text: 'text-red-600', border: 'border-red-200' },
-  'בריאות הנפש ופיתוח אישי': { bg: 'bg-emerald-100', text: 'text-emerald-600', border: 'border-emerald-200' },
-  'גיימינג': { bg: 'bg-violet-100', text: 'text-violet-600', border: 'border-violet-200' },
-  'טיולים ולייףסטייל': { bg: 'bg-sky-100', text: 'text-sky-600', border: 'border-sky-200' },
-  'לימודים ואקדמיה': { bg: 'bg-amber-100', text: 'text-amber-600', border: 'border-amber-200' },
-  'מדיה, קולנוע וסדרות': { bg: 'bg-rose-100', text: 'text-rose-600', border: 'border-rose-200' },
-  'מדיה חברתית ותוכן ויזואלי': { bg: 'bg-fuchsia-100', text: 'text-fuchsia-600', border: 'border-fuchsia-200' },
-  'ניהול פיננסי והשקעות': { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-200' },
-  'ספרים וכתיבה': { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' },
-  'ספורט ואורח חיים פעיל': { bg: 'bg-lime-100', text: 'text-lime-600', border: 'border-lime-200' },
-  'תחביבים': { bg: 'bg-cyan-100', text: 'text-cyan-600', border: 'border-cyan-200' },
-  'יזמות ועסקים עצמאיים': { bg: 'bg-blue-100', text: 'text-blue-600', border: 'border-blue-200' },
-};
-
-const getTopicColor = (topic: string) => {
-  return TOPIC_COLORS[topic] || { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' };
-};
+import ChevronLeftIcon from '../../components/icons/ChevronLeftIcon';
+import ChevronRightIcon from '../../components/icons/ChevronRightIcon';
+import CameraIcon from '../../components/icons/CameraIcon';
+import CalendarIcon from '../../components/icons/CalendarIcon';
+import HistoryIcon from '../../components/icons/HistoryIcon';
 
 const formatMemberCount = (count: number) => {
   if (count >= 10000) {
@@ -118,11 +96,12 @@ export default function MemberProfilePage() {
   });
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [hasConversation, setHasConversation] = useState(false);
 
   // Pagination state for communities
   const [createdPage, setCreatedPage] = useState(1);
   const [memberPage, setMemberPage] = useState(1);
-  const communitiesPerPage = 3;
+  const communitiesPerPage = 5;
 
   // Current user state (for checking if viewing own profile)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -155,13 +134,18 @@ export default function MemberProfilePage() {
         const token = localStorage.getItem('token');
 
         // Fetch all data in parallel for faster loading
-        const [profileRes, createdRes, memberRes, statsRes, isFollowingRes] = await Promise.all([
+        const [profileRes, createdRes, memberRes, statsRes, isFollowingRes, hasConversationRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/communities/created`),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/communities/member`),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/stats`),
           token 
             ? fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}/is-following`, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+            : Promise.resolve(null),
+          token 
+            ? fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/has-conversation/${userId}`, {
                 headers: { Authorization: `Bearer ${token}` },
               })
             : Promise.resolve(null),
@@ -197,6 +181,11 @@ export default function MemberProfilePage() {
         if (isFollowingRes && isFollowingRes.ok) {
           const isFollowingData = await isFollowingRes.json();
           setIsFollowing(isFollowingData.isFollowing);
+        }
+
+        if (hasConversationRes && hasConversationRes.ok) {
+          const hasConversationData = await hasConversationRes.json();
+          setHasConversation(hasConversationData.hasConversation);
         }
 
       } catch (err) {
@@ -280,10 +269,10 @@ export default function MemberProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-white" dir="rtl">
       <SiteHeader />
 
-      {/* Profile Cover Image - Bigger and customizable */}
+      {/* Profile Cover Image - Full width outside container */}
       <div className="w-full h-64 relative z-0">
         {profile?.coverImage ? (
           <img
@@ -294,12 +283,12 @@ export default function MemberProfilePage() {
         ) : (
           <div className="w-full h-full bg-gradient-to-l from-cyan-200 via-teal-100 to-blue-200"></div>
         )}
-        
+      
         {/* Edit Cover Button - Only show for own profile */}
         {currentUserId === userId && (
           <label className="absolute bottom-4 left-4 bg-white/90 hover:bg-white text-gray-700 px-4 py-2 rounded-lg font-medium cursor-pointer transition flex items-center gap-2 shadow-md">
-            <FaCamera className="w-4 h-4" />
-            <span>{uploadingCover ? 'מעלה...' : 'עריכת כיסוי'}</span>
+            <span>{uploadingCover ? 'מעלה...' : 'עריכת קאבר'}</span>
+            <CameraIcon className="w-4 h-4" />
             <input
               type="file"
               accept="image/*"
@@ -338,46 +327,49 @@ export default function MemberProfilePage() {
         )}
       </div>
 
-      {/* Main Content - Full width */}
-      <div className="w-full px-8 relative z-10">
-        {/* Profile Section - Two columns: Left side (profile info) + Right side (stats & buttons) */}
-        <div className="flex justify-between items-start -mt-20 pb-6 relative">
+      {/* Main Content - full width with padding */}
+      <div className="w-full px-8">
+        {/* Profile Section - Two columns with justify-between */}
+        <div className="flex justify-between items-start pb-6">
           {/* Left Side - Profile Info */}
           <div className="flex flex-col items-start">
-            {/* Profile Picture */}
-            {profile?.profileImage ? (
-              <img
-                src={profile.profileImage.startsWith('http') ? profile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${profile.profileImage}`}
-                alt={profile.name}
-                className="w-36 h-36 rounded-full object-cover border-4 border-white shadow-lg"
-              />
-            ) : (
-              <div className="w-36 h-36 rounded-full bg-gray-200 border-4 border-white shadow-lg flex items-center justify-center">
-                <span className="text-4xl font-bold text-gray-400">
-                  {profile?.name?.charAt(0) || '?'}
-                </span>
-              </div>
-            )}
+            {/* Profile Picture with negative margin for overlap */}
+            <div className="-mt-20 relative z-10">
+              {profile?.profileImage ? (
+                <img
+                  src={profile.profileImage.startsWith('http') ? profile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${profile.profileImage}`}
+                  alt={profile.name}
+                  className="w-36 h-36 rounded-full object-cover"
+                  style={{ border: '6px solid white' }}
+                />
+              ) : (
+                <div className="w-36 h-36 rounded-full bg-gray-200 flex items-center justify-center" style={{ border: '6px solid white' }}>
+                  <span className="text-4xl font-bold text-gray-400">
+                    {profile?.name?.charAt(0) || '?'}
+                  </span>
+                </div>
+              )}
+            </div>
 
             {/* Name and Username */}
             <h1 className="text-black mt-4" style={{ fontFamily: 'var(--font-assistant), sans-serif', fontWeight: 700, fontSize: '28px' }}>
               {profile?.name || 'משתמש'}
             </h1>
-            <p className="text-gray-600 text-sm mt-0.5">
+            <p className="mt-0.5" style={{ color: '#3F3F46', fontSize: '16px' }}>
               {profile?.email ? formatUsername(profile.email) : ''}
             </p>
 
             {/* Bio */}
             {profile?.bio ? (
-              <p className="text-gray-600 text-sm mt-3 leading-relaxed max-w-lg text-right" dir="rtl">
+              <p className="mt-3 leading-relaxed max-w-lg text-right" dir="rtl" style={{ color: '#3F3F46', fontSize: '16px' }}>
                 {profile.bio}
               </p>
             ) : currentUserId === userId ? (
-              <p className="text-gray-400 text-sm mt-3 italic">לחצו על הגדרות כדי להוסיף תיאור</p>
+              <p className="text-gray-400 mt-3 italic" style={{ fontSize: '16px' }}>לחצו על הגדרות כדי להוסיף תיאור</p>
             ) : null}
 
-            {/* Info row: Online status, Date, Location - all on one line */}
-            <div className="flex items-center gap-2 mt-3 text-sm text-gray-500">
+            {/* Info row: Online status, Date, Location - wraps on smaller screens */}
+            <div className="flex flex-wrap items-center gap-2 mt-3" style={{ color: '#3F3F46', fontSize: '16px' }}>
               <div className="flex items-center gap-1">
                 {(() => {
                   // Calculate online status based on lastActiveAt
@@ -389,48 +381,48 @@ export default function MemberProfilePage() {
                     // Online now - green dot
                     return (
                       <>
-                        <span className="w-2 h-2 bg-[#A7EA7B] rounded-full"></span>
+                        <span className="w-2.5 h-2.5 bg-[#A7EA7B] rounded-full"></span>
                         <span>מחובר/ת עכשיו</span>
                       </>
                     );
                   } else if (diffMinutes !== null && diffMinutes < 60) {
-                    // Recently active - clock icon
+                    // Recently active - history icon
                     return (
                       <>
-                        <FaClock className="w-3 h-3 text-gray-400" />
+                        <HistoryIcon className="w-4 h-4" />
                         <span>פעיל/ה לפני {diffMinutes} דקות</span>
                       </>
                     );
                   } else if (diffMinutes !== null && diffMinutes < 1440) {
-                    // Active today - clock icon
+                    // Active today - history icon
                     const hours = Math.floor(diffMinutes / 60);
                     return (
                       <>
-                        <FaClock className="w-3 h-3 text-gray-400" />
+                        <HistoryIcon className="w-4 h-4" />
                         <span>פעיל/ה לפני {hours} שעות</span>
                       </>
                     );
                   } else {
-                    // Offline - clock icon
+                    // Offline - history icon
                     return (
                       <>
-                        <FaClock className="w-3 h-3 text-gray-400" />
+                        <HistoryIcon className="w-4 h-4" />
                         <span>לא מחובר/ת</span>
                       </>
                     );
                   }
                 })()}
               </div>
-              <span className="text-gray-300">•</span>
+              <span style={{ color: '#D0D0D4' }}>•</span>
               <div className="flex items-center gap-1">
-                <FaCalendarAlt className="w-3 h-3" />
+                <CalendarIcon className="w-4 h-4" />
                 <span>תאריך הצטרפות: {profile?.createdAt ? formatDate(profile.createdAt) : '-'}</span>
               </div>
               {profile?.location && (
                 <>
-                  <span className="text-gray-300">•</span>
+                  <span style={{ color: '#D0D0D4' }}>•</span>
                   <div className="flex items-center gap-1">
-                    <FaMapMarkerAlt className="w-3 h-3" />
+                    <FaMapMarkerAlt className="w-4 h-4" />
                     <span>{profile.location}</span>
                   </div>
                 </>
@@ -438,46 +430,48 @@ export default function MemberProfilePage() {
             </div>
           </div>
 
-          {/* Right Side - Stats & Buttons - aligned higher and more to the right */}
-          <div className="flex flex-col items-end absolute left-8 top-24">
+          {/* Right Side - Stats & Buttons grouped together */}
+          <div className="flex flex-col items-start ml-20 mt-24 flex-shrink-0">
             {/* Stats - all on one line */}
-            <div className="flex items-center">
-              <div className="text-center px-4">
-                <p className="text-xl font-bold text-black">{stats.communityMembers.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">חברים בקהילות שלי</p>
+            <div className="flex items-center flex-shrink-0">
+              <div className="text-right px-6">
+                <p className="font-bold text-black" style={{ fontSize: '24px', lineHeight: '1.2' }}>{stats.communityMembers.toLocaleString()}</p>
+                <p style={{ fontSize: '16px', color: '#3F3F46', marginTop: '2px' }}>חברים בקהילות שלי</p>
               </div>
-              <div className="text-center border-r border-gray-200 px-4">
-                <p className="text-xl font-bold text-black">{stats.followers.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">עוקבים</p>
+              <div className="text-right border-r border-gray-200 px-6">
+                <p className="font-bold text-black" style={{ fontSize: '24px', lineHeight: '1.2' }}>{stats.followers.toLocaleString()}</p>
+                <p style={{ fontSize: '16px', color: '#3F3F46', marginTop: '2px' }}>עוקבים</p>
               </div>
-              <div className="text-center border-r border-gray-200 px-4">
-                <p className="text-xl font-bold text-black">{stats.following.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">עוקב/ת אחרי</p>
+              <div className="text-right border-r border-gray-200 px-6">
+                <p className="font-bold text-black" style={{ fontSize: '24px', lineHeight: '1.2' }}>{stats.following.toLocaleString()}</p>
+                <p style={{ fontSize: '16px', color: '#3F3F46', marginTop: '2px' }}>עוקב/ת אחרי</p>
               </div>
             </div>
 
-            {/* Buttons - on one line - only show for other users */}
             {currentUserId && currentUserId !== userId && (
-              <div className="flex items-center gap-3 mt-4">
+              <div className="flex items-center gap-3 mt-4 pr-6 h-11">
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className={`px-8 py-2 rounded-lg font-bold transition ${
+                  className={`px-8 py-2.5 rounded-xl font-medium transition ${
                     isFollowing
-                      ? 'border border-black text-black hover:bg-gray-100'
-                      : 'bg-black text-white hover:bg-gray-900'
+                      ? 'border border-black text-black bg-white hover:bg-gray-100'
+                      : 'bg-black text-white hover:opacity-90'
                   } ${followLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
-                  {followLoading ? '...' : isFollowing ? 'עוקב' : 'עקוב'}
+                  {followLoading ? '...' : isFollowing ? 'הסר עוקב' : 'עקוב'}
                 </button>
-                {isFollowing && (
-                  <button
-                    onClick={handleSendMessage}
-                    className="border border-black text-black px-6 py-2 rounded-lg font-bold hover:bg-gray-100 transition"
-                  >
-                    שלח הודעה
-                  </button>
-                )}
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!isFollowing && !hasConversation}
+                  className={`border px-6 py-2.5 rounded-xl font-medium transition ${
+                    (isFollowing || hasConversation)
+                      ? 'border-black text-black hover:bg-gray-100 cursor-pointer' 
+                      : 'border-gray-300 text-gray-300 cursor-not-allowed'
+                  }`}
+                >
+                  שלח הודעה
+                </button>
               </div>
             )}
           </div>
@@ -524,68 +518,59 @@ export default function MemberProfilePage() {
                   </div>
                 ) : (
                   <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                     {[...createdCommunities]
                       .reverse()
                       .slice((createdPage - 1) * communitiesPerPage, createdPage * communitiesPerPage)
                       .map((community) => (
                       <div
                         key={community.id}
-                        className="rounded-2xl overflow-hidden hover:shadow-lg bg-white transition-all duration-200"
+                        className="rounded-2xl overflow-hidden hover:shadow-lg bg-white transition-all duration-200 flex flex-col border border-gray-100"
                       >
                         <Link href={`/communities/${community.slug || community.id}/feed`}>
                           {community.image ? (
                             <img
                               src={`${process.env.NEXT_PUBLIC_API_URL}${community.image}`}
                               alt={community.name}
-                              className="w-full h-44 object-cover"
+                              className="w-full h-40 object-cover"
                             />
                           ) : (
-                            <div className="w-full h-44 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
-                              <span className="text-gray-400 font-medium">תמונת קהילה</span>
+                            <div className="w-full h-40 flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #DBEAFE, #DCFCE7)' }}>
+                              <span className="font-medium" style={{ color: '#A1A1AA' }}>תמונת קהילה</span>
                             </div>
                           )}</Link>
-                        <div className="p-5 text-right" dir="rtl">
-                          {/* Logo + Name row */}
+                        <div className="p-5 text-right flex-1 flex flex-col" dir="rtl">
+                          {/* Logo + Name + Topic row */}
                           <div className="flex items-start gap-3 mb-2">
                             {community.logo ? (
                               <img
                                 src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
                                 alt={community.name}
-                                className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                               />
                             ) : (
-                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                <span className="text-gray-400 text-lg font-bold">{community.name.charAt(0)}</span>
+                              <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F4F4F5' }}>
+                                <span className="text-lg font-bold" style={{ color: '#A1A1AA' }}>{community.name.charAt(0)}</span>
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <h2 className="font-bold text-xl text-black">{community.name}</h2>
+                              <h2 className="font-bold text-black" style={{ fontSize: '1.5rem' }}>{community.name}</h2>
+                              {/* Topic below heading */}
+                              {community.topic && (
+                                <span className="font-normal" style={{ fontSize: '1rem', color: '#3F3F46' }}>{community.topic}</span>
+                              )}
                             </div>
                           </div>
-                          <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
+                          <p className="line-clamp-3 leading-relaxed" style={{ fontSize: '1rem', color: '#3F3F46' }}>
                             {community.description}
                           </p>
                           
-                          {/* Separator line */}
-                          <div className="border-t border-gray-200 my-4"></div>
-                          
-                          {/* Topic + Member count + Price badges - all on same line */}
-                          <div className="flex flex-wrap items-center justify-start gap-2">
-                            {/* Topic badge */}
-                            {community.topic && (() => {
-                              const colors = getTopicColor(community.topic);
-                              return (
-                                <span className={`${colors.bg} ${colors.text} px-3 py-1.5 rounded-full text-sm font-medium border ${colors.border}`}>
-                                  {community.topic}
-                                </span>
-                              );
-                            })()}
-                            
+                          {/* Member count + Price badges - on same line */}
+                          <div className="flex flex-wrap items-center justify-start gap-2 mt-auto pt-4">
                             {/* Member count badge */}
                             <span 
-                              className="px-3 py-1.5 rounded-full text-sm font-medium"
-                              style={{ backgroundColor: '#F4F4F5', color: '#52525B' }}
+                              className="rounded-full font-normal"
+                              style={{ backgroundColor: '#F4F4F5', color: '#3F3F46', fontSize: '1rem', padding: '0.5rem 1rem' }}
                             >
                               {(community.memberCount ?? 0) === 1 
                                 ? 'משתמש אחד' 
@@ -597,15 +582,15 @@ export default function MemberProfilePage() {
                             {/* Free/Paid badge */}
                             {(community.price ?? 0) === 0 ? (
                               <span 
-                                className="px-3 py-1.5 rounded-full text-sm font-medium"
-                                style={{ backgroundColor: '#E9FCC5', color: '#365908' }}
+                                className="rounded-full font-normal"
+                                style={{ backgroundColor: '#A7EA7B', color: '#163300', fontSize: '1rem', padding: '0.5rem 1rem' }}
                               >
                                 חינם
                               </span>
                             ) : (
                               <span 
-                                className="px-3 py-1.5 rounded-full text-sm font-medium"
-                                style={{ backgroundColor: '#DCF1FE', color: '#02527D' }}
+                                className="rounded-full font-normal"
+                                style={{ backgroundColor: '#91DCED', color: '#003233', fontSize: '1rem', padding: '0.5rem 1rem' }}
                               >
                                 ₪{community.price} לחודש
                               </span>
@@ -668,68 +653,60 @@ export default function MemberProfilePage() {
                   </div>
                 ) : (
                   <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                     {[...memberCommunities]
                       .reverse()
                       .slice((memberPage - 1) * communitiesPerPage, memberPage * communitiesPerPage)
                       .map((community) => (
                       <div
                         key={community.id}
-                        className="rounded-2xl overflow-hidden hover:shadow-lg bg-white transition-all duration-200"
+                        className="rounded-2xl overflow-hidden hover:shadow-lg bg-white transition-all duration-200 flex flex-col border border-gray-100"
                       >
                         <Link href={`/communities/${community.slug || community.id}/feed`}>
                           {community.image ? (
                             <img
                               src={`${process.env.NEXT_PUBLIC_API_URL}${community.image}`}
                               alt={community.name}
-                              className="w-full h-44 object-cover"
+                              className="w-full h-40 object-cover"
                             />
                           ) : (
-                            <div className="w-full h-44 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
-                              <span className="text-gray-400 font-medium">תמונת קהילה</span>
+                            <div className="w-full h-40 flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #DBEAFE, #DCFCE7)' }}>
+                              <span className="font-medium" style={{ color: '#A1A1AA' }}>תמונת קהילה</span>
                             </div>
                           )}
                         </Link>
-                        <div className="p-5 text-right" dir="rtl">
-                          {/* Logo + Name row */}
+                        <div className="p-5 text-right flex-1 flex flex-col" dir="rtl">
+                          {/* Logo + Name + Topic row */}
                           <div className="flex items-start gap-3 mb-2">
                             {community.logo ? (
                               <img
                                 src={`${process.env.NEXT_PUBLIC_API_URL}${community.logo}`}
                                 alt={community.name}
-                                className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                               />
                             ) : (
-                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                <span className="text-gray-400 text-lg font-bold">{community.name.charAt(0)}</span>
+                              <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F4F4F5' }}>
+                                <span className="text-lg font-bold" style={{ color: '#A1A1AA' }}>{community.name.charAt(0)}</span>
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <h2 className="font-bold text-xl text-black">{community.name}</h2>
+                              <h2 className="font-bold text-black" style={{ fontSize: '1.5rem' }}>{community.name}</h2>
+                              {/* Topic below heading */}
+                              {community.topic && (
+                                <span className="font-normal" style={{ fontSize: '1rem', color: '#3F3F46' }}>{community.topic}</span>
+                              )}
                             </div>
                           </div>
-                          <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
+                          <p className="line-clamp-3 leading-relaxed" style={{ fontSize: '1rem', color: '#3F3F46' }}>
                             {community.description}
                           </p>
                           
-                          {/* Separator line */}
-                          <div className="border-t border-gray-200 my-4"></div>
-                          
-                          {/* Topic + Member count + Price badges - all on same line */}
-                          <div className="flex flex-wrap items-center justify-start gap-2">
-                            {community.topic && (() => {
-                              const colors = getTopicColor(community.topic);
-                              return (
-                                <span className={`${colors.bg} ${colors.text} px-3 py-1.5 rounded-full text-sm font-medium border ${colors.border}`}>
-                                  {community.topic}
-                                </span>
-                              );
-                            })()}
-                            
+                          {/* Member count + Price badges - on same line */}
+                          <div className="flex flex-wrap items-center justify-start gap-2 mt-auto pt-4">
                             {/* Member count badge */}
                             <span 
-                              className="px-3 py-1.5 rounded-full text-sm font-medium"
-                              style={{ backgroundColor: '#F4F4F5', color: '#52525B' }}
+                              className="rounded-full font-normal"
+                              style={{ backgroundColor: '#F4F4F5', color: '#3F3F46', fontSize: '1rem', padding: '0.5rem 1rem' }}
                             >
                               {(community.memberCount ?? 0) === 1 
                                 ? 'משתמש אחד' 
@@ -741,15 +718,15 @@ export default function MemberProfilePage() {
                             {/* Free/Paid badge */}
                             {(community.price ?? 0) === 0 ? (
                               <span 
-                                className="px-3 py-1.5 rounded-full text-sm font-medium"
-                                style={{ backgroundColor: '#E9FCC5', color: '#365908' }}
+                                className="rounded-full font-normal"
+                                style={{ backgroundColor: '#A7EA7B', color: '#163300', fontSize: '1rem', padding: '0.5rem 1rem' }}
                               >
                                 חינם
                               </span>
                             ) : (
                               <span 
-                                className="px-3 py-1.5 rounded-full text-sm font-medium"
-                                style={{ backgroundColor: '#DCF1FE', color: '#02527D' }}
+                                className="rounded-full font-normal"
+                                style={{ backgroundColor: '#91DCED', color: '#003233', fontSize: '1rem', padding: '0.5rem 1rem' }}
                               >
                                 ₪{community.price} לחודש
                               </span>

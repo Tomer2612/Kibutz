@@ -3,15 +3,17 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaUsers, FaImage, FaCog, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar, FaPlus, FaCreditCard, FaChevronDown, FaCalendarAlt, FaLock } from 'react-icons/fa';
+import { FaUsers, FaImage, FaCog, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar, FaPlus, FaCreditCard, FaChevronDown } from 'react-icons/fa';
 import { useCommunityContext } from '../CommunityContext';
 import FormSelect from '../../../components/FormSelect';
-import PlusIcon from '../../../components/PlusIcon';
-import TrashIcon from '../../../components/TrashIcon';
-import CheckIcon from '../../../components/CheckIcon';
-import CloseIcon from '../../../components/CloseIcon';
-import NoFeeIcon from '../../../components/NoFeeIcon';
-import DollarIcon from '../../../components/DollarIcon';
+import PlusIcon from '../../../components/icons/PlusIcon';
+import TrashIcon from '../../../components/icons/TrashIcon';
+import CheckIcon from '../../../components/icons/CheckIcon';
+import CloseIcon from '../../../components/icons/CloseIcon';
+import NoFeeIcon from '../../../components/icons/NoFeeIcon';
+import DollarIcon from '../../../components/icons/DollarIcon';
+import CalendarIcon from '../../../components/icons/CalendarIcon';
+import LockIcon from '../../../components/icons/LockIcon';
 
 interface Community {
   id: string;
@@ -28,6 +30,7 @@ interface Community {
   facebookUrl: string | null;
   instagramUrl: string | null;
   galleryImages: string[];
+  galleryVideos: string[];
   rules: string[];
   trialStartDate: string | null;
   trialCancelled: boolean;
@@ -89,6 +92,10 @@ export default function ManageCommunityPage() {
   // Community Rules
   const [rules, setRules] = useState<string[]>([]);
   const [newRule, setNewRule] = useState('');
+  
+  // Gallery Videos (YouTube URLs)
+  const [galleryVideos, setGalleryVideos] = useState<string[]>([]);
+  const [newVideoUrl, setNewVideoUrl] = useState('');
   
   // Price
   const [price, setPrice] = useState<number>(10);
@@ -230,6 +237,11 @@ export default function ManageCommunityPage() {
         }
         
         setImages(loadedImages);
+        
+        // Load gallery videos
+        if (data.galleryVideos && Array.isArray(data.galleryVideos)) {
+          setGalleryVideos(data.galleryVideos);
+        }
       } catch (err) {
         console.error('Error fetching community:', err);
         router.push('/');
@@ -367,6 +379,9 @@ export default function ManageCommunityPage() {
       images.filter(img => !img.isPrimary && !img.isExisting && img.file).forEach(img => {
         formData.append('galleryImages', img.file!);
       });
+      
+      // Gallery videos (YouTube URLs)
+      formData.append('existingGalleryVideos', JSON.stringify(galleryVideos));
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`, {
         method: 'PUT',
@@ -612,7 +627,7 @@ export default function ManageCommunityPage() {
                     <input
                       type="text"
                       placeholder="לדוגמא: יוגה למומחים"
-                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-right text-base"
+                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-right text-base"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
@@ -736,7 +751,7 @@ export default function ManageCommunityPage() {
                   <div className="flex-1">
                     <textarea
                       placeholder="תארו את הקהילה, מה הם הנושאים המרכזיים, מי יכול להצטרף..."
-                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-right resize-none text-base"
+                      className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-right resize-none text-base"
                       rows={6}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -842,6 +857,71 @@ export default function ManageCommunityPage() {
                 </div>
                 </div>
 
+                {/* YouTube Videos */}
+                <div className="flex gap-8">
+                  <div className="w-48 flex-shrink-0 text-right">
+                    <h3 className="font-medium text-gray-900 text-base">סרטוני יוטיוב</h3>
+                    <p className="text-sm text-gray-500 mt-1">סרטוני יוטיוב שיוצגו בעמוד הקהילה</p>
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    {galleryVideos.length > 0 && (
+                      <div className="space-y-2">
+                        {galleryVideos.map((videoUrl, index) => {
+                          const videoId = videoUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
+                          return (
+                            <div 
+                              key={index} 
+                              className="flex items-center gap-3 bg-gray-50 rounded-lg p-3 border border-gray-300"
+                            >
+                              {videoId && (
+                                <img 
+                                  src={`https://img.youtube.com/vi/${videoId}/default.jpg`}
+                                  alt="Video thumbnail"
+                                  className="w-16 h-12 object-cover rounded"
+                                />
+                              )}
+                              <span className="flex-1 text-sm text-gray-700 truncate" dir="ltr">{videoUrl}</span>
+                              <button
+                                type="button"
+                                onClick={() => setGalleryVideos(prev => prev.filter((_, i) => i !== index))}
+                                className="p-1 text-gray-400 hover:text-[#B3261E] transition"
+                              >
+                                <CloseIcon className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="...הדביקו קישור יוטיוב"
+                        className="w-full p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-right resize-none text-base placeholder:text-right"
+                        value={newVideoUrl}
+                        onChange={(e) => setNewVideoUrl(e.target.value)}
+                        dir="ltr"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const videoId = newVideoUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
+                          if (newVideoUrl.trim() && videoId) {
+                            setGalleryVideos(prev => [...prev, newVideoUrl.trim()]);
+                            setNewVideoUrl('');
+                          }
+                        }}
+                        disabled={!newVideoUrl.trim() || !newVideoUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)}
+                        className="px-4 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        <span>הוסף</span>
+                        <FaYoutube className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500">תומך בקישורים מסוג youtube.com/watch</p>
+                  </div>
+                </div>
+
                 {/* Delete Community - Only for owners */}
                 {isOwner && (
                   <div className="flex items-center justify-between gap-6 pt-6 border-t border-gray-200">
@@ -895,7 +975,7 @@ export default function ManageCommunityPage() {
                     <input
                       type="text"
                       placeholder="כלל חדש..."
-                      className="flex-1 p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-right text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="flex-1 p-3.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-right text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
                       value={newRule}
                       onChange={(e) => setNewRule(e.target.value)}
                       onKeyDown={(e) => {
@@ -938,8 +1018,8 @@ export default function ManageCommunityPage() {
                           placeholder="קישור לערוץ YouTube"
                           className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
                             youtubeUrl && !youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be')
-                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-transparent'
-                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent'
+                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-black'
+                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'
                           }`}
                           value={youtubeUrl}
                           onChange={(e) => setYoutubeUrl(e.target.value)}
@@ -957,8 +1037,8 @@ export default function ManageCommunityPage() {
                           placeholder="קישור לקבוצת WhatsApp"
                           className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
                             whatsappUrl && !whatsappUrl.includes('whatsapp.com') && !whatsappUrl.includes('wa.me') && !whatsappUrl.includes('chat.whatsapp')
-                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-transparent'
-                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent'
+                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-black'
+                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'
                           }`}
                           value={whatsappUrl}
                           onChange={(e) => setWhatsappUrl(e.target.value)}
@@ -976,8 +1056,8 @@ export default function ManageCommunityPage() {
                           placeholder="קישור לעמוד Facebook"
                           className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
                             facebookUrl && !facebookUrl.includes('facebook.com') && !facebookUrl.includes('fb.com') && !facebookUrl.includes('fb.me')
-                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-transparent'
-                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent'
+                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-black'
+                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'
                           }`}
                           value={facebookUrl}
                           onChange={(e) => setFacebookUrl(e.target.value)}
@@ -995,8 +1075,8 @@ export default function ManageCommunityPage() {
                           placeholder="קישור לעמוד Instagram"
                           className={`w-full p-3.5 pr-12 border rounded-lg focus:outline-none text-right text-base ${
                             instagramUrl && !instagramUrl.includes('instagram.com') && !instagramUrl.includes('instagr.am')
-                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-transparent'
-                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-transparent'
+                              ? 'border-[#B3261E] focus:ring-2 focus:ring-[#B3261E] focus:border-black'
+                              : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'
                           }`}
                           value={instagramUrl}
                           onChange={(e) => setInstagramUrl(e.target.value)}
@@ -1200,7 +1280,7 @@ export default function ManageCommunityPage() {
                         type="text"
                         value={newCardNumber}
                         onChange={(e) => setNewCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                        className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
+                        className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black ${
                           newCardNumber.length > 0 && newCardNumber.length < 16 ? 'border-red-400' : 'border-gray-300'
                         }`}
                       />
@@ -1233,7 +1313,7 @@ export default function ManageCommunityPage() {
                               setNewCardExpiry(rawValue);
                             }
                           }}
-                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black ${
                             newCardExpiry.length > 0 && (newCardExpiry.length < 5 || (() => {
                               if (newCardExpiry.length !== 5) return false;
                               const [m, y] = newCardExpiry.split('/').map(Number);
@@ -1244,7 +1324,7 @@ export default function ManageCommunityPage() {
                             })()) ? 'border-red-400' : 'border-gray-300'
                           }`}
                         />
-                        <FaCalendarAlt className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <CalendarIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       </div>
                       {newCardExpiry.length > 0 && newCardExpiry.length < 5 && (
                         <p className="text-red-500 text-sm mt-1">פורמט: MM/YY</p>
@@ -1266,11 +1346,11 @@ export default function ManageCommunityPage() {
                           type="text"
                           value={newCardCvv}
                           onChange={(e) => setNewCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black ${
                             newCardCvv.length > 0 && newCardCvv.length < 3 ? 'border-red-400' : 'border-gray-300'
                           }`}
                         />
-                        <FaLock className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <LockIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       </div>
                       {newCardCvv.length > 0 && newCardCvv.length < 3 && (
                         <p className="text-red-500 text-sm mt-1">חסרות {3 - newCardCvv.length} ספרות</p>

@@ -5,6 +5,20 @@ import { PrismaService } from '../users/prisma.service';
 export class MessagesService {
   constructor(private prisma: PrismaService) {}
 
+  // Check if a conversation exists between two users
+  async hasConversation(userId1: string, userId2: string): Promise<boolean> {
+    const [participant1Id, participant2Id] = [userId1, userId2].sort();
+    
+    const conversation = await this.prisma.conversation.findUnique({
+      where: {
+        participant1Id_participant2Id: { participant1Id, participant2Id },
+      },
+      select: { id: true },
+    });
+    
+    return !!conversation;
+  }
+
   // Get or create a conversation between two users
   async getOrCreateConversation(userId1: string, userId2: string) {
     // Always order IDs to ensure consistent uniqueness
@@ -176,6 +190,23 @@ export class MessagesService {
     await this.prisma.message.updateMany({
       where: {
         conversationId,
+        senderId: { not: userId },
+        isRead: false,
+      },
+      data: { isRead: true },
+    });
+  }
+
+  // Mark all messages as read
+  async markAllAsRead(userId: string) {
+    await this.prisma.message.updateMany({
+      where: {
+        conversation: {
+          OR: [
+            { participant1Id: userId },
+            { participant2Id: userId },
+          ],
+        },
         senderId: { not: userId },
         isRead: false,
       },

@@ -60,7 +60,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="he" dir="rtl" suppressHydrationWarning>
-      <body className={` ${ assistant.className} ${ notoSerifHebrew.variable} bg-gray-100 text-right antialiased min-h-screen`} suppressHydrationWarning>
+      <body className={` ${ assistant.className} ${ notoSerifHebrew.variable} text-right antialiased min-h-screen`} style={{ backgroundColor: '#F4F4F5' }} suppressHydrationWarning>
         <ClientProviders>
           {children}
         </ClientProviders>

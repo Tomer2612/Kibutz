@@ -46,6 +46,16 @@ export default function ChatWidget() {
   const [authChecked, setAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const conversationsRef = useRef<HTMLDivElement>(null);
+  const justMarkedAllReadRef = useRef(false);
+  
+  // Ref to store the showConversations setter - avoids stale closure in window.toggleChatWidget
+  const showConversationsRef = useRef(showConversations);
+  const setShowConversationsRef = useRef(setShowConversations);
+  
+  // Keep refs in sync
+  useEffect(() => {
+    showConversationsRef.current = showConversations;
+  }, [showConversations]);
   
   const { onNewMessage } = useSocketContext();
 
@@ -80,6 +90,9 @@ export default function ChatWidget() {
 
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
+    // Skip fetch if we just marked all as read
+    if (justMarkedAllReadRef.current) return;
+    
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -99,25 +112,68 @@ export default function ChatWidget() {
     }
   }, []);
 
-  // Listen for toggle event from MessagesBell
+  // Store fetchConversations in a ref to avoid stale closures
+  const fetchConversationsRef = useRef(fetchConversations);
   useEffect(() => {
-    const handleToggle = () => {
-      setShowConversations(prev => {
-        if (!prev) {
-          fetchConversations();
-        }
-        return !prev;
-      });
+    fetchConversationsRef.current = fetchConversations;
+  }, [fetchConversations]);
+
+  // Expose toggle function globally - bypasses event listener issues
+  useEffect(() => {
+    const toggle = () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        (window as any).chatWidgetOpenIntent = true;
+        return;
+      }
+      
+      const currentlyShowing = showConversationsRef.current;
+      if (!currentlyShowing) {
+        fetchConversationsRef.current();
+      }
+      
+      showConversationsRef.current = !currentlyShowing;
+      setShowConversationsRef.current(!currentlyShowing);
     };
 
-    window.addEventListener('toggleChatWidget', handleToggle);
-    return () => window.removeEventListener('toggleChatWidget', handleToggle);
-  }, [fetchConversations]);
+    // 1. Assign to window so MessagesBell can call it directly
+    (window as any).toggleChatWidget = toggle;
+
+    // Check for pending intent (race condition fix)
+    const token = localStorage.getItem('token');
+    if ((window as any).chatWidgetOpenIntent && token) {
+      showConversationsRef.current = true;
+      setShowConversationsRef.current(true);
+      fetchConversationsRef.current();
+      (window as any).chatWidgetOpenIntent = false;
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if ((window as any).toggleChatWidget === toggle) {
+        delete (window as any).toggleChatWidget;
+      }
+    };
+  }, []);
+
+  // Handle "Open Intent" when Auth becomes ready
+  useEffect(() => {
+    if (authChecked && isLoggedIn && (window as any).chatWidgetOpenIntent) {
+      setShowConversations(true);
+      fetchConversationsRef.current();
+      (window as any).chatWidgetOpenIntent = false;
+    }
+  }, [authChecked, isLoggedIn]);
 
   // Close conversations dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (conversationsRef.current && !conversationsRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+      // Ignore clicks on the messages bell button (let toggle handle it)
+      if (target.closest('[data-messages-bell]')) {
+        return;
+      }
+      if (conversationsRef.current && !conversationsRef.current.contains(target)) {
         setShowConversations(false);
       }
     };
@@ -148,9 +204,22 @@ export default function ChatWidget() {
   }, [onNewMessage]);
 
   const openChat = useCallback(async (conv: Conversation) => {
-    if (!currentUserId) return;
+    // Get userId from token directly to avoid stale state
+    const token = localStorage.getItem('token');
+    if (!token) return;
     
-    const other = conv.participant1.id === currentUserId ? conv.participant2 : conv.participant1;
+    let userId = currentUserId;
+    if (!userId) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        userId = payload.sub;
+      } catch {
+        return;
+      }
+    }
+    if (!userId) return;
+    
+    const other = conv.participant1.id === userId ? conv.participant2 : conv.participant1;
     
     // Check if already open
     const existingChat = openChats.find(c => c.conversationId === conv.id);
@@ -172,12 +241,30 @@ export default function ChatWidget() {
       isLoading: true,
     };
 
-    setOpenChats(prev => [...prev.slice(-2), newChat]); // Max 3 chats
+    // Smart chat limits: Max 3 expanded, Max 5 minimized
+    setOpenChats(prev => {
+      const expanded = prev.filter(c => !c.isMinimized);
+      const minimized = prev.filter(c => c.isMinimized);
+      
+      // If we have 3 expanded chats, auto-minimize the oldest expanded one
+      if (expanded.length >= 3) {
+        const oldestExpanded = expanded[0];
+        const newExpanded = expanded.slice(1);
+        const updatedMinimized = [...minimized, { ...oldestExpanded, isMinimized: true }];
+        
+        // If minimized exceeds 8, remove the oldest minimized
+        const finalMinimized = updatedMinimized.length > 8 ? updatedMinimized.slice(1) : updatedMinimized;
+        
+        return [...finalMinimized, ...newExpanded, newChat];
+      }
+      
+      // If minimized exceeds 8, remove the oldest minimized
+      const finalMinimized = minimized.length > 8 ? minimized.slice(1) : minimized;
+      
+      return [...finalMinimized, ...expanded, newChat];
+    });
 
     // Fetch messages
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/conversations/${conv.id}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -195,6 +282,9 @@ export default function ChatWidget() {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         });
+        
+        // Immediately trigger refresh of unread count in MessagesBell
+        window.dispatchEvent(new Event('conversationRead'));
       }
     } catch (err) {
       console.error('Failed to fetch messages:', err);
@@ -257,8 +347,73 @@ export default function ChatWidget() {
     ));
   };
 
+  const markConversationAsRead = async (conversationId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/conversations/${conversationId}/read`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        // Update local state immediately
+        setConversations(prev => prev.map(c => 
+          c.id === conversationId ? { ...c, unreadCount: 0 } : c
+        ));
+        // Trigger refresh of unread count in MessagesBell
+        window.dispatchEvent(new Event('conversationRead'));
+      }
+    } catch (err) {
+      console.error('Failed to mark conversation as read:', err);
+    }
+  };
+
+  const markAllMessagesAsRead = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      // 1. Call API to update database
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages/read-all`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        // 2. Update local conversations state (remove unread badges inside the list)
+        setConversations(prev => prev.map(c => ({ ...c, unreadCount: 0 })));
+        
+        // 3. Tell the Bell component to reset to 0
+        window.dispatchEvent(new Event('messagesMarkedRead'));
+        
+        // Set flag to prevent fetches from overriding our local state
+        justMarkedAllReadRef.current = true;
+        setTimeout(() => {
+          justMarkedAllReadRef.current = false;
+        }, 10000);
+      }
+    } catch (err) {
+      console.error('Failed to mark all messages as read:', err);
+    }
+  };
+
   const getOtherParticipant = (conv: Conversation) => {
-    return conv.participant1.id === currentUserId ? conv.participant2 : conv.participant1;
+    // Get userId from token directly to avoid stale state
+    let userId = currentUserId;
+    if (!userId) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          userId = payload.sub;
+        } catch {
+          // fallback
+        }
+      }
+    }
+    return conv.participant1.id === userId ? conv.participant2 : conv.participant1;
   };
 
   const handleConversationClick = (conv: Conversation) => {
@@ -266,7 +421,12 @@ export default function ChatWidget() {
     setShowConversations(false);
   };
 
-  if (!authChecked || !isLoggedIn) return null;
+  // Check token directly as well - isLoggedIn state might be stale
+  const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('token');
+  
+  if (!authChecked || (!isLoggedIn && !hasToken)) {
+    return null;
+  }
 
   return (
     <>
@@ -279,14 +439,28 @@ export default function ChatWidget() {
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <h3 className="font-semibold text-gray-900">הודעות</h3>
-            <button 
-              onClick={() => setShowConversations(false)}
-              className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1">
+              {conversations.some(c => (c.unreadCount || 0) > 0) && (
+                <button
+                  onClick={markAllMessagesAsRead}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition"
+                  title="סמן הכל כנקרא"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+              )}
+              <button 
+                onClick={() => setShowConversations(false)}
+                className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
           <div className="max-h-[400px] overflow-y-auto">
             {loadingConversations ? (
@@ -310,29 +484,35 @@ export default function ChatWidget() {
               conversations.map(conv => {
                 const other = getOtherParticipant(conv);
                 return (
-                  <button
+                  <div
                     key={conv.id}
-                    onClick={() => handleConversationClick(conv)}
                     className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition cursor-pointer text-right ${
-                      (conv.unreadCount || 0) > 0 ? 'bg-blue-50/50' : ''
+                      (conv.unreadCount || 0) > 0 ? 'bg-[#FCFCFC]' : ''
                     }`}
                   >
-                    <div className="relative flex-shrink-0">
+                    <a
+                      href={`/profile/${other.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="relative flex-shrink-0 hover:opacity-80 transition"
+                    >
                       {other.profileImage ? (
                         <Image
                           src={other.profileImage.startsWith('http') ? other.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${other.profileImage}`}
                           alt={other.name}
                           width={40}
                           height={40}
-                          className="rounded-full object-cover"
+                          className="w-10 h-10 rounded-full object-cover"
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium">
                           {other.name?.charAt(0) || '?'}
                         </div>
                       )}
-                    </div>
-                    <div className="flex-1 min-w-0">
+                    </a>
+                    <button
+                      onClick={() => handleConversationClick(conv)}
+                      className="flex-1 min-w-0 text-right"
+                    >
                       <p className={`text-sm ${(conv.unreadCount || 0) > 0 ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
                         {other.name}
                       </p>
@@ -341,13 +521,28 @@ export default function ChatWidget() {
                           {conv.lastMessageText}
                         </p>
                       )}
-                    </div>
+                    </button>
                     {(conv.unreadCount || 0) > 0 && (
-                      <span className="bg-[#1a3a4a] text-white text-xs font-semibold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
-                        {conv.unreadCount}
-                      </span>
+                      <>
+                        <span className="bg-[#A7EA7B] text-black text-xs font-semibold rounded-full min-w-[24px] h-6 flex items-center justify-center px-2">
+                          {conv.unreadCount}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            markConversationAsRead(conv.id);
+                          }}
+                          className="p-1 text-gray-400 hover:text-[#65A30D] hover:bg-[#A7EA7B]/20 rounded-full transition"
+                          title="סמן כנקרא"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                      </>
                     )}
-                  </button>
+                  </div>
                 );
               })
             )}
@@ -377,7 +572,7 @@ export default function ChatWidget() {
                   className="w-6 h-6 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-6 h-6 bg-[#3B82F6] rounded-full flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-6 h-6 bg-[#E1E1E2] rounded-full flex items-center justify-center text-gray-700 text-xs font-bold">
                   {chat.recipientName.charAt(0)}
                 </div>
               )}
@@ -388,8 +583,9 @@ export default function ChatWidget() {
               className="p-0.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition"
               title="סגור"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
           </div>
@@ -479,19 +675,24 @@ function ChatWindow({
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between rounded-t-xl">
         <div className="flex items-center gap-2">
-          {chat.recipientImage ? (
-            <Image
-              src={chat.recipientImage.startsWith('http') ? chat.recipientImage : `${process.env.NEXT_PUBLIC_API_URL}${chat.recipientImage}`}
-              alt={chat.recipientName}
-              width={32}
-              height={32}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-8 h-8 bg-[#3B82F6] rounded-full flex items-center justify-center text-white font-bold text-sm">
-              {chat.recipientName.charAt(0)}
-            </div>
-          )}
+          <a
+            href={`/profile/${chat.recipientId}`}
+            className="hover:opacity-80 transition"
+          >
+            {chat.recipientImage ? (
+              <Image
+                src={chat.recipientImage.startsWith('http') ? chat.recipientImage : `${process.env.NEXT_PUBLIC_API_URL}${chat.recipientImage}`}
+                alt={chat.recipientName}
+                width={32}
+                height={32}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 bg-[#E1E1E2] rounded-full flex items-center justify-center text-gray-700 font-bold text-sm">
+                {chat.recipientName.charAt(0)}
+              </div>
+            )}
+          </a>
           <span className="font-medium text-gray-900">{chat.recipientName}</span>
         </div>
         <div className="flex items-center gap-1">
@@ -501,38 +702,68 @@ function ChatWindow({
             </svg>
           </button>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div dir="ltr" className="flex-1 max-h-[250px] overflow-y-auto p-3 bg-gray-50">
+      <div dir="ltr" className="flex-1 max-h-[250px] overflow-y-auto p-3 bg-[#FCFCFC]">
         <div dir="rtl" className="space-y-3">
         {chat.isLoading ? (
           <div className="flex justify-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#3B82F6]"></div>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#A7EA7B]"></div>
           </div>
         ) : chat.messages.length === 0 ? (
-          <div className="text-center text-gray-400 text-sm py-8">
+          <div className="text-center text-[#A1A1AA] text-sm py-8">
             התחל שיחה חדשה
           </div>
         ) : (
-          chat.messages.map(msg => {
-            const isOwn = msg.senderId === currentUserId;
+          chat.messages.map((msg, index) => {
+            // Get userId from token directly to avoid stale state
+            let userId = currentUserId;
+            if (!userId) {
+              const token = localStorage.getItem('token');
+              if (token) {
+                try {
+                  const payload = JSON.parse(atob(token.split('.')[1]));
+                  userId = payload.sub;
+                } catch {
+                  // fallback
+                }
+              }
+            }
+            const isOwn = msg.senderId === userId;
+            
+            // Check if this message is part of a consecutive group from same sender
+            const prevMsg = chat.messages[index - 1];
+            const nextMsg = chat.messages[index + 1];
+            const isSameSenderAsPrev = prevMsg && prevMsg.senderId === msg.senderId;
+            const isSameSenderAsNext = nextMsg && nextMsg.senderId === msg.senderId;
+            const isLastInGroup = !isSameSenderAsNext;
+            
+            // Tighter bottom spacing if next message is from same sender
+            const marginClass = isSameSenderAsNext ? 'mb-0.5' : 'mb-3';
+            // Tighter top spacing if prev message is from same sender
+            const marginTopClass = isSameSenderAsPrev ? 'mt-0' : '';
+            
             return (
-              <div key={msg.id} className={`flex mb-3 ${isOwn ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+              <div key={msg.id} className={`flex ${marginClass} ${marginTopClass} ${isOwn ? 'justify-start' : 'justify-end'}`}>
+                <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${
                   isOwn 
-                    ? 'bg-[#3B82F6] text-white rounded-bl-sm' 
+                    ? 'bg-[#A7EA7B] text-black rounded-bl-sm' 
                     : 'bg-white text-gray-900 rounded-br-sm shadow-sm border border-gray-100'
                 }`}>
                   <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
-                  <p className={`text-[10px] mt-1.5 ${isOwn ? 'text-white/70' : 'text-gray-400'}`}>
-                    {formatTime(msg.createdAt)}
-                  </p>
+                  {/* Only show timestamp on last message of consecutive group */}
+                  {isLastInGroup && (
+                    <p className={`text-xs mt-1 ${isOwn ? 'text-black/60' : 'text-gray-400'}`}>
+                      {formatTime(msg.createdAt)}
+                    </p>
+                  )}
                 </div>
               </div>
             );
@@ -549,19 +780,23 @@ function ChatWindow({
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="הקלד הודעה..."
-          className="flex-1 border border-gray-300 rounded-full px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent"
+          className="flex-1 border border-[#999999] rounded-[10px] px-3 py-1.5 text-sm focus:outline-none focus:border-[#A7EA7B]"
           disabled={sending}
         />
         <button
           type="submit"
           disabled={!message.trim() || sending}
-          className="w-8 h-8 bg-[#3B82F6] text-white rounded-full flex items-center justify-center hover:bg-[#2563EB] transition-colors disabled:opacity-50"
+          className="w-8 h-8 flex items-center justify-center hover:opacity-80 transition-opacity disabled:opacity-50"
         >
           {sending ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 bg-[#A7EA7B] rounded-full flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+            </div>
           ) : (
-            <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8">
+              <rect width="32" height="32" rx="16" fill="#A7EA7B" />
+              <path d="M21.5238 21.9663C21.5838 21.9956 21.6512 22.0061 21.7172 21.9966C21.7832 21.987 21.8448 21.9577 21.894 21.9126C21.9431 21.8674 21.9776 21.8086 21.9927 21.7436C22.0079 21.6786 22.0032 21.6106 21.9792 21.5483L20.0838 16.4637C19.972 16.1635 19.972 15.8332 20.0838 15.533L21.9785 10.4483C22.0024 10.3862 22.0071 10.3183 21.9919 10.2534C21.9767 10.1886 21.9424 10.1298 21.8933 10.0847C21.8443 10.0396 21.7828 10.0103 21.7169 10.0006C21.651 9.99094 21.5838 10.0013 21.5238 10.0303L9.52382 15.697C9.46674 15.724 9.4185 15.7667 9.38472 15.82C9.35093 15.8734 9.333 15.9352 9.333 15.9983C9.333 16.0615 9.35093 16.1233 9.38472 16.1767C9.4185 16.23 9.46674 16.2727 9.52382 16.2997L21.5238 21.9663Z" stroke="black" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M20 16L9.33333 16" stroke="black" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           )}
         </button>
@@ -573,9 +808,13 @@ function ChatWindow({
 // Messages Bell Component - for chat messages icon in navbar
 export function MessagesBell() {
   const [unreadCount, setUnreadCount] = useState(0);
+  const justMarkedReadRef = useRef(false);
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
+      // Skip fetch if we just marked all as read (give server time to process)
+      if (justMarkedReadRef.current) return;
+      
       const token = localStorage.getItem('token');
       if (!token) return;
 
@@ -592,19 +831,47 @@ export function MessagesBell() {
       }
     };
 
+    // Listen for mark all as read event
+    const handleMarkedRead = () => {
+      setUnreadCount(0);
+      justMarkedReadRef.current = true;
+      // Reset after 10 seconds to allow normal polling again
+      setTimeout(() => {
+        justMarkedReadRef.current = false;
+      }, 10000);
+    };
+
+    // Listen for single conversation read event - immediately refetch
+    const handleConversationRead = () => {
+      fetchUnreadCount();
+    };
+
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
+    window.addEventListener('messagesMarkedRead', handleMarkedRead);
+    window.addEventListener('conversationRead', handleConversationRead);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('messagesMarkedRead', handleMarkedRead);
+      window.removeEventListener('conversationRead', handleConversationRead);
+    };
   }, []);
 
-  const handleClick = () => {
-    window.dispatchEvent(new CustomEvent('toggleChatWidget'));
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (typeof (window as any).toggleChatWidget === 'function') {
+      (window as any).toggleChatWidget();
+    } else {
+      (window as any).chatWidgetOpenIntent = true;
+    }
   };
 
   return (
     <button
       onClick={handleClick}
-      className="relative p-2 text-gray-500 hover:text-gray-700 transition"
+      data-messages-bell
+      className="relative p-2 text-gray-500 hover:text-gray-700 transition flex items-center justify-center"
       aria-label="הודעות"
     >
       <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -617,7 +884,7 @@ export function MessagesBell() {
         />
       </svg>
       {unreadCount > 0 && (
-        <span className="absolute top-0 right-0 bg-[#1a3a4a] text-white text-[10px] font-semibold rounded-full min-w-[18px] h-[18px] flex items-center justify-center">
+        <span className="absolute -top-0.5 -right-0.5 bg-[#A7EA7B] text-black text-[11px] font-semibold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>
       )}

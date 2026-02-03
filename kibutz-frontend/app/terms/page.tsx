@@ -5,7 +5,7 @@ import SiteFooter from '../components/SiteFooter';
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-gray-100" dir="rtl">
+    <main className="min-h-screen" dir="rtl" style={{ backgroundColor: '#F4F4F5' }}>
       <SiteHeader />
 
       {/* Hero Section */}
@@ -13,16 +13,16 @@ export default function TermsPage() {
         <h1 className="font-semibold text-black" style={{ fontSize: '3.5rem' }}>
           תנאי שימוש
         </h1>
-        <p className="text-gray-600 text-lg max-w-2xl mx-auto" style={{ marginBottom: '2rem' }}>
+        <p className="text-lg max-w-2xl mx-auto" style={{ marginBottom: '2rem', color: '#52525B' }}>
           כל מה שצריך לדעת על השימוש בפלטפורמה
         </p>
       </section>
 
       {/* About Section */}
       <section className="max-w-4xl mx-auto px-4 pb-12">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-sm p-8" style={{ border: '1px solid #E1E1E2' }}>
           <h2 className="text-2xl font-bold text-black mb-4">אודות Kibutz</h2>
-          <div className="space-y-4 text-gray-700 leading-relaxed">
+          <div className="space-y-4 leading-relaxed" style={{ color: '#52525B' }}>
             <p>
               <strong>Kibutz</strong> היא פלטפורמה ישראלית לבניית וניהול קהילות מקוונות. אנחנו מאמינים שכל אחד יכול ליצור קהילה משגשגת סביב התחום שהוא אוהב - בין אם זה גיימינג, בישול, ספורט, לימודים או כל נושא אחר.
             </p>
@@ -38,9 +38,9 @@ export default function TermsPage() {
 
       {/* Copyright & Legal Section */}
       <section className="max-w-4xl mx-auto px-4 pb-16">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-sm p-8" style={{ border: '1px solid #E1E1E2' }}>
           <h2 className="text-2xl font-bold text-black mb-6">זכויות יוצרים ותנאי שימוש</h2>
-          <div className="space-y-6 text-gray-700 leading-relaxed">
+          <div className="space-y-6 leading-relaxed" style={{ color: '#52525B' }}>
             <div>
               <h3 className="font-semibold text-black mb-2">זכויות יוצרים</h3>
               <p>

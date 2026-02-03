@@ -111,7 +111,7 @@ export default function ContactPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100" dir="rtl">
+    <main className="min-h-screen" dir="rtl" style={{ backgroundColor: '#F4F4F5' }}>
       <SiteHeader />
 
       {/* Hero Section */}
@@ -119,14 +119,14 @@ export default function ContactPage() {
         <h1 className="font-semibold text-black" style={{ fontSize: '3.5rem' }}>
           דברו איתנו
         </h1>
-        <p className="text-gray-600 text-lg max-w-2xl mx-auto" style={{ marginBottom: '2rem' }}>
+        <p className="text-lg max-w-2xl mx-auto" style={{ marginBottom: '2rem', color: '#52525B' }}>
           יש שאלה או פנייה? אפשר גם לכתוב ישירות ל-<a href="mailto:support@kibutz.co.il" className="text-black font-normal underline hover:opacity-70 transition">support@kibutz.co.il</a>
         </p>
       </section>
 
       {/* Contact Form */}
       <section className="max-w-2xl mx-auto px-4 pb-16">
-        <div className="bg-white rounded-2xl border border-gray-400 p-8">
+        <div className="bg-white rounded-2xl p-8" style={{ border: '1px solid #A1A1AA' }}>
           {formSubmitted ? (
             <div className="text-center py-8">
               <div className="w-10 h-10 mx-auto mb-4">
@@ -140,14 +140,14 @@ export default function ContactPage() {
                 </svg>
               </div>
               <h3 className="font-semibold text-black mb-2" style={{ fontSize: '24px' }}>ההודעה נשלחה!</h3>
-              <p className="text-gray-800" style={{ fontSize: '18px' }}>נחזור אליכם בהקדם האפשרי.</p>
+              <p style={{ fontSize: '18px', color: '#3F3F46' }}>נחזור אליכם בהקדם האפשרי.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmitContact} className="space-y-6">
               <div>
                 <div className="flex justify-between items-center" style={{ marginBottom: '10px' }}>
                   <label className="block font-medium text-black" style={{ fontSize: '18px' }}>שם מלא</label>
-                  <span className="text-xs text-gray-400">{contactName.length}/{CHAR_LIMITS.name}</span>
+                  <span className="text-xs" style={{ color: '#A1A1AA' }}>{contactName.length}/{CHAR_LIMITS.name}</span>
                 </div>
                 <div className="border border-gray-300 bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all" style={{ borderRadius: '10px' }}>
                   <input
@@ -162,9 +162,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <label className="block font-medium text-black" style={{ fontSize: '18px', marginBottom: '10px' }}>אימייל</label>
-                <div className={`border bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all ${
-                    emailTouched && emailError ? 'border-red-400' : 'border-gray-300'
-                  }`} style={{ borderRadius: '10px' }}>
+                <div className={`bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all`} style={{ borderRadius: '10px', border: emailTouched && emailError ? '1px solid #B3261E' : '1px solid #D0D0D4' }}>
                   <input
                     type="email"
                     value={contactEmail}
@@ -186,15 +184,15 @@ export default function ContactPage() {
                   />
                 </div>
                 {emailTouched && emailError && (
-                  <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                  <p className="text-sm mt-1" style={{ color: '#B3261E' }}>{emailError}</p>
                 )}
               </div>
               <div>
                 <div className="flex justify-between items-center" style={{ marginBottom: '10px' }}>
                   <label className="block font-medium text-black" style={{ fontSize: '18px' }}>נושא</label>
-                  <span className="text-xs text-gray-400">{contactSubject.length}/{CHAR_LIMITS.subject}</span>
+                  <span className="text-xs" style={{ color: '#A1A1AA' }}>{contactSubject.length}/{CHAR_LIMITS.subject}</span>
                 </div>
-                <div className="border border-gray-300 bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all" style={{ borderRadius: '10px' }}>
+                <div className="bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all" style={{ borderRadius: '10px', border: '1px solid #D0D0D4' }}>
                   <input
                     type="text"
                     value={contactSubject}
@@ -208,9 +206,9 @@ export default function ContactPage() {
               <div>
                 <div className="flex justify-between items-center" style={{ marginBottom: '10px' }}>
                   <label className="block font-medium text-black" style={{ fontSize: '18px' }}>תיאור</label>
-                  <span className="text-xs text-gray-400">{contactMessage.length}/{CHAR_LIMITS.message}</span>
+                  <span className="text-xs" style={{ color: '#A1A1AA' }}>{contactMessage.length}/{CHAR_LIMITS.message}</span>
                 </div>
-                <div className="border border-gray-300 bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all" style={{ borderRadius: '10px' }}>
+                <div className="bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-black transition-all" style={{ borderRadius: '10px', border: '1px solid #D0D0D4' }}>
                   <textarea
                     value={contactMessage}
                     onChange={(e) => setContactMessage(e.target.value.slice(0, CHAR_LIMITS.message))}
@@ -218,7 +216,6 @@ export default function ContactPage() {
                     rows={5}
                     maxLength={CHAR_LIMITS.message}
                     className="w-full p-3 bg-transparent focus:outline-none text-right resize-none overflow-y-auto"
-                    style={{ direction: 'ltr' }}
                   />
                 </div>
               </div>

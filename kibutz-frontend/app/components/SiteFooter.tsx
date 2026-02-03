@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export default function SiteFooter() {
   return (
-    <footer dir="rtl" className="py-6 bg-gray-100">
+    <footer dir="rtl" className="py-6" style={{ backgroundColor: '#F4F4F5' }}>
       <div className="flex flex-col items-center gap-4">
         {/* Navigation Links */}
         <nav className="flex items-center gap-4 text-[18px]">

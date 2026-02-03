@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         hostname: 'developers.google.com',
       },
       {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
         protocol: 'http',
         hostname: 'localhost',
         port: '4000',

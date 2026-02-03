@@ -4,9 +4,11 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaUsers, FaCalendarAlt, FaSearch, FaCog, FaSignOutAlt, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaUser, FaTimes, FaCreditCard, FaLock } from 'react-icons/fa';
-import NotificationBell from '../../../components/NotificationBell';
-import { MessagesBell } from '../../../components/ChatWidget';
+import { FaUsers, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaCreditCard } from 'react-icons/fa';
+import SiteHeader from '../../../components/SiteHeader';
+import PlayIcon from '../../../components/icons/PlayIcon';
+import CalendarIcon from '../../../components/icons/CalendarIcon';
+import LockIcon from '../../../components/icons/LockIcon';
 
 interface Community {
   id: string;
@@ -25,6 +27,7 @@ interface Community {
   facebookUrl?: string | null;
   instagramUrl?: string | null;
   galleryImages?: string[];
+  galleryVideos?: string[];
   owner?: {
     id: string;
     name: string;
@@ -40,54 +43,157 @@ interface JwtPayload {
   exp: number;
 }
 
-interface UserProfile {
-  id: string;
-  email: string;
-  name?: string;
-  profileImage?: string;
+// Helper to extract YouTube video ID
+function getYouTubeVideoId(url: string): string | null {
+  const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+  return match ? match[1] : null;
+}
+
+// Gallery media item type
+interface GalleryItem {
+  type: 'image' | 'video';
+  src: string; // For images: path, For videos: YouTube URL
+  videoId?: string; // YouTube video ID
 }
 
 // Gallery Component with slideshow functionality
-function CommunityGallery({ primaryImage, galleryImages, communityName }: { 
+function CommunityGallery({ primaryImage, galleryImages, galleryVideos, communityName }: { 
   primaryImage?: string | null; 
   galleryImages: string[];
+  galleryVideos: string[];
   communityName: string;
 }) {
-  const allImages = [
-    ...(primaryImage ? [primaryImage] : []),
-    ...galleryImages,
+  // Build unified media array: videos first, then images
+  const allMedia: GalleryItem[] = [
+    ...galleryVideos.map(url => ({
+      type: 'video' as const,
+      src: url,
+      videoId: getYouTubeVideoId(url) || undefined,
+    })),
+    ...(primaryImage ? [{ type: 'image' as const, src: primaryImage }] : []),
+    ...galleryImages.map(img => ({ type: 'image' as const, src: img })),
   ];
   
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [videoActivated, setVideoActivated] = useState(false);
   
-  if (allImages.length === 0) return null;
+  // Find first image index for advancing after video ends
+  const firstImageIndex = allMedia.findIndex(item => item.type === 'image');
+  
+  // Handle video end - advance to images
+  const handleVideoEnd = () => {
+    if (firstImageIndex !== -1) {
+      setCurrentIndex(firstImageIndex);
+    } else {
+      setCurrentIndex((prev) => (prev === allMedia.length - 1 ? 0 : prev + 1));
+    }
+    setVideoActivated(false);
+    setIsVideoPlaying(false);
+  };
+
+  // Listen for YouTube postMessage events
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== 'https://www.youtube.com') return;
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        // YouTube sends state change as { event: 'onStateChange', info: 0 } when video ends
+        // Also check for infoDelivery format
+        if ((data.event === 'onStateChange' && data.info === 0) ||
+            (data.info && data.info.playerState === 0)) {
+          handleVideoEnd();
+        }
+      } catch {}
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [firstImageIndex, allMedia.length]);
+  
+  // Auto-rotate every 10 seconds (pause on video)
+  useEffect(() => {
+    if (allMedia.length <= 1) return;
+    
+    // Don't auto-rotate if currently showing a video and it's playing
+    const currentItem = allMedia[currentIndex];
+    if (currentItem?.type === 'video' && isVideoPlaying) return;
+    
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev === allMedia.length - 1 ? 0 : prev + 1));
+      setIsVideoPlaying(false);
+      setVideoActivated(false);
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [allMedia.length, currentIndex, isVideoPlaying]);
+  
+  if (allMedia.length === 0) return null;
   
   const goToPrev = () => {
-    setCurrentIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? allMedia.length - 1 : prev - 1));
+    setIsVideoPlaying(false);
+    setVideoActivated(false);
   };
   
   const goToNext = () => {
-    setCurrentIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev === allMedia.length - 1 ? 0 : prev + 1));
+    setIsVideoPlaying(false);
+    setVideoActivated(false);
   };
+  
+  const currentItem = allMedia[currentIndex];
   
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-      <div className="relative">
-        <img
-          src={`${process.env.NEXT_PUBLIC_API_URL}${allImages[currentIndex]}`}
-          alt={`${communityName} - תמונה ${currentIndex + 1}`}
-          className="w-full h-80 object-cover"
-        />
-        {allImages.length > 1 && (
+      <div className="relative aspect-video bg-black">
+        {currentItem.type === 'video' && currentItem.videoId ? (
+          videoActivated ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${currentItem.videoId}?rel=0&autoplay=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+              title={`${communityName} - סרטון ${currentIndex + 1}`}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              onMouseEnter={() => setIsVideoPlaying(true)}
+              onMouseLeave={() => setIsVideoPlaying(false)}
+            />
+          ) : (
+            <button
+              onClick={() => {
+                setVideoActivated(true);
+                setIsVideoPlaying(true);
+              }}
+              className="absolute inset-0 group cursor-pointer"
+            >
+              <img
+                src={`https://img.youtube.com/vi/${currentItem.videoId}/hqdefault.jpg`}
+                alt="Video thumbnail"
+                className="block w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="group-hover:scale-110 transition-transform">
+                  <PlayIcon className="w-16 h-16 md:w-20 md:h-20" />
+                </div>
+              </div>
+            </button>
+          )
+        ) : (
+          <img
+            src={`${process.env.NEXT_PUBLIC_API_URL}${currentItem.src}`}
+            alt={`${communityName} - תמונה ${currentIndex + 1}`}
+            className="w-full h-full object-cover"
+          />
+        )}
+        {allMedia.length > 1 && (
           <>
             <button 
-              onClick={goToPrev}
+              onClick={goToNext}
               className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
             >
               <FaChevronLeft className="w-4 h-4 text-gray-700" />
             </button>
             <button 
-              onClick={goToNext}
+              onClick={goToPrev}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
             >
               <FaChevronRight className="w-4 h-4 text-gray-700" />
@@ -95,21 +201,37 @@ function CommunityGallery({ primaryImage, galleryImages, communityName }: {
           </>
         )}
       </div>
-      {allImages.length > 1 && (
+      {allMedia.length > 1 && (
         <div className="flex gap-2 p-3 bg-gray-50 justify-center overflow-x-auto">
-          {allImages.map((img, idx) => (
+          {allMedia.map((item, idx) => (
             <button
               key={idx}
-              onClick={() => setCurrentIndex(idx)}
-              className={`w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition ${
-                idx === currentIndex ? 'border-blue-500' : 'border-transparent hover:border-gray-300'
+              onClick={() => {
+                setCurrentIndex(idx);
+                setIsVideoPlaying(false);
+              }}
+              className={`w-24 h-[54px] rounded-lg overflow-hidden flex-shrink-0 border-2 transition relative ${
+                idx === currentIndex ? 'border-[#A7EA7B]' : 'border-transparent hover:border-gray-300'
               }`}
             >
-              <img
-                src={`${process.env.NEXT_PUBLIC_API_URL}${img}`}
-                alt={`Thumbnail ${idx + 1}`}
-                className="w-full h-full object-cover"
-              />
+              {item.type === 'video' && item.videoId ? (
+                <>
+                  <img
+                    src={`https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg`}
+                    alt={`Thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <PlayIcon className="w-8 h-8" />
+                  </div>
+                </>
+              ) : (
+                <img
+                  src={`${process.env.NEXT_PUBLIC_API_URL}${item.src}`}
+                  alt={`Thumbnail ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              )}
             </button>
           ))}
         </div>
@@ -131,8 +253,6 @@ function CommunityPreviewContent() {
   const [mounted, setMounted] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [managerCount, setManagerCount] = useState(0);
   const [joining, setJoining] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -153,28 +273,12 @@ function CommunityPreviewContent() {
   useEffect(() => {
     setMounted(true);
 
-    // Read cached profile immediately
-    const cached = localStorage.getItem('userProfileCache');
-    if (cached) {
-      try { setUserProfile(JSON.parse(cached)); } catch {}
-    }
-
     const token = localStorage.getItem('token');
     if (token && token.split('.').length === 3) {
       try {
         const decoded = jwtDecode<JwtPayload>(token);
         setUserEmail(decoded.email);
         setUserId(decoded.sub);
-        
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            setUserProfile(data);
-            localStorage.setItem('userProfileCache', JSON.stringify({ name: data.name, profileImage: data.profileImage }));
-          })
-          .catch((err) => console.error('Error fetching user profile:', err));
       } catch (e) {
         console.error('Invalid token:', e);
       }
@@ -387,116 +491,7 @@ function CommunityPreviewContent() {
 
   return (
     <main className="min-h-screen bg-gray-100 text-right" dir="rtl">
-      {/* Homepage-style Header */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-          Kibutz
-        </Link>
-        <div className="flex gap-6 items-center">
-          <Link href="/pricing" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            מחירון
-          </Link>
-          <Link href="/support" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            שאלות ותשובות
-          </Link>
-          <Link href="/contact" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            צרו קשר
-          </Link>
-          <Link href="/terms" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            תנאי שימוש
-          </Link>
-          <Link href="/privacy" className="text-gray-600 hover:text-black transition text-sm font-medium">
-            מדיניות פרטיות
-          </Link>
-          
-          {!mounted ? (
-            <div className="w-10 h-10" />
-          ) : !userEmail ? (
-            <>
-              <a
-                href="/login"
-                className="border border-black text-black px-6 py-2.5 rounded-lg font-semibold hover:bg-black hover:text-white transition"
-              >
-                כניסה
-              </a>
-              <a
-                href="/signup"
-                className="bg-black text-white px-6 py-2.5 rounded-lg font-semibold hover:opacity-90 transition"
-              >
-                הרשמה
-              </a>
-            </>
-          ) : (
-            <>
-              {userEmail && <MessagesBell />}
-              {userEmail && <NotificationBell />}
-              <div className="relative">
-                <button
-                  onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                  className="relative focus:outline-none"
-                >
-                  {userProfile?.profileImage ? (
-                    <img
-                      src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
-                      alt={userProfile.name || 'User'}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                    {userProfile?.name?.charAt(0) || userEmail?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="absolute bottom-0 left-0 w-3 h-3 bg-[#A7EA7B] border-2 border-white rounded-full"></span>
-              </button>
-
-              {profileMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setProfileMenuOpen(false)}
-                  />
-                  <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 p-1.5 z-50" dir="rtl">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        if (userId) router.push(`/profile/${userId}`);
-                      }}
-                      className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2 rounded-lg"
-                    >
-                      <FaUser className="w-4 h-4" />
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false);
-                        router.push('/settings');
-                      }}
-                      className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2 rounded-lg"
-                    >
-                      <FaCog className="w-4 h-4" />
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-100 my-1 mx-1"></div>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('userProfileCache');
-                        router.push('/');
-                        location.reload();
-                      }}
-                      className="w-full text-right px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2 rounded-lg"
-                    >
-                      <FaSignOutAlt className="w-4 h-4" />
-                      התנתקות
-                    </button>
-                  </div>
-                </>
-              )}
-              </div>
-            </>
-          )}
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Content - 2 column layout */}
       <div className="max-w-6xl mx-auto py-8 px-4">
@@ -523,10 +518,10 @@ function CommunityPreviewContent() {
                     <img
                       src={ownerData.profileImage.startsWith('http') ? ownerData.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${ownerData.profileImage}`}
                       alt={ownerData.name}
-                      className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                      className="w-24 h-24 rounded-full object-cover border-[5px] border-white"
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-pink-100 flex items-center justify-center text-2xl font-bold text-pink-600 border-4 border-white shadow-md">
+                    <div className="w-24 h-24 rounded-full bg-pink-100 flex items-center justify-center text-2xl font-bold text-pink-600 border-[5px] border-white">
                       {ownerData?.name?.charAt(0) || 'U'}
                     </div>
                   )}
@@ -565,12 +560,9 @@ function CommunityPreviewContent() {
               </div>
             </div>
 
-            {/* Community Details Card */}
+            {/* Community Details Section */}
+            <h4 className="text-lg font-semibold text-black mb-3">פרטים נוספים על הקהילה</h4>
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <div className="p-5 border-b border-gray-100">
-                <h4 className="text-sm font-medium text-gray-500">פרטים נוספים על הקהילה</h4>
-              </div>
-              
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-4 text-center p-5 border-b border-gray-100">
                 <div>
@@ -634,11 +626,12 @@ function CommunityPreviewContent() {
 
           {/* Main Content */}
           <div className="space-y-6">
-            {/* Community Image Slideshow */}
-            {(community.image || (community.galleryImages && community.galleryImages.length > 0)) && (
+            {/* Community Image/Video Slideshow */}
+            {(community.image || (community.galleryImages && community.galleryImages.length > 0) || (community.galleryVideos && community.galleryVideos.length > 0)) && (
               <CommunityGallery 
                 primaryImage={community.image} 
                 galleryImages={community.galleryImages || []} 
+                galleryVideos={community.galleryVideos || []}
                 communityName={community.name}
               />
             )}
@@ -783,7 +776,7 @@ function CommunityPreviewContent() {
                     type="text"
                     value={cardNumber}
                     onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
+                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black ${
                       getCardNumberError() ? 'border-red-400' : 'border-gray-300'
                     }`}
                   />
@@ -816,11 +809,11 @@ function CommunityPreviewContent() {
                           setCardExpiry(rawValue);
                         }
                       }}
-                      className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
+                      className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black ${
                         getExpiryError() ? 'border-red-400' : 'border-gray-300'
                       }`}
                     />
-                    <FaCalendarAlt className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <CalendarIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   </div>
                   {getExpiryError() && (
                     <p className="text-red-500 text-sm mt-1">{getExpiryError()}</p>
@@ -833,11 +826,11 @@ function CommunityPreviewContent() {
                       type="text"
                       value={cardCvv}
                       onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                      className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent ${
+                      className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black ${
                         getCvvError() ? 'border-red-400' : 'border-gray-300'
                       }`}
                     />
-                    <FaLock className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <LockIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   </div>
                   {getCvvError() && (
                     <p className="text-red-500 text-sm mt-1">{getCvvError()}</p>

@@ -2,10 +2,56 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FaUser, FaCheckCircle, FaCheck, FaTimes, FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
-import { HiOutlineMail, HiOutlineKey } from 'react-icons/hi';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import Image from 'next/image';
 import Link from 'next/link';
+import SiteHeader from '../components/SiteHeader';
+import GoogleIcon from '../components/icons/GoogleIcon';
+import MailIcon from '../components/icons/MailIcon';
+import KeyIcon from '../components/icons/KeyIcon';
+import CheckIcon from '../components/icons/CheckIcon';
+import CloseIcon from '../components/icons/CloseIcon';
+
+// User Icon component
+const UserIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 16 16" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path 
+      d="M8.00008 8.66667C9.84103 8.66667 11.3334 7.17428 11.3334 5.33333C11.3334 3.49238 9.84103 2 8.00008 2C6.15913 2 4.66675 3.49238 4.66675 5.33333C4.66675 7.17428 6.15913 8.66667 8.00008 8.66667Z" 
+      stroke="currentColor" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    />
+    <path 
+      d="M13.3334 13.9974C13.3334 12.5829 12.7715 11.2264 11.7713 10.2262C10.7711 9.22597 9.41457 8.66406 8.00008 8.66406C6.58559 8.66406 5.22904 9.22597 4.22885 10.2262C3.22865 11.2264 2.66675 12.5829 2.66675 13.9974" 
+      stroke="currentColor" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+// Checkmark Icon component
+const CheckmarkIcon = ({ className = "w-3 h-2.5" }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 6 5" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path 
+      d="M0.5625 2.0625L2.0625 3.5625L5.0625 0.5625" 
+      stroke="currentColor" 
+      strokeWidth="1.125" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
 // Minimum requirements (must have all)
 const passwordRequirements = [
@@ -26,6 +72,13 @@ const passwordSuggestions = [
 const isValidEmail = (email: string) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
+};
+
+// Name validation - only letters and spaces allowed (Hebrew, English, spaces)
+const isValidName = (name: string) => {
+  // Allow Hebrew, English letters, and spaces only
+  const nameRegex = /^[\u0590-\u05FFa-zA-Z\s]+$/;
+  return nameRegex.test(name.trim()) && name.trim().length > 0;
 };
 
 function SignupContent() {
@@ -49,6 +102,9 @@ function SignupContent() {
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [returnUrl, setReturnUrl] = useState<string | null>(null);
+
+  // Check if user is creating a community (came from "צרו קהילה" button)
+  const isCreatingCommunity = searchParams.get('createCommunity') === 'true';
 
   useEffect(() => {
     // Check URL param first, then localStorage
@@ -108,10 +164,10 @@ function SignupContent() {
   };
 
   const getStrengthColor = () => {
-    if (totalStrength <= 2) return 'bg-red-500';
-    if (totalStrength <= 4) return 'bg-orange-500';
-    if (totalStrength <= 5) return 'bg-yellow-500';
-    return 'bg-green-500';
+    // Red if base requirements not met, light green if met, dark green if strong
+    if (!isPasswordValid) return 'bg-[#B3261E]';
+    if (totalStrength <= 5) return 'bg-[#A7EA7B]';
+    return 'bg-[#163300]';
   };
 
   const getStrengthText = () => {
@@ -141,6 +197,12 @@ function SignupContent() {
     // Validate all fields with inline errors
     if (!name.trim()) {
       setNameError('יש להזין שם מלא');
+      scrollToFirstError('signup-name');
+      return;
+    }
+
+    if (!isValidName(name)) {
+      setNameError('שם יכול להכיל רק אותיות בעברית או באנגלית');
       scrollToFirstError('signup-name');
       return;
     }
@@ -259,41 +321,52 @@ function SignupContent() {
 
   if (showVerificationMessage) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-4 bg-white" dir="rtl">
-        <div className="flex flex-col items-center w-full max-w-sm">
-          <div className="text-2xl font-extrabold mb-6">Kibutz</div>
-          
-          <div className="bg-white rounded-xl p-8 shadow-md w-full flex flex-col items-center gap-4 text-center border border-gray-100">
-            <FaCheckCircle className="w-16 h-16 text-green-500" />
-            <h1 className="text-xl font-bold">ההרשמה הושלמה!</h1>
-            <p className="text-gray-600">
-              שלחנו לך מייל אימות לכתובת:
-            </p>
-            <p className="font-semibold text-black">{email}</p>
-            <p className="text-sm text-gray-500">
-              אנא בדוק את תיבת הדואר שלך ולחץ על הקישור לאימות.
-            </p>
-            
-            <div className="border-t border-gray-200 w-full pt-4 mt-2">
+      <main className="min-h-screen flex flex-col" dir="rtl" style={{ backgroundColor: '#F4F4F5' }}>
+        <SiteHeader hideAuthButtons={true} />
+
+        <div className="flex-1 flex items-center justify-center px-6 py-8">
+          <div className="w-full max-w-lg">
+            <div className="bg-white rounded-2xl p-8 flex flex-col items-center text-center" style={{ border: '1px solid #D0D0D4' }}>
+              {/* Success Icon - CheckIcon on light green bg */}
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#A7EA7B' }}>
+                <CheckIcon className="w-5 h-4 text-black" />
+              </div>
+
+              <h1 className="font-semibold text-black" style={{ fontSize: '28px', marginTop: '16px' }}>ההרשמה הושלמה!</h1>
+              
+              <p className="text-black" style={{ fontSize: '18px', marginTop: '20px' }}>
+                שלחנו לך מייל אימות לכתובת:
+              </p>
+              <p className="font-semibold text-black" style={{ fontSize: '18px', marginTop: '12px' }}>{email}</p>
+              <p className="text-black" style={{ fontSize: '18px', marginTop: '12px' }}>
+                אנא בדוק את תיבת הדואר שלך ולחץ על הקישור לאימות.
+              </p>
+              
+              <div className="w-full" style={{ borderTop: '1px solid #D0D0D4', marginTop: '24px', paddingTop: '24px' }}>
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resending}
+                  className="hover:underline"
+                  style={{ fontSize: '18px', color: resending ? '#A1A1AA' : '#000000' }}
+                >
+                  {resending ? 'שולח...' : 'לא קיבלת? שלח שוב'}
+                </button>
+              </div>
+              
+              {message && (
+                <p className={`text-sm ${message.includes('שגיאה') ? 'text-red-600' : 'text-green-600'}`} style={{ marginTop: '12px' }}>{message}</p>
+              )}
+              
               <button
-                onClick={handleResendVerification}
-                disabled={resending}
-                className="text-sm text-gray-600 hover:underline disabled:text-gray-400"
+                onClick={() => router.push('/')}
+                className="bg-black text-white py-3 px-6 transition-colors"
+                style={{ fontSize: '18px', marginTop: '24px', borderRadius: '12px' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3F3F46'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'black'}
               >
-                {resending ? 'שולח...' : 'לא קיבלת? שלח שוב'}
+                המשך לאתר
               </button>
             </div>
-            
-            {message && (
-              <p className={`text-sm ${message.includes('שגיאה') ? 'text-red-600' : 'text-green-600'}`}>{message}</p>
-            )}
-            
-            <button
-              onClick={() => router.push('/')}
-              className="mt-2 bg-black text-white py-2 px-6 rounded hover:bg-gray-800"
-            >
-              המשך לאתר
-            </button>
           </div>
         </div>
       </main>
@@ -303,55 +376,52 @@ function SignupContent() {
   return (
     <main className="min-h-screen flex flex-col" dir="rtl" style={{ backgroundColor: '#F4F4F5' }}>
       {/* Top Navbar */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-          Kibutz
-        </Link>
-        <div></div>
-      </header>
+      <SiteHeader hideAuthButtons={true} />
 
       {/* Content Area */}
       <div className="flex-1 flex items-center justify-center px-6 py-8">
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16 max-w-5xl w-full">
+        <div className={`flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16 w-full ${isCreatingCommunity ? 'max-w-5xl' : 'max-w-md'}`}>
           
-          {/* Right Side - Marketing Content */}
-          <div className="hidden lg:block w-full lg:w-1/2 text-right">
-            <h2 className="text-[32px] text-gray-900 mb-8 leading-tight" style={{ fontWeight: 700 }}>
-              פותחים קהילה ומתחילים להרוויח
-            </h2>
-            
-            <div className="space-y-5">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <FaCheck className="w-3 h-3 text-green-600" />
-                </div>
-                <p className="text-gray-700 text-[16px]">
-                  מערכת פשוטה ליצור הכנסה וניהול מנויים מהרגע הראשון
-                </p>
-              </div>
+          {/* Right Side - Marketing Content (only shown when creating community) */}
+          {isCreatingCommunity && (
+            <div className="hidden lg:block w-full lg:w-1/2 text-right">
+              <h2 className="text-[32px] mb-8 leading-tight" style={{ fontWeight: 400, color: '#27272A' }}>
+                פותחים קהילה ומתחילים להרוויח
+              </h2>
               
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <FaCheck className="w-3 h-3 text-green-600" />
+              <div className="space-y-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: '#A7EA7B' }}>
+                    <CheckmarkIcon className="w-3 h-2.5 text-black" />
+                  </div>
+                  <p className="text-[16px]" style={{ color: '#3F3F46' }}>
+                    מערכת פשוטה ליצור הכנסה וניהול מנויים מהרגע הראשון
+                  </p>
                 </div>
-                <p className="text-gray-700 text-[16px]">
-                  פלטפורמה שמרכזת קורסים, צ'אט וקהילה במקום אחד
-                </p>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <FaCheck className="w-3 h-3 text-green-600" />
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: '#A7EA7B' }}>
+                    <CheckmarkIcon className="w-3 h-2.5 text-black" />
+                  </div>
+                  <p className="text-[16px]" style={{ color: '#3F3F46' }}>
+                    פלטפורמה שמרכזת קורסים, צ'אט וקהילה במקום אחד
+                  </p>
                 </div>
-                <p className="text-gray-700 text-[16px]">
-                  הקמת קהילה פעילה ומעוצבת בדקות, ללא ידע טכני
-                </p>
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: '#A7EA7B' }}>
+                    <CheckmarkIcon className="w-3 h-2.5 text-black" />
+                  </div>
+                  <p className="text-[16px]" style={{ color: '#3F3F46' }}>
+                    הקמת קהילה פעילה ומעוצבת בדקות, ללא ידע טכני
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Left Side - Registration Form */}
-          <div className="w-full lg:w-1/2 max-w-md">
+          <div className={`w-full ${isCreatingCommunity ? 'lg:w-1/2' : ''} max-w-md`}>
             <div className="bg-white rounded-2xl p-8 shadow-sm">
               <form
                 onSubmit={handleSignup}
@@ -362,62 +432,65 @@ function SignupContent() {
                 {/* Google Button */}
                 <a
                   href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
-                  className="flex items-center justify-center gap-2 p-3 rounded-lg text-[16px] hover:opacity-80 transition"
-                  style={{ backgroundColor: '#F4F4F5' }}
+                  className="flex items-center justify-center gap-2 p-3 rounded-lg text-[16px] hover:opacity-80 transition border"
+                  style={{ borderColor: '#E1E1E2', backgroundColor: '#F4F4F5' }}
                 >
                   הצטרפות מהירה עם Google
-                  <Image src="https://developers.google.com/identity/images/g-logo.png" alt="Google" width={600} height={300} className="w-5 h-5" />
+                  <GoogleIcon className="w-5 h-5" />
                 </a>
 
-                <div className="relative my-3 text-center text-[12px] text-gray-400">
+                <div className="relative my-3 text-center text-[12px]" style={{ color: '#A1A1AA' }}>
                   <span className="bg-white px-3 relative z-10">או באמצעות מייל</span>
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200"></div>
+                    <div className="w-full" style={{ borderTop: '1px solid #E1E1E2' }}></div>
                   </div>
                 </div>
 
             {/* Name Field */}
             <div>
               <div className="relative">
-                <FaUser className="absolute right-3 top-3.5 text-gray-400" />
+                <UserIcon className="absolute right-3 top-3.5 w-5 h-5" style={{ color: '#000000' }} />
                 <input
                   id="signup-name"
                   type="text"
                   placeholder="שם מלא *"
-                  className={`w-full p-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
-                    nameError ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-black'
-                  }`}
+                  className={`auth-input w-full p-3 pr-10 border rounded-lg focus:outline-none text-[14px]`}
+                  style={{ borderColor: nameError ? '#B3261E' : '#D0D0D4' }}
                   value={name}
                   onChange={(e) => {
-                    setName(e.target.value);
+                    // Only allow Hebrew, English letters and spaces
+                    const newValue = e.target.value;
+                    const filteredValue = newValue.replace(/[^א-תa-zA-Z\s]/g, '');
+                    setName(filteredValue);
                     if (nameError) setNameError('');
                   }}
                   required
                 />
               </div>
               {nameError && (
-                <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-                  <FaTimes className="w-3 h-3" />
-                  {nameError}
-                </p>
+                <div className="mt-2 flex items-center gap-2 text-sm p-2 rounded-lg" style={{ color: '#B3261E', backgroundColor: '#FEE2E2' }}>
+                  <CloseIcon className="w-4 h-4 flex-shrink-0" />
+                  <p>{nameError}</p>
+                </div>
               )}
             </div>
 
             {/* Email Field */}
             <div>
               <div className="relative">
-                <HiOutlineMail className="absolute right-3 top-3.5 text-gray-400 pointer-events-none w-5 h-5" />
+                <MailIcon className="absolute right-3 top-3.5 pointer-events-none w-5 h-5 text-black" />
                 <input
                   id="signup-email"
-                  type="email"
+                  type="text"
                   placeholder="כתובת אימייל *"
-                  className={`w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
-                    emailError 
-                      ? 'border-red-400 focus:ring-red-400' 
+                  className="auth-input w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none text-[14px]"
+                  style={{ 
+                    borderColor: emailError 
+                      ? '#B3261E' 
                       : emailTouched && email && isValidEmail(email) && !emailError && !emailChecking
-                      ? 'border-green-400 focus:ring-green-400'
-                      : 'border-gray-300 focus:ring-black'
-                  }`}
+                      ? '#000000'
+                      : '#D0D0D4'
+                  }}
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -429,25 +502,25 @@ function SignupContent() {
                 />
                 <div className="absolute left-3 top-3.5 pointer-events-none">
                   {emailChecking ? (
-                    <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: '#D0D0D4', borderTopColor: '#52525B' }} />
                   ) : emailTouched && email ? (
                     emailError ? (
-                      <FaTimes className="text-red-500" />
+                      <CloseIcon className="w-4 h-4" style={{ color: '#B3261E' }} />
                     ) : isValidEmail(email) ? (
-                      <FaCheck className="text-green-500" />
+                      <CheckIcon className="w-4 h-4" style={{ color: '#000000' }} />
                     ) : null
                   ) : null}
                 </div>
               </div>
               {emailError && (
-                <div className="mt-2 flex items-start gap-2 text-sm text-red-600 bg-red-50 p-2 rounded-lg">
-                  <FaExclamationTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div className="mt-2 flex items-start gap-2 text-sm p-2 rounded-lg" style={{ color: '#B3261E', backgroundColor: '#FEE2E2' }}>
+                    <CloseIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div>
                     <p>{emailError}</p>
                     {emailError.includes('כבר רשומה') && (
                       <div className="mt-1 flex gap-3">
-                        <a href="/login" className="text-blue-600 hover:underline">התחברות</a>
-                        <a href="/forgot-password" className="text-blue-600 hover:underline">איפוס סיסמה</a>
+                        <a href="/login" className="hover:underline" style={{ color: '#003233' }}>התחברות</a>
+                        <a href="/forgot-password" className="hover:underline" style={{ color: '#003233' }}>איפוס סיסמה</a>
                       </div>
                     )}
                   </div>
@@ -458,23 +531,26 @@ function SignupContent() {
             {/* Password Field */}
             <div>
               <div className="relative">
-                <HiOutlineKey className="absolute right-3 top-3.5 text-gray-400 w-5 h-5" />
+                <KeyIcon className="absolute right-3 top-3.5 w-5 h-5 text-black" />
                 <input
                   id="signup-password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="סיסמה *"
-                  className={`w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
-                    passwordError
-                      ? 'border-red-400 focus:ring-red-400'
+                  className="auth-input w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none text-[14px]"
+                  style={{
+                    borderColor: passwordError
+                      ? '#B3261E'
                       : password && isPasswordValid 
-                      ? 'border-green-400 focus:ring-green-400' 
+                      ? '#000000' 
                       : password && !isPasswordValid
-                      ? 'border-orange-400 focus:ring-orange-400'
-                      : 'border-gray-300 focus:ring-black'
-                  }`}
+                      ? '#B3261E'
+                      : '#D0D0D4'
+                  }}
                   value={password}
                   onChange={(e) => {
-                    setPassword(e.target.value);
+                    // Block Hebrew characters in password
+                    const newValue = e.target.value.replace(/[֐-׿]/g, '');
+                    setPassword(newValue);
                     if (passwordError) setPasswordError('');
                   }}
                   onFocus={() => setPasswordFocused(true)}
@@ -485,7 +561,10 @@ function SignupContent() {
                   type="button"
                   tabIndex={-1}
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-3.5 text-gray-400 hover:text-gray-600"
+                  className="absolute left-3 top-3.5 transition-colors"
+                  style={{ color: '#A1A1AA' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#52525B'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#A1A1AA'}
                 >
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
@@ -495,32 +574,32 @@ function SignupContent() {
               {password && (
                 <div className="mt-2">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#E1E1E2' }}>
                       <div 
                         className={`h-full transition-all duration-300 ${getStrengthColor()}`}
                         style={{ width: `${(totalStrength / 7) * 100}%` }}
                       />
                     </div>
-                    <span className={`text-xs font-medium ${
-                      totalStrength >= 6 ? 'text-green-600' : 
-                      totalStrength >= 4 ? 'text-yellow-600' : 'text-red-600'
-                    }`}>
+                    <span className="text-xs font-medium" style={{
+                      color: totalStrength >= 6 ? '#163300' : 
+                      totalStrength >= 4 ? '#163300' : '#B3261E'
+                    }}>
                       {getStrengthText()}
                     </span>
                   </div>
 
                   {/* Requirements List (must have) */}
                   {(passwordFocused || !isPasswordValid) && (
-                    <div className="bg-gray-50 rounded-lg p-3 space-y-1 mb-2">
-                      <p className="text-xs font-semibold text-gray-700 mb-1">דרישות חובה:</p>
+                    <div className="rounded-lg p-3 space-y-1 mb-2" style={{ backgroundColor: '#FCFCFC' }}>
+                      <p className="text-xs font-semibold mb-1" style={{ color: '#52525B' }}>דרישות חובה:</p>
                       {passwordRequirements.map(req => (
                         <div key={req.id} className="flex items-center gap-2 text-sm">
                           {req.test(password) ? (
-                            <FaCheck className="w-3 h-3 text-green-500" />
+                            <CheckIcon className="w-3 h-3" style={{ color: '#000000' }} />
                           ) : (
-                            <FaTimes className="w-3 h-3 text-red-400" />
+                            <CloseIcon className="w-3 h-3" style={{ color: '#B3261E' }} />
                           )}
-                          <span className={req.test(password) ? 'text-green-600' : 'text-gray-500'}>
+                          <span style={{ color: req.test(password) ? '#000000' : '#7A7A83' }}>
                             {req.label}
                           </span>
                         </div>
@@ -530,16 +609,16 @@ function SignupContent() {
 
                   {/* Suggestions List (optional) */}
                   {passwordFocused && isPasswordValid && (
-                    <div className="bg-blue-50 rounded-lg p-3 space-y-1">
-                      <p className="text-xs font-semibold text-blue-700 mb-1">המלצות לסיסמה חזקה יותר:</p>
+                    <div className="rounded-lg p-3 space-y-1" style={{ backgroundColor: '#91DCED20' }}>
+                      <p className="text-xs font-semibold mb-1" style={{ color: '#003233' }}>המלצות לסיסמה חזקה יותר:</p>
                       {passwordSuggestions.map(sug => (
                         <div key={sug.id} className="flex items-center gap-2 text-sm">
                           {sug.test(password) ? (
-                            <FaCheck className="w-3 h-3 text-green-500" />
+                            <CheckIcon className="w-3 h-3" style={{ color: '#000000' }} />
                           ) : (
-                            <span className="w-3 h-3 rounded-full border border-blue-300" />
+                            <span className="w-3 h-3 rounded-full" style={{ border: '1px solid #91DCED' }} />
                           )}
-                          <span className={sug.test(password) ? 'text-green-600' : 'text-blue-600'}>
+                          <span style={{ color: sug.test(password) ? '#000000' : '#003233' }}>
                             {sug.label}
                           </span>
                         </div>
@@ -549,33 +628,36 @@ function SignupContent() {
                 </div>
               )}
               {passwordError && (
-                <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-                  <FaTimes className="w-3 h-3" />
-                  {passwordError}
-                </p>
+                <div className="mt-2 flex items-center gap-2 text-sm p-2 rounded-lg" style={{ color: '#B3261E', backgroundColor: '#FEE2E2' }}>
+                  <CloseIcon className="w-4 h-4 flex-shrink-0" />
+                  <p>{passwordError}</p>
+                </div>
               )}
             </div>
 
             {/* Confirm Password Field */}
             <div>
               <div className="relative">
-                <HiOutlineKey className="absolute right-3 top-3.5 text-gray-400 w-5 h-5" />
+                <KeyIcon className="absolute right-3 top-3.5 w-5 h-5 text-black" />
                 <input
                   id="signup-confirm-password"
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="אימות סיסמה *"
-                  className={`w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-[14px] ${
-                    confirmPasswordError
-                      ? 'border-red-400 focus:ring-red-400'
+                  className="auth-input w-full p-3 pr-10 pl-10 border rounded-lg focus:outline-none text-[14px]"
+                  style={{
+                    borderColor: confirmPasswordError
+                      ? '#B3261E'
                       : confirmPassword && passwordsMatch 
-                      ? 'border-green-400 focus:ring-green-400' 
+                      ? '#000000' 
                       : confirmPassword && !passwordsMatch
-                      ? 'border-red-400 focus:ring-red-400'
-                      : 'border-gray-300 focus:ring-black'
-                  }`}
+                      ? '#B3261E'
+                      : '#D0D0D4'
+                  }}
                   value={confirmPassword}
                   onChange={(e) => {
-                    setConfirmPassword(e.target.value);
+                    // Block Hebrew characters in confirm password
+                    const newValue = e.target.value.replace(/[\u0590-\u05ff]/g, '');
+                    setConfirmPassword(newValue);
                     if (confirmPasswordError) setConfirmPasswordError('');
                   }}
                   required
@@ -584,20 +666,23 @@ function SignupContent() {
                   type="button"
                   tabIndex={-1}
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute left-3 top-3.5 text-gray-400 hover:text-gray-600"
+                  className="absolute left-3 top-3.5 transition-colors"
+                  style={{ color: '#A1A1AA' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#52525B'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#A1A1AA'}
                 >
                   {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
               </div>
               {confirmPassword && !passwordsMatch && (
-                <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-                  <FaTimes className="w-3 h-3" />
-                  הסיסמאות אינן תואמות
-                </p>
+                <div className="mt-2 flex items-center gap-2 text-sm p-2 rounded-lg" style={{ color: '#B3261E', backgroundColor: '#FEE2E2' }}>
+                  <CloseIcon className="w-4 h-4 flex-shrink-0" />
+                  <p>הסיסמאות אינן תואמות</p>
+                </div>
               )}
               {confirmPassword && passwordsMatch && (
-                <p className="mt-1 text-sm text-green-500 flex items-center gap-1">
-                  <FaCheck className="w-3 h-3" />
+                <p className="mt-1 text-sm flex items-center gap-1" style={{ color: '#000000' }}>
+                  <CheckIcon className="w-3 h-3" />
                   הסיסמאות תואמות
                 </p>
               )}
@@ -607,12 +692,15 @@ function SignupContent() {
             <button
               type="submit"
               disabled={isSubmitting || !isPasswordValid || !passwordsMatch || !name.trim() || !isValidEmail(email) || !!emailError}
-              className="bg-black text-white py-3 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+              className="bg-black text-white py-3 transition-colors font-medium disabled:cursor-not-allowed"
+              style={{ borderRadius: '12px', backgroundColor: (isSubmitting || !isPasswordValid || !passwordsMatch || !name.trim() || !isValidEmail(email) || !!emailError) ? '#D0D0D4' : 'black' }}
+              onMouseEnter={(e) => !(isSubmitting || !isPasswordValid || !passwordsMatch || !name.trim() || !isValidEmail(email) || !!emailError) && (e.currentTarget.style.backgroundColor = '#3F3F46')}
+              onMouseLeave={(e) => !(isSubmitting || !isPasswordValid || !passwordsMatch || !name.trim() || !isValidEmail(email) || !!emailError) && (e.currentTarget.style.backgroundColor = 'black')}
             >
               {isSubmitting ? 'נרשם...' : 'הרשמה'}
             </button>
 
-            {message && <p className="text-center text-[14px] text-red-500">{message}</p>}
+            {message && <p className="text-center text-[14px]" style={{ color: '#B3261E' }}>{message}</p>}
 
             {/* Login Redirect */}
             <p className="text-center text-[14px] mt-2">
