@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCommunityContext } from '../CommunityContext';
-import { FaUserShield, FaUser, FaUserMinus, FaBan, FaUndo, FaSearch } from 'react-icons/fa';
+import { FaBan, FaUndo } from 'react-icons/fa';
 import SearchXIcon from '../../../components/icons/SearchXIcon';
 import UserRemoveIcon from '../../../components/icons/UserRemoveIcon';
 import CloseIcon from '../../../components/icons/CloseIcon';

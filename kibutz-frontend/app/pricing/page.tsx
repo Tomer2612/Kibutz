@@ -7,9 +7,27 @@ import { jwtDecode } from 'jwt-decode';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import FormSelect from '../components/FormSelect';
-import { FaCheck, FaTimes, FaCreditCard } from 'react-icons/fa';
+import CreditCardIcon from '../components/icons/CreditCardIcon';
 import CalendarIcon from '../components/icons/CalendarIcon';
 import LockIcon from '../components/icons/LockIcon';
+
+// Checkmark Icon component
+const CheckmarkIcon = ({ className = "w-3 h-2.5" }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 6 5" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path 
+      d="M0.5625 2.0625L2.0625 3.5625L5.0625 0.5625" 
+      stroke="currentColor" 
+      strokeWidth="1.125" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
 interface FAQ {
   question: string;
@@ -308,7 +326,7 @@ function PricingContent() {
                   className="w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
                   style={{ borderColor: getCardNumberError() ? '#B3261E' : '#D0D0D4' }}
                 />
-                <FaCreditCard className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#A1A1AA' }} />
+                <CreditCardIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#A1A1AA' }} />
               </div>
               {getCardNumberError() && (
                 <p className="text-sm mt-1" style={{ color: '#B3261E' }}>{getCardNumberError()}</p>
@@ -416,16 +434,10 @@ function PricingContent() {
             {plan.features.map((feature, fIndex) => (
               <div key={fIndex} className="flex items-center gap-2">
                 <div 
-                  className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: '#E9FCC5' }}
+                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: '#A7EA7B' }}
                 >
-                  <FaCheck 
-                    style={{ 
-                      color: '#365908',
-                      width: '10px',
-                      height: '8px'
-                    }} 
-                  />
+                  <CheckmarkIcon className="w-3 h-2.5 text-black" />
                 </div>
                 <span className="text-black" style={{ fontSize: '18px' }}>{feature}</span>
               </div>

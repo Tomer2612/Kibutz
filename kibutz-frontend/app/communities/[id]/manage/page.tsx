@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaUsers, FaImage, FaCog, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaTimes, FaStar, FaPlus, FaCreditCard, FaChevronDown } from 'react-icons/fa';
+import { FaYoutube, FaWhatsapp, FaFacebook, FaInstagram } from 'react-icons/fa';
 import { useCommunityContext } from '../CommunityContext';
 import FormSelect from '../../../components/FormSelect';
 import PlusIcon from '../../../components/icons/PlusIcon';
@@ -13,7 +13,10 @@ import CloseIcon from '../../../components/icons/CloseIcon';
 import NoFeeIcon from '../../../components/icons/NoFeeIcon';
 import DollarIcon from '../../../components/icons/DollarIcon';
 import CalendarIcon from '../../../components/icons/CalendarIcon';
+import ImageIcon from '../../../components/icons/ImageIcon';
 import LockIcon from '../../../components/icons/LockIcon';
+import SettingsIcon from '../../../components/icons/SettingsIcon';
+import CreditCardIcon from '../../../components/icons/CreditCardIcon';
 
 interface Community {
   id: string;
@@ -552,7 +555,7 @@ export default function ManageCommunityPage() {
         {/* Right Sidebar - Settings Tabs */}
         <aside className="w-64 bg-white border-l border-gray-200 p-6 flex-shrink-0">
           <div className="flex items-center gap-2 mb-6">
-            <FaCog className="w-5 h-5 text-gray-600" />
+            <SettingsIcon size={20} className="text-gray-600" />
             <h2 className="text-base font-semibold text-gray-900">הגדרות</h2>
           </div>
           
@@ -689,8 +692,8 @@ export default function ManageCommunityPage() {
                         className="w-32 h-32 object-cover rounded-lg border border-gray-200"
                       />
                     ) : (
-                      <div className="w-32 h-32 border border-gray-200 rounded-lg flex items-center justify-center bg-gray-50">
-                        <FaImage className="w-10 h-10 text-gray-300" />
+                      <div className="w-32 h-32 border border-gray-200 rounded-lg flex items-center justify-center bg-white">
+                        <ImageIcon size={40} color="#D1D5DB" />
                       </div>
                     )}
                     <div className="flex flex-col gap-2">
@@ -707,8 +710,8 @@ export default function ManageCommunityPage() {
                         className="flex items-center justify-center gap-2 px-4 py-2.5 text-gray-600 border border-gray-300 cursor-pointer hover:bg-gray-50 transition text-base font-normal w-44"
                         style={{ borderRadius: '8px' }}
                       >
-                        <PlusIcon className="w-4 h-4 ml-1" />
-                        <span className="ml-1">העלאת תמונת לוגו</span>
+                        <PlusIcon className="w-4 h-4" />
+                        <span>העלאת תמונת לוגו</span>
                       </label>
                       {logo && (
                         <button
@@ -851,7 +854,7 @@ export default function ManageCommunityPage() {
                     htmlFor="image-upload"
                     className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition"
                   >
-                    <FaImage className="text-gray-400" />
+                    <ImageIcon size={20} color="#9CA3AF" />
                     <span className="text-gray-600">לחץ להעלאת תמונות</span>
                   </label>
                 </div>
@@ -992,7 +995,7 @@ export default function ManageCommunityPage() {
                       disabled={!newRule.trim() || rules.length >= 3}
                       className="px-5 py-3.5 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition flex items-center gap-2 text-base"
                     >
-                      <FaPlus className="w-3 h-3" />
+                      <PlusIcon size={12} />
                       הוסף
                     </button>
                   </div>
@@ -1189,7 +1192,7 @@ export default function ManageCommunityPage() {
                     )}
                     {cardLastFour && (
                       <p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
-                        <FaCreditCard className="text-gray-400" />
+                        <CreditCardIcon className="text-gray-400" />
                         <span>כרטיס נוכחי: {cardBrand || 'Visa'} ************{cardLastFour}</span>
                       </p>
                     )}
@@ -1261,7 +1264,7 @@ export default function ManageCommunityPage() {
                   }}
                   className="text-gray-400 hover:text-gray-600 mb-4"
                 >
-                  <FaTimes className="w-5 h-5" />
+                  <CloseIcon size={20} />
                 </button>
                 
                 <h2 className="text-2xl font-bold text-center mb-8">עדכון אמצעי תשלום</h2>
@@ -1284,7 +1287,7 @@ export default function ManageCommunityPage() {
                           newCardNumber.length > 0 && newCardNumber.length < 16 ? 'border-red-400' : 'border-gray-300'
                         }`}
                       />
-                      <FaCreditCard className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <CreditCardIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     </div>
                     {newCardNumber.length > 0 && newCardNumber.length < 16 && (
                       <p className="text-red-500 text-sm mt-1">חסרות {16 - newCardNumber.length} ספרות</p>

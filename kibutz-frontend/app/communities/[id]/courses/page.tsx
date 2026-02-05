@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaPlay, FaTimes } from 'react-icons/fa';
+import PlayIcon from '../../../components/icons/PlayIcon';
 import { useCommunityContext } from '../CommunityContext';
 import SearchXIcon from '../../../components/icons/SearchXIcon';
 import BookIcon from '../../../components/icons/BookIcon';
@@ -80,18 +80,19 @@ export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [community, setCommunity] = useState<Community | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'all' | 'in-progress' | 'completed'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'in-progress' | 'completed' | 'my-courses'>('all');
   const [mounted, setMounted] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; courseId: string | null; courseTitle: string }>({ open: false, courseId: null, courseTitle: '' });
   
   // Get user data and searchQuery from layout context
-  const { searchQuery, setSearchQuery, userEmail, userId, userProfile, isOwnerOrManager } = useCommunityContext();
+  const { searchQuery, setSearchQuery, userEmail, userId, userProfile, isOwner, isOwnerOrManager } = useCommunityContext();
   const [deleting, setDeleting] = useState(false);
 
   // Pagination state
   const [allPage, setAllPage] = useState(1);
   const [inProgressPage, setInProgressPage] = useState(1);
   const [completedPage, setCompletedPage] = useState(1);
+  const [myCoursesPage, setMyCoursesPage] = useState(1);
   const coursesPerPage = 3;
 
   useEffect(() => {
@@ -99,6 +100,15 @@ export default function CoursesPage() {
     fetchCommunity();
     fetchCourses();
   }, [communityId]);
+
+  // Set default tab based on user role
+  useEffect(() => {
+    if (isOwner) {
+      setActiveTab('my-courses');
+    } else {
+      setActiveTab('all');
+    }
+  }, [isOwner]);
 
   const fetchCommunity = async () => {
     try {
@@ -182,9 +192,10 @@ export default function CoursesPage() {
     // Only the course author can edit/delete
     return course.author.id === userId;
   };
-  const inProgressCourses = courses.filter(c => c.enrollment && !c.enrollment.completedAt);
-  const completedCourses = courses.filter(c => c.enrollment?.completedAt);
+  const inProgressCourses = courses.filter(c => c.enrollment && !c.enrollment.completedAt && c.author.id !== userId);
+  const completedCourses = courses.filter(c => c.enrollment?.completedAt && c.author.id !== userId);
   const allCourses = courses.filter(c => c.isPublished || c.author.id === userId);
+  const myCourses = courses.filter(c => c.author.id === userId);
 
   // Filter by search query
   const filterBySearch = (courseList: Course[]) => {
@@ -202,7 +213,9 @@ export default function CoursesPage() {
       ? allCourses
       : activeTab === 'in-progress' 
         ? inProgressCourses
-        : completedCourses
+        : activeTab === 'my-courses'
+          ? myCourses
+          : completedCourses
   );
 
   return (
@@ -211,45 +224,61 @@ export default function CoursesPage() {
       <div className="bg-[#F4F4F5] border-b border-gray-200 pt-10">
         <div className="max-w-5xl mx-auto px-8 flex items-center justify-between">
           <div className="flex gap-4">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-3 text-[21px] relative transition ${
-                activeTab === 'all'
-                  ? 'font-semibold text-black'
-                  : 'font-normal text-[#3F3F46] hover:text-gray-700'
-              }`}
-            >
-              כל הקורסים
-              {activeTab === 'all' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></span>}
-            </button>
-            <button
-              onClick={() => setActiveTab('in-progress')}
-              className={`px-4 py-3 text-[21px] relative transition ${
-                activeTab === 'in-progress'
-                  ? 'font-semibold text-black'
-                  : 'font-normal text-[#3F3F46] hover:text-gray-700'
-              }`}
-            >
-              קורסים בתהליך
-              {activeTab === 'in-progress' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></span>}
-            </button>
-            <button
-              onClick={() => setActiveTab('completed')}
-              className={`px-4 py-3 text-[21px] relative transition ${
-                activeTab === 'completed'
-                  ? 'font-semibold text-black'
-                  : 'font-normal text-[#3F3F46] hover:text-gray-700'
-              }`}
-            >
-              קורסים שהושלמו
-              {activeTab === 'completed' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></span>}
-            </button>
+            {/* Owner sees only הקורסים שלי tab, regular users see the other 3 tabs */}
+            {isOwner ? (
+              <button
+                onClick={() => setActiveTab('my-courses')}
+                className={`px-4 py-3 text-[18px] relative transition ${
+                  activeTab === 'my-courses'
+                    ? 'font-semibold text-black'
+                    : 'font-normal text-[#3F3F46] hover:text-gray-700'
+                }`}
+              >
+                הקורסים שלי
+                {activeTab === 'my-courses' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></span>}
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className={`px-4 py-3 text-[18px] relative transition ${
+                    activeTab === 'all'
+                      ? 'font-semibold text-black'
+                      : 'font-normal text-[#3F3F46] hover:text-gray-700'
+                  }`}
+                >
+                  כל הקורסים
+                  {activeTab === 'all' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></span>}
+                </button>
+                <button
+                  onClick={() => setActiveTab('in-progress')}
+                  className={`px-4 py-3 text-[18px] relative transition ${
+                    activeTab === 'in-progress'
+                      ? 'font-semibold text-black'
+                      : 'font-normal text-[#3F3F46] hover:text-gray-700'
+                  }`}
+                >
+                  קורסים בתהליך
+                  {activeTab === 'in-progress' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></span>}
+                </button>
+                <button
+                  onClick={() => setActiveTab('completed')}
+                  className={`px-4 py-3 text-[18px] relative transition ${
+                    activeTab === 'completed'
+                      ? 'font-semibold text-black'
+                      : 'font-normal text-[#3F3F46] hover:text-gray-700'
+                  }`}
+                >
+                  קורסים שהושלמו
+                  {activeTab === 'completed' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-black"></span>}
+                </button>
+              </>
+            )}
           </div>
-          {isOwnerOrManager && (
+          {isOwner && (
             <Link
               href={`/communities/${communityId}/courses/create`}
-              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium"
-              style={{ fontSize: '18px' }}
+              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium text-[18px]"
             >
               יצירת קורס חדש
             </Link>
@@ -274,14 +303,18 @@ export default function CoursesPage() {
                     ? 'עדיין לא השלמת קורסים' 
                     : activeTab === 'in-progress'
                       ? 'עדיין לא התחלת קורסים או שהשלמת את כולם'
-                      : 'אין קורסים זמינים'}
+                      : activeTab === 'my-courses'
+                        ? 'עדיין לא יצרת קורסים'
+                        : 'אין קורסים זמינים'}
                 </h3>
                 <p className="text-lg text-[#3F3F46]">
                   {activeTab === 'completed' 
                     ? 'המשך ללמוד והקורסים שתשלים יופיעו כאן'
                     : activeTab === 'in-progress'
                       ? 'הירשם לקורס מלשונית "כל הקורסים"'
-                      : 'צור את הקורס הראשון שלך'
+                      : activeTab === 'my-courses'
+                        ? 'לחץ על "יצירת קורס חדש" כדי להתחיל'
+                        : 'צור את הקורס הראשון שלך'
                   }
                 </p>
               </>
@@ -293,8 +326,8 @@ export default function CoursesPage() {
             {[...displayedCourses]
               .reverse()
               .slice(
-                ((activeTab === 'all' ? allPage : activeTab === 'in-progress' ? inProgressPage : completedPage) - 1) * coursesPerPage,
-                (activeTab === 'all' ? allPage : activeTab === 'in-progress' ? inProgressPage : completedPage) * coursesPerPage
+                ((activeTab === 'all' ? allPage : activeTab === 'in-progress' ? inProgressPage : activeTab === 'my-courses' ? myCoursesPage : completedPage) - 1) * coursesPerPage,
+                (activeTab === 'all' ? allPage : activeTab === 'in-progress' ? inProgressPage : activeTab === 'my-courses' ? myCoursesPage : completedPage) * coursesPerPage
               )
               .map(course => (
               <div
@@ -343,7 +376,7 @@ export default function CoursesPage() {
                     {/* Play button overlay */}
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                        <FaPlay className="w-6 h-6 text-gray-800 mr-[-2px]" />
+                        <PlayIcon size={24} className="text-gray-800 mr-[-2px]" />
                       </div>
                     </div>
 
@@ -380,27 +413,29 @@ export default function CoursesPage() {
                     {course.description || 'אין תיאור'}
                   </p>
 
-                  {/* Progress Bar */}
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="text-gray-500">התקדמות</span>
-                      <span className="font-semibold text-gray-700">{Math.round(course.enrollment?.progress || 0)}%</span>
+                  {/* Progress Bar - Hidden for author's own courses */}
+                  {course.author.id !== userId && (
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-gray-500">התקדמות</span>
+                        <span className="font-semibold text-gray-700">{Math.round(course.enrollment?.progress || 0)}%</span>
+                      </div>
+                      <div className="h-2 bg-[#D4F5C4] rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-[#A7EA7B] rounded-full transition-all"
+                          style={{ width: `${course.enrollment?.progress || 0}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 bg-[#D4F5C4] rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-[#A7EA7B] rounded-full transition-all"
-                        style={{ width: `${course.enrollment?.progress || 0}%` }}
-                      />
-                    </div>
-                  </div>
+                  )}
                 </Link>
               </div>
             ))}
           </div>
           {/* Pagination */}
           {displayedCourses.length > coursesPerPage && (() => {
-            const currentPage = activeTab === 'all' ? allPage : activeTab === 'in-progress' ? inProgressPage : completedPage;
-            const setCurrentPage = activeTab === 'all' ? setAllPage : activeTab === 'in-progress' ? setInProgressPage : setCompletedPage;
+            const currentPage = activeTab === 'all' ? allPage : activeTab === 'in-progress' ? inProgressPage : activeTab === 'my-courses' ? myCoursesPage : completedPage;
+            const setCurrentPage = activeTab === 'all' ? setAllPage : activeTab === 'in-progress' ? setInProgressPage : activeTab === 'my-courses' ? setMyCoursesPage : setCompletedPage;
             const totalPages = Math.ceil(displayedCourses.length / coursesPerPage);
             const visiblePages = getVisiblePages(currentPage, totalPages);
             return (

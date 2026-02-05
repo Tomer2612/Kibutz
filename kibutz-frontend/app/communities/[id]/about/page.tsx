@@ -4,8 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCommunityContext } from '../CommunityContext';
-import { FaUsers, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaLink, FaSignOutAlt } from 'react-icons/fa';
+import { FaYoutube, FaWhatsapp, FaFacebook, FaInstagram } from 'react-icons/fa';
 import PlayIcon from '../../../components/icons/PlayIcon';
+import LinkIcon from '../../../components/icons/LinkIcon';
+import ChevronLeftIcon from '../../../components/icons/ChevronLeftIcon';
+import ChevronRightIcon from '../../../components/icons/ChevronRightIcon';
+import LogoutIcon from '../../../components/icons/LogoutIcon';
 
 interface Community {
   id: string;
@@ -188,13 +192,13 @@ function CommunityGallery({ primaryImage, galleryImages, galleryVideos, communit
               onClick={goToNext}
               className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
             >
-              <FaChevronLeft className="w-4 h-4 text-gray-700" />
+              <ChevronLeftIcon size={16} className="text-gray-700" />
             </button>
             <button 
               onClick={goToPrev}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
             >
-              <FaChevronRight className="w-4 h-4 text-gray-700" />
+              <ChevronRightIcon size={16} className="text-gray-700" />
             </button>
           </>
         )}
@@ -536,7 +540,7 @@ export default function CommunityAboutPage() {
                   className="w-full py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition text-sm flex items-center justify-center gap-2"
                 >
                   <span>{inviteCopied ? 'הועתק!' : 'העתק לינק'}</span>
-                  <FaLink className="w-4 h-4" />
+                  <LinkIcon size={16} color="white" />
                 </button>
               </div>
             </div>
@@ -548,7 +552,7 @@ export default function CommunityAboutPage() {
                   onClick={() => setShowLeaveModal(true)}
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 text-red-600 hover:bg-red-50 rounded-xl transition font-medium"
                 >
-                  <FaSignOutAlt className="w-4 h-4" />
+                  <LogoutIcon size={16} />
                   עזוב את הקהילה
                 </button>
               </div>

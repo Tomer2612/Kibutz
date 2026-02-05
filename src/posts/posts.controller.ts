@@ -46,7 +46,7 @@ export class PostsController {
   @UseGuards(AuthGuard('jwt'))
   @Post('community/:communityId')
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 posts per minute
-  @UseInterceptors(FilesInterceptor('files', 10, { storage })) // Max 5 images + 5 files = 10
+  @UseInterceptors(FilesInterceptor('files', 12, { storage })) // Max 6 images + 6 files = 12
   async createPost(
     @Param('communityId') communityId: string,
     @Req() req,
@@ -65,9 +65,9 @@ export class PostsController {
         // Decode Hebrew/non-ASCII filenames properly
         const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
         
-        if (fileType === 'image' && images.length < 5) {
+        if (fileType === 'image' && images.length < 6) {
           images.push(filePath);
-        } else if (fileType === 'file' && uploadedFiles.length < 5) {
+        } else if (fileType === 'file' && uploadedFiles.length < 6) {
           uploadedFiles.push({ url: filePath, name: originalName });
         }
       }
@@ -128,7 +128,7 @@ export class PostsController {
   // Update a post
   @UseGuards(AuthGuard('jwt'))
   @Patch(':postId')
-  @UseInterceptors(FilesInterceptor('files', 10, { storage })) // Max 5 images + 5 files = 10
+  @UseInterceptors(FilesInterceptor('files', 12, { storage })) // Max 6 images + 6 files = 12
   updatePost(
     @Param('postId') postId: string,
     @Req() req,
@@ -158,9 +158,9 @@ export class PostsController {
         // Decode Hebrew/non-ASCII filenames properly
         const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
         
-        if (fileType === 'image' && newImages.length < 5) {
+        if (fileType === 'image' && newImages.length < 6) {
           newImages.push(filePath);
-        } else if (fileType === 'file' && newFiles.length < 5) {
+        } else if (fileType === 'file' && newFiles.length < 6) {
           newFiles.push({ url: filePath, name: originalName });
         }
       }

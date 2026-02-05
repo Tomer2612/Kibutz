@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaTrophy, FaMedal, FaUsers, FaStar } from 'react-icons/fa';
+import { FaStar } from 'react-icons/fa';
 import { useCommunityContext } from '../CommunityContext';
 import TrophyIcon from '../../../components/icons/TrophyIcon';
+import AwardIcon from '../../../components/icons/AwardIcon';
+import UsersIcon from '../../../components/icons/UsersIcon';
 
 interface Community {
   id: string;
@@ -83,11 +85,11 @@ export default function LeaderboardPage() {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <FaTrophy className="w-6 h-6" style={{ color: '#FFD700' }} />;
+        return <TrophyIcon className="w-6 h-6 text-[#FFD700]" />;
       case 2:
-        return <FaMedal className="w-6 h-6" style={{ color: '#A8A8A8' }} />;
+        return <AwardIcon className="w-6 h-6 text-[#A8A8A8]" />;
       case 3:
-        return <FaMedal className="w-6 h-6" style={{ color: '#CD7F32' }} />;
+        return <AwardIcon className="w-6 h-6 text-[#CD7F32]" />;
       default:
         return <span className="w-6 h-6 flex items-center justify-center text-gray-500 font-bold">{rank}</span>;
     }
@@ -182,7 +184,7 @@ export default function LeaderboardPage() {
             </div>
           ) : (
             <div className="p-12 text-center">
-              <FaUsers className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <UsersIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 mb-2">אין נתונים עדיין</p>
               <p className="text-sm text-gray-400">התחילו לפרסם פוסטים ולהגיב כדי לצבור נקודות!</p>
             </div>

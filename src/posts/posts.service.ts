@@ -175,9 +175,9 @@ export class PostsService {
         newImages = newImages.filter(img => !imagesToRemove.includes(img));
       }
       
-      // Add new images (up to limit of 5)
+      // Add new images (up to limit of 6)
       if (images && images.length > 0) {
-        newImages = [...newImages, ...images].slice(0, 5);
+        newImages = [...newImages, ...images].slice(0, 6);
       }
       
       updateData.images = newImages;
@@ -193,9 +193,9 @@ export class PostsService {
         newFiles = newFiles.filter(file => !filesToRemove.includes(file.url));
       }
       
-      // Add new files (up to limit of 5)
+      // Add new files (up to limit of 6)
       if (files && files.length > 0) {
-        newFiles = [...newFiles, ...files].slice(0, 5);
+        newFiles = [...newFiles, ...files].slice(0, 6);
       }
       
       updateData.files = newFiles;

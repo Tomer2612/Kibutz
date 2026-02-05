@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FaUsers } from 'react-icons/fa';
+import UsersIcon from './icons/UsersIcon';
 import NotificationBell from './NotificationBell';
 import { MessagesBell } from './ChatWidget';
 import UserProfileDropdown from './UserProfileDropdown';
@@ -120,7 +120,7 @@ export default function CommunityNavbar({
               />
             ) : (
               <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                <FaUsers className="w-5 h-5 text-gray-400" />
+                <UsersIcon className="w-5 h-5 text-gray-400" />
               </div>
             )}
             <span className="font-medium text-black truncate max-w-[120px]" style={{ fontSize: '16px' }}>{community?.name}</span>
@@ -166,7 +166,7 @@ export default function CommunityNavbar({
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                      <FaUsers className="w-4 h-4 text-gray-400" />
+                      <UsersIcon className="w-4 h-4 text-gray-400" />
                     </div>
                   )}
                   <span className="text-black truncate" style={{ fontSize: '14px' }}>{comm.name}</span>

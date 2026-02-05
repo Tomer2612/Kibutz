@@ -6,7 +6,7 @@ import { jwtDecode } from 'jwt-decode';
 import SiteHeader from '../components/SiteHeader';
 import FormSelect from '../components/FormSelect';
 import { HiOutlineUser, HiOutlineCamera, HiOutlineCog6Tooth, HiOutlineArrowRightOnRectangle, HiOutlineLink, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeSlash, HiOutlineBell, HiOutlineShieldCheck, HiOutlineHeart, HiOutlineChatBubbleLeft, HiOutlineChatBubbleOvalLeft, HiOutlineUserPlus, HiOutlineUsers, HiOutlineEnvelope, HiOutlineMapPin, HiOutlineDocumentText, HiOutlineAtSymbol, HiOutlineCreditCard } from 'react-icons/hi2';
-import { FaTimes } from 'react-icons/fa';
+import CloseIcon from '../components/icons/CloseIcon';
 import PowerIcon from '../components/icons/PowerIcon';
 import PowerOffIcon from '../components/icons/PowerOffIcon';
 import CreditCardIcon from '../components/icons/CreditCardIcon';
@@ -1210,7 +1210,7 @@ export default function SettingsPage() {
                     className="absolute top-4 left-4"
                     style={{ color: '#A1A1AA' }}
                   >
-                    <FaTimes className="w-5 h-5" />
+                    <CloseIcon size={20} />
                   </button>
 
                   <h2 className="text-2xl font-bold text-center mb-8">הוספת כרטיס אשראי</h2>

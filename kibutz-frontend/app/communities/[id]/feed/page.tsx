@@ -3,30 +3,9 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import {
-  FaPlus,
-  FaUsers,
-  FaComments,
-  FaHeart,
-  FaRegHeart,
-  FaTrash,
-  FaEllipsisH,
-  FaTimes,
-  FaBookmark,
-  FaRegBookmark,
-  FaImage,
-  FaLink,
-  FaFile,
-  FaFilePdf,
-  FaCheck,
-  FaExternalLinkAlt,
-  FaTrophy,
-  FaMedal,
-  FaPoll,
-  FaVideo,
-  FaMapMarkerAlt,
-  FaUser,
-} from 'react-icons/fa';
+import { FaExternalLinkAlt } from 'react-icons/fa';
+import ImageIcon from '../../../components/icons/ImageIcon';
+import LinkIcon from '../../../components/icons/LinkIcon';
 import { useCommunityContext } from '../CommunityContext';
 import FormSelect from '../../../components/FormSelect';
 import FilterDropdown from '../../../components/FilterDropdown';
@@ -47,6 +26,8 @@ import HeartFilledIcon from '../../../components/icons/HeartFilledIcon';
 import CommentIcon from '../../../components/icons/CommentIcon';
 import PinIcon from '../../../components/icons/PinIcon';
 import EditIcon from '../../../components/icons/EditIcon';
+import FileTextIcon from '../../../components/icons/FileTextIcon';
+import TrophyIcon from '../../../components/icons/TrophyIcon';
 
 interface Community {
   id: string;
@@ -160,6 +141,7 @@ function CommunityFeedContent() {
   const [filePreviews, setFilePreviews] = useState<{ name: string }[]>([]);
   const [newLinkInput, setNewLinkInput] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const [linkError, setLinkError] = useState('');
   const [loading, setLoading] = useState(true);
   const [postSubmitting, setPostSubmitting] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
@@ -665,37 +647,53 @@ function CommunityFeedContent() {
     const files = Array.from(e.target.files || []);
     const inputAccept = e.target.accept;
     
+    // Collect valid images and files separately
+    const validImages: File[] = [];
+    const validFiles: File[] = [];
+    
     for (const file of files) {
       // If image input, only accept images
       if (inputAccept?.includes('image/*')) {
         if (!file.type.startsWith('image/')) {
-          alert('נא להעלות רק קבצי תמונה');
           continue;
         }
-        if (newPostImages.length >= 5) {
-          alert('ניתן להעלות עד 5 תמונות');
-          continue;
-        }
-        setNewPostImages(prev => [...prev, file]);
-        
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setImagePreviews(prev => [...prev, reader.result as string]);
-        };
-        reader.readAsDataURL(file);
+        validImages.push(file);
       } else {
         // File input - don't accept images
         if (file.type.startsWith('image/')) {
-          alert('להעלאת תמונות השתמשו בכפתור התמונות');
           continue;
         }
-        if (newPostFiles.length >= 5) {
-          alert('ניתן להעלות עד 5 קבצים');
-          continue;
-        }
-        setNewPostFiles(prev => [...prev, file]);
-        setFilePreviews(prev => [...prev, { name: file.name }]);
+        validFiles.push(file);
       }
+    }
+    
+    // Process images - slice to max 6 total
+    if (validImages.length > 0) {
+      setNewPostImages(prev => {
+        const combined = [...prev, ...validImages];
+        return combined.slice(0, 6);
+      });
+      
+      // Only read previews for files that will be kept (first 6 minus existing)
+      const imagesToAdd = validImages.slice(0, Math.max(0, 6 - newPostImages.length));
+      imagesToAdd.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreviews(prev => [...prev, reader.result as string].slice(0, 6));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    // Process files - slice to max 6 total
+    if (validFiles.length > 0) {
+      setNewPostFiles(prev => {
+        const combined = [...prev, ...validFiles];
+        return combined.slice(0, 6);
+      });
+      
+      const filesToAdd = validFiles.slice(0, Math.max(0, 6 - newPostFiles.length));
+      setFilePreviews(prev => [...prev, ...filesToAdd.map(f => ({ name: f.name }))].slice(0, 6));
     }
     
     // Reset input
@@ -743,7 +741,7 @@ function CommunityFeedContent() {
     const trimmedLink = newLinkInput.trim();
     if (trimmedLink) {
       if (!isValidUrl(trimmedLink)) {
-        alert('נא להזין קישור תקין (כולל https://)');
+        setLinkError('קישור לא תקין');
         return;
       }
       if (newPostLinks.length >= 10) {
@@ -751,7 +749,7 @@ function CommunityFeedContent() {
         return;
       }
       if (newPostLinks.includes(trimmedLink)) {
-        alert('קישור זה כבר קיים');
+        setLinkError('קישור זה כבר קיים');
         return;
       }
       setAddingLink(true);
@@ -759,6 +757,7 @@ function CommunityFeedContent() {
       setNewLinkInput('');
       setShowLinkInput(false);
       setAddingLink(false);
+      setLinkError('');
     }
   };
 
@@ -915,30 +914,44 @@ function CommunityFeedContent() {
 
   const handleEditFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    const maxImages = 6;
+    const maxFiles = 6;
+    
+    // Calculate current totals
+    const currentImageCount = editImages.length - imagesToRemove.length + newEditImages.length;
+    const currentFileCount = editFiles.length - filesToRemove.length + newEditFiles.length;
+    
+    // Collect valid images and files
+    const validImages: File[] = [];
+    const validFiles: File[] = [];
     
     for (const file of files) {
       if (file.type.startsWith('image/')) {
-        const currentTotal = editImages.length - imagesToRemove.length + newEditImages.length;
-        if (currentTotal >= 5) {
-          alert('ניתן להעלות עד 5 תמונות');
-          continue;
-        }
-        setNewEditImages(prev => [...prev, file]);
-        
+        validImages.push(file);
+      } else {
+        validFiles.push(file);
+      }
+    }
+    
+    // Process images - limit to max allowed
+    const imagesToAdd = validImages.slice(0, Math.max(0, maxImages - currentImageCount));
+    if (imagesToAdd.length > 0) {
+      setNewEditImages(prev => [...prev, ...imagesToAdd]);
+      
+      imagesToAdd.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
           setNewEditImagePreviews(prev => [...prev, reader.result as string]);
         };
         reader.readAsDataURL(file);
-      } else {
-        const currentTotal = editFiles.length - filesToRemove.length + newEditFiles.length;
-        if (currentTotal >= 5) {
-          alert('ניתן להעלות עד 5 קבצים');
-          continue;
-        }
-        setNewEditFiles(prev => [...prev, file]);
-        setNewEditFilePreviews(prev => [...prev, { name: file.name }]);
-      }
+      });
+    }
+    
+    // Process files - limit to max allowed
+    const filesToAdd = validFiles.slice(0, Math.max(0, maxFiles - currentFileCount));
+    if (filesToAdd.length > 0) {
+      setNewEditFiles(prev => [...prev, ...filesToAdd]);
+      setNewEditFilePreviews(prev => [...prev, ...filesToAdd.map(f => ({ name: f.name }))]);
     }
     
     e.target.value = '';
@@ -958,8 +971,8 @@ function CommunityFeedContent() {
     // Check if undoing would exceed limit
     const currentKept = editImages.length - imagesToRemove.length + 1; // +1 for the one being restored
     const totalAfterUndo = currentKept + newEditImages.length;
-    if (totalAfterUndo > 5) {
-      alert('לא ניתן לבטל - חריגה ממגבלת 5 תמונות. הסר תמונה חדשה קודם.');
+    if (totalAfterUndo > 6) {
+      alert('לא ניתן לבטל - חריגה ממגבלת 6 תמונות. הסר תמונה חדשה קודם.');
       return;
     }
     setImagesToRemove(prev => prev.filter(i => i !== image));
@@ -969,8 +982,8 @@ function CommunityFeedContent() {
     // Check if undoing would exceed limit
     const currentKept = editFiles.length - filesToRemove.length + 1; // +1 for the one being restored
     const totalAfterUndo = currentKept + newEditFiles.length;
-    if (totalAfterUndo > 5) {
-      alert('לא ניתן לבטל - חריגה ממגבלת 5 קבצים. הסר קובץ חדש קודם.');
+    if (totalAfterUndo > 6) {
+      alert('לא ניתן לבטל - חריגה ממגבלת 6 קבצים. הסר קובץ חדש קודם.');
       return;
     }
     setFilesToRemove(prev => prev.filter(f => f !== fileUrl));
@@ -1715,8 +1728,8 @@ function CommunityFeedContent() {
                         </button>
                       </div>
                     ))}
-                    {newPostImages.length < 5 && (
-                      <span className="text-xs text-gray-400 self-center">({newPostImages.length}/5)</span>
+                    {newPostImages.length < 6 && (
+                      <span className="text-xs text-gray-400 self-center">({newPostImages.length}/6)</span>
                     )}
                   </div>
                 )}
@@ -1727,33 +1740,52 @@ function CommunityFeedContent() {
                     {filePreviews.map((file, index) => (
                       <div key={index} className="relative flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
                         {file.name.endsWith('.pdf') ? (
-                          <FaFilePdf className="w-5 h-5 text-gray-500" />
+                          <FileTextIcon size={20} color="#6B7280" />
                         ) : (
-                          <FaFile className="w-5 h-5 text-gray-500" />
+                          <FileTextIcon size={20} color="#6B7280" />
                         )}
                         <span className="text-sm text-gray-700 max-w-[150px] truncate">{file.name}</span>
                         <button
                           onClick={() => removeSelectedFile(index)}
                           className="text-red-500 hover:text-red-600"
                         >
-                          <FaTimes className="w-3 h-3" />
+                          <CloseIcon size={12} />
                         </button>
                       </div>
                     ))}
-                    {newPostFiles.length < 5 && (
-                      <span className="text-xs text-gray-400 self-center">({newPostFiles.length}/5)</span>
+                    {newPostFiles.length < 6 && (
+                      <span className="text-xs text-gray-400 self-center">({newPostFiles.length}/6)</span>
                     )}
                   </div>
                 )}
                 
-                {/* Link Input and List */}
+                {/* Links List - Always visible when links exist */}
+                {newPostLinks.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {newPostLinks.map((link, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 border border-gray-200">
+                        <LinkIcon size={12} color="#6B7280" />
+                        <span className="text-sm text-gray-700 max-w-[200px] truncate">{link}</span>
+                        <button
+                          onClick={() => removeNewLink(index)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <CloseIcon size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    <span className="text-xs text-gray-400 self-center">({newPostLinks.length}/10)</span>
+                  </div>
+                )}
+
+                {/* Link Input */}
                 {showLinkInput && (
                   <div className="mt-3">
-                    <div className="flex items-center gap-4 mb-2">
+                    <div className="flex items-center gap-4 mb-2" style={{ position: 'relative' }}>
                       <input
                         type="url"
                         value={newLinkInput}
-                        onChange={(e) => setNewLinkInput(e.target.value)}
+                        onChange={(e) => { setNewLinkInput(e.target.value); setLinkError(''); }}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLink(); } }}
                         placeholder="https://example.com"
                         className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-black placeholder:text-[#7A7A83] placeholder:font-normal ${newLinkInput.trim() ? 'text-black' : 'text-[#7A7A83]'}`}
@@ -1773,31 +1805,15 @@ function CommunityFeedContent() {
                         {addingLink ? '...' : 'הוסף'}
                       </button>
                       <button
-                        onClick={() => { setShowLinkInput(false); setNewLinkInput(''); }}
+                        onClick={() => { setShowLinkInput(false); setNewLinkInput(''); setLinkError(''); }}
                         className="p-2 text-gray-400 hover:text-gray-600"
                       >
-                        <FaTimes className="w-4 h-4" />
+                        <CloseIcon size={16} color="currentColor" />
                       </button>
+                      {linkError && (
+                        <span className="text-xs" style={{ color: '#B3261E', position: 'absolute', top: '100%', right: 0, marginTop: '4px' }}>{linkError}</span>
+                      )}
                     </div>
-                  </div>
-                )}
-                
-                {/* Links List - Always visible when links exist */}
-                {newPostLinks.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {newPostLinks.map((link, index) => (
-                      <div key={index} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 border border-gray-200">
-                        <FaLink className="w-3 h-3 text-gray-500" />
-                        <span className="text-sm text-gray-700 max-w-[200px] truncate">{link}</span>
-                        <button
-                          onClick={() => removeNewLink(index)}
-                          className="text-red-500 hover:text-red-600"
-                        >
-                          <FaTimes className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    <span className="text-xs text-gray-400 self-center">({newPostLinks.length}/10)</span>
                   </div>
                 )}
                 
@@ -1874,18 +1890,14 @@ function CommunityFeedContent() {
                   {/* Attachment buttons */}
                   <div className="flex items-center gap-2">
                     <label className="cursor-pointer w-9 h-9 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition">
-                      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-                        <path d="M15.8333 2.5H4.16667C3.24619 2.5 2.5 3.24619 2.5 4.16667V15.8333C2.5 16.7538 3.24619 17.5 4.16667 17.5H15.8333C16.7538 17.5 17.5 16.7538 17.5 15.8333V4.16667C17.5 3.24619 16.7538 2.5 15.8333 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M7.49992 9.16536C8.42039 9.16536 9.16659 8.41917 9.16659 7.4987C9.16659 6.57822 8.42039 5.83203 7.49992 5.83203C6.57944 5.83203 5.83325 6.57822 5.83325 7.4987C5.83325 8.41917 6.57944 9.16536 7.49992 9.16536Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M17.5 12.5011L14.9283 9.92938C14.6158 9.61693 14.1919 9.44141 13.75 9.44141C13.3081 9.44141 12.8842 9.61693 12.5717 9.92938L5 17.501" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      <ImageIcon size={20} color="currentColor" />
                       <input
                         type="file"
                         accept="image/*"
                         multiple
                         onChange={handleFileSelect}
                         className="hidden"
-                        disabled={newPostImages.length >= 5}
+                        disabled={newPostImages.length >= 6}
                       />
                     </label>
                     
@@ -1900,7 +1912,7 @@ function CommunityFeedContent() {
                         multiple
                         onChange={handleFileSelect}
                         className="hidden"
-                        disabled={newPostFiles.length >= 5}
+                        disabled={newPostFiles.length >= 6}
                       />
                     </label>
                     
@@ -2215,7 +2227,7 @@ function CommunityFeedContent() {
                               <div className="flex flex-wrap gap-2">
                                 {editFiles.map((file, index) => (
                                   <div key={index} className={`flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 border border-gray-200 ${filesToRemove.includes(file.url) ? 'opacity-50 line-through' : ''}`}>
-                                    <FaFile className="w-4 h-4 text-gray-500" />
+                                    <FileTextIcon size={16} color="#6B7280" />
                                     <span className="text-xs text-gray-700 max-w-[100px] truncate">{file.name}</span>
                                     {filesToRemove.includes(file.url) ? (
                                       <button
@@ -2229,7 +2241,7 @@ function CommunityFeedContent() {
                                         onClick={() => setFilesToRemove(prev => [...prev, file.url])}
                                         className="text-red-500 hover:text-red-600"
                                       >
-                                        <FaTimes className="w-3 h-3" />
+                                        <CloseIcon size={12} />
                                       </button>
                                     )}
                                   </div>
@@ -2245,7 +2257,7 @@ function CommunityFeedContent() {
                               <div className="flex flex-wrap gap-2">
                                 {editLinks.map((link, index) => (
                                   <div key={index} className={`flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 border border-gray-200 ${linksToRemove.includes(link) ? 'opacity-50 line-through' : ''}`}>
-                                    <FaLink className="w-3 h-3 text-gray-500" />
+                                    <LinkIcon size={12} color="#6B7280" />
                                     <span className="text-xs text-gray-700 max-w-[150px] truncate">{link}</span>
                                     {linksToRemove.includes(link) ? (
                                       <button
@@ -2259,7 +2271,7 @@ function CommunityFeedContent() {
                                         onClick={() => removeEditLink(link)}
                                         className="text-red-500 hover:text-red-600"
                                       >
-                                        <FaTimes className="w-3 h-3" />
+                                        <CloseIcon size={12} />
                                       </button>
                                     )}
                                   </div>
@@ -2306,7 +2318,7 @@ function CommunityFeedContent() {
                                     className="text-gray-400 hover:text-red-500 transition p-1 mr-2"
                                     title="מחק סקר"
                                   >
-                                    <FaTrash className="w-3.5 h-3.5" />
+                                    <TrashIcon size={14} />
                                   </button>
                                 )}
                               </div>
@@ -2401,7 +2413,7 @@ function CommunityFeedContent() {
                                     />
                                     <div className="relative flex items-center justify-between px-4 py-3">
                                       <div className="flex items-center gap-2">
-                                        {isVoted && <FaCheck className="w-3 h-3 text-indigo-600" />}
+                                        {isVoted && <CheckIcon size={12} color="#4F46E5" />}
                                         <span className={`text-sm ${isVoted ? 'font-medium text-indigo-700' : 'text-gray-700'}`}>
                                           {option.text}
                                         </span>
@@ -2432,11 +2444,7 @@ function CommunityFeedContent() {
                                 )}
                                 className="w-full flex items-center gap-3 bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 hover:bg-gray-100 transition text-right"
                               >
-                                {file.name?.endsWith('.pdf') ? (
-                                  <FaFilePdf className="w-6 h-6 text-gray-600" />
-                                ) : (
-                                  <FaFile className="w-6 h-6 text-gray-500" />
-                                )}
+                                <FileTextIcon size={24} color="#6B7280" />
                                 <span className="flex-1 text-sm text-gray-700">{file.name || 'קובץ מצורף'}</span>
                               </button>
                             ))}
@@ -2505,13 +2513,12 @@ function CommunityFeedContent() {
                             post.images.length === 4 ? 'grid-cols-2' :
                             'grid-cols-3'
                           }`}>
-                            {post.images.slice(0, 5).map((image, index) => (
+                            {post.images.slice(0, 6).map((image, index) => (
                               <div 
                                 key={index} 
                                 className={`relative ${
                                   post.images!.length === 1 ? '' : 
                                   post.images!.length === 3 && index === 0 ? 'col-span-3' :
-                                  post.images!.length === 5 && index < 2 ? 'col-span-1' :
                                   ''
                                 }`}
                               >
@@ -2528,15 +2535,6 @@ function CommunityFeedContent() {
                                   }`}
                                   onClick={() => openLightbox(post.images!, index)}
                                 />
-                                {/* Show remaining count on 5th image if more than 5 */}
-                                {index === 4 && post.images!.length > 5 && (
-                                  <div 
-                                    className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center cursor-pointer"
-                                    onClick={() => openLightbox(post.images!, index)}
-                                  >
-                                    <span className="text-white text-2xl font-bold">+{post.images!.length - 5}</span>
-                                  </div>
-                                )}
                               </div>
                             ))}
                           </div>
@@ -2636,14 +2634,14 @@ function CommunityFeedContent() {
                                           className="text-green-500 hover:text-green-600 p-1"
                                           title="שמור"
                                         >
-                                          <FaCheck className="w-3 h-3" />
+                                          <CheckIcon size={12} />
                                         </button>
                                         <button
                                           onClick={() => { setEditingCommentId(null); setEditCommentContent(''); }}
                                           className="text-gray-400 hover:text-gray-600 p-1"
                                           title="בטל"
                                         >
-                                          <FaTimes className="w-3 h-3" />
+                                          <CloseIcon size={12} />
                                         </button>
                                       </div>
                                     ) : (
@@ -2930,7 +2928,7 @@ function CommunityFeedContent() {
             {/* חברי קהילה מובילים */}
             <div className="bg-gray-100 border border-gray-400 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
-                <AwardIcon className="w-4 h-4 flex-shrink-0 text-black" />
+                <TrophyIcon className="w-4 h-4 flex-shrink-0 text-black" />
                 <h3 style={{ fontSize: '18px' }} className="font-semibold text-black">חברי קהילה מובילים</h3>
               </div>
               <div className="space-y-4">
@@ -2939,11 +2937,11 @@ function CommunityFeedContent() {
                     const getRankIcon = (rank: number) => {
                       switch (rank) {
                         case 1:
-                          return <FaTrophy className="w-5 h-5" style={{ color: '#FFD700' }} />;
+                          return <TrophyIcon className="w-5 h-5 text-[#FFD700]" />;
                         case 2:
-                          return <FaMedal className="w-5 h-5" style={{ color: '#A8A8A8' }} />;
+                          return <AwardIcon className="w-5 h-5 text-[#A8A8A8]" />;
                         case 3:
-                          return <FaMedal className="w-5 h-5" style={{ color: '#CD7F32' }} />;
+                          return <AwardIcon className="w-5 h-5 text-[#CD7F32]" />;
                         default:
                           return <span style={{ fontSize: '14px' }} className="text-gray-500 font-bold">{rank}</span>;
                       }
@@ -2999,7 +2997,7 @@ function CommunityFeedContent() {
             onClick={closeLightbox}
             className="absolute top-4 right-4 text-white hover:text-gray-300 z-50 p-2"
           >
-            <FaTimes className="w-8 h-8" />
+            <CloseIcon size={32} />
           </button>
 
           {/* Image counter */}

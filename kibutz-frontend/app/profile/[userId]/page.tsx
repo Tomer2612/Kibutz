@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaUsers, FaMapMarkerAlt, FaSignInAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaSignInAlt } from 'react-icons/fa';
 import SiteHeader from '../../components/SiteHeader';
 import ChevronLeftIcon from '../../components/icons/ChevronLeftIcon';
 import ChevronRightIcon from '../../components/icons/ChevronRightIcon';
 import CameraIcon from '../../components/icons/CameraIcon';
 import CalendarIcon from '../../components/icons/CalendarIcon';
 import HistoryIcon from '../../components/icons/HistoryIcon';
+import UsersIcon from '../../components/icons/UsersIcon';
 
 const formatMemberCount = (count: number) => {
   if (count >= 10000) {
@@ -513,7 +514,7 @@ export default function MemberProfilePage() {
               {activeTab === 'created' ? (
                 createdCommunities.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
-                    <FaUsers className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <UsersIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                     <p>עדיין לא יצר קהילות</p>
                   </div>
                 ) : (
@@ -648,7 +649,7 @@ export default function MemberProfilePage() {
               ) : (
                 memberCommunities.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
-                    <FaUsers className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <UsersIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                     <p>עדיין לא הצטרף לקהילות</p>
                   </div>
                 ) : (

@@ -9,22 +9,22 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { he } from 'date-fns/locale';
 import { getMonth, getYear } from 'date-fns';
 import { 
-  FaPlus, 
-  FaChevronRight, 
-  FaChevronLeft,
   FaMapMarkerAlt,
-  FaVideo,
-  FaClock,
-  FaUsers,
-  FaCheck,
-  FaQuestion,
-  FaTimes,
-  FaPen,
-  FaTrashAlt,
-  FaEllipsisV,
-  FaChevronDown
+  FaQuestion
 } from 'react-icons/fa';
 import CalendarIcon from '../../../components/icons/CalendarIcon';
+import PlusIcon from '../../../components/icons/PlusIcon';
+import ChevronRightIcon from '../../../components/icons/ChevronRightIcon';
+import ChevronLeftIcon from '../../../components/icons/ChevronLeftIcon';
+import ChevronDownIcon from '../../../components/icons/ChevronDownIcon';
+import VideoIcon from '../../../components/icons/VideoIcon';
+import ClockIcon from '../../../components/icons/ClockIcon';
+import UsersIcon from '../../../components/icons/UsersIcon';
+import CheckIcon from '../../../components/icons/CheckIcon';
+import CloseIcon from '../../../components/icons/CloseIcon';
+import EditIcon from '../../../components/icons/EditIcon';
+import TrashIcon from '../../../components/icons/TrashIcon';
+import MoreDotsIcon from '../../../components/icons/MoreDotsIcon';
 
 // Short Hebrew day names for calendar - return single letter based on day name
 const formatWeekDay = (nameOfDay: string) => {
@@ -288,8 +288,9 @@ function TimePicker({
         className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black bg-white text-right"
         dir="ltr"
       />
-      <FaClock
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600"
+      <ClockIcon
+        size={16}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600"
         onClick={() => setIsOpen(!isOpen)}
       />
 
@@ -847,7 +848,7 @@ function EventsPageContent() {
                   onClick={() => handleMonthChange('prev')}
                   className="p-2 hover:bg-gray-100 rounded-lg transition"
                 >
-                  <FaChevronRight className="w-4 h-4" />
+                  <ChevronRightIcon size={16} />
                 </button>
 
                 {/* Center: Month, Year, Today button */}
@@ -862,7 +863,7 @@ function EventsPageContent() {
                       className="flex items-center gap-1 text-lg font-bold text-black hover:bg-gray-100 px-2 py-1 rounded-lg transition"
                     >
                       {HEBREW_MONTHS[currentDate.getMonth()]}
-                      <FaChevronDown className="w-3 h-3" />
+                      <ChevronDownIcon size={12} />
                     </button>
                     {showMonthDropdown && (
                       <>
@@ -894,7 +895,7 @@ function EventsPageContent() {
                       className="flex items-center gap-1 text-lg font-bold text-black hover:bg-gray-100 px-2 py-1 rounded-lg transition"
                     >
                       {currentDate.getFullYear()}
-                      <FaChevronDown className="w-3 h-3" />
+                      <ChevronDownIcon size={12} />
                     </button>
                     {showYearDropdown && (
                       <>
@@ -940,7 +941,7 @@ function EventsPageContent() {
                   onClick={() => handleMonthChange('next')}
                   className="p-2 hover:bg-gray-100 rounded-lg transition"
                 >
-                  <FaChevronLeft className="w-4 h-4" />
+                  <ChevronLeftIcon size={16} />
                 </button>
               </div>
 
@@ -989,7 +990,7 @@ function EventsPageContent() {
                       className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition whitespace-nowrap"
                     >
                       <span>הוסף אירוע</span>
-                      <FaPlus className="w-4 h-4" />
+                      <PlusIcon size={16} />
                     </button>
                   )}
                 </div>
@@ -1086,7 +1087,7 @@ function EventsPageContent() {
                       className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition whitespace-nowrap"
                     >
                       <span>הוסף אירוע</span>
-                      <FaPlus className="w-4 h-4" />
+                      <PlusIcon size={16} />
                     </button>
                   )}
                 </div>
@@ -1144,7 +1145,7 @@ function EventsPageContent() {
           >
             <div className="text-center" dir="rtl">
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <FaTrashAlt className="w-5 h-5 text-red-600" />
+                <TrashIcon size={20} color="#DC2626" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">מחיקת אירוע</h3>
               <p className="text-gray-600 mb-6">האם אתם בטוחים שברצונכם למחוק את האירוע? פעולה זו לא ניתנת לביטול.</p>
@@ -1240,7 +1241,7 @@ function EventCard({
             onClick={() => setShowMenu(!showMenu)}
             className="p-2 rounded-full hover:bg-gray-100 transition"
           >
-            <FaEllipsisV className="w-3 h-3 text-gray-600" />
+            <MoreDotsIcon size={12} color="#4B5563" />
           </button>
           {showMenu && (
             <>
@@ -1254,7 +1255,7 @@ function EventCard({
                   className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 justify-end rounded-md"
                 >
                   ערוך
-                  <FaPen className="w-3 h-3" />
+                  <EditIcon size={12} />
                 </button>
                 <button
                   onClick={() => {
@@ -1264,7 +1265,7 @@ function EventCard({
                   className="w-full text-right px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 justify-end rounded-md"
                 >
                   מחק
-                  <FaTrashAlt className="w-3 h-3" />
+                  <TrashIcon size={12} />
                 </button>
               </div>
             </>
@@ -1306,7 +1307,7 @@ function EventCard({
               </span>
             )}
             <span className="text-sm font-medium text-gray-900 flex items-center gap-1">
-              <FaClock className="w-3 h-3" />
+              <ClockIcon size={12} />
               {formatTime(event.date)}
             </span>
             {event.duration && (
@@ -1334,7 +1335,7 @@ function EventCard({
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
             {event.locationType === 'online' ? (
               <>
-                <FaVideo className="w-4 h-4" />
+                <VideoIcon size={16} />
                 <span>{event.locationName || 'מפגש מקוון'}</span>
               </>
             ) : (
@@ -1348,7 +1349,7 @@ function EventCard({
           {/* Attendees Count */}
           {event.rsvpCounts && (
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-              <FaUsers className="w-4 h-4" />
+              <UsersIcon size={16} />
               <span>{event.rsvpCounts.going} מגיעים</span>
               {event.rsvpCounts.maybe > 0 && (
                 <span className="text-gray-400">· {event.rsvpCounts.maybe} אולי</span>
@@ -1367,7 +1368,7 @@ function EventCard({
                   : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-600'
               }`}
             >
-              <FaCheck className="w-3 h-3" />
+              <CheckIcon size={12} />
               <span>מגיע/ה</span>
             </button>
             <button
@@ -1391,7 +1392,7 @@ function EventCard({
                   : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600'
               }`}
             >
-              <FaTimes className="w-3 h-3" />
+              <CloseIcon size={12} />
               <span>לא מגיע/ה</span>
             </button>
           </div>
@@ -1520,7 +1521,7 @@ function AddEventModal({
         <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-xl font-bold text-black">הוסף אירוע</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <FaTimes className="w-5 h-5" />
+            <CloseIcon size={20} />
           </button>
         </div>
 
@@ -1579,7 +1580,7 @@ function AddEventModal({
                             disabled={prevMonthButtonDisabled}
                             className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
                           >
-                            <FaChevronRight className="w-4 h-4" />
+                            <ChevronRightIcon size={16} />
                           </button>
                           <div className="flex gap-3">
                             <select
@@ -1607,7 +1608,7 @@ function AddEventModal({
                             disabled={nextMonthButtonDisabled}
                             className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
                           >
-                            <FaChevronLeft className="w-4 h-4" />
+                            <ChevronLeftIcon size={16} />
                           </button>
                         </div>
                       )}
@@ -1680,7 +1681,7 @@ function AddEventModal({
                     : 'border-gray-200'
                 }`}
               >
-                <FaVideo className="w-4 h-4" />
+                <VideoIcon size={16} />
                 <span className="text-sm text-black">מקוון</span>
               </button>
               <button
@@ -1757,7 +1758,7 @@ function AddEventModal({
                 <img src={coverImagePreview} alt="Preview" className="max-h-40 mx-auto rounded-lg" />
               ) : (
                 <div className="text-gray-400">
-                  <FaPlus className="w-8 h-8 mx-auto mb-2" />
+                  <PlusIcon size={32} className="mx-auto mb-2" />
                   <p className="text-sm">לחצו להעלאת תמונה</p>
                 </div>
               )}
@@ -1990,7 +1991,7 @@ function EditEventModal({
         <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-xl font-bold text-black">עריכת אירוע</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <FaTimes className="w-5 h-5" />
+            <CloseIcon size={20} />
           </button>
         </div>
 
@@ -2049,7 +2050,7 @@ function EditEventModal({
                             disabled={prevMonthButtonDisabled}
                             className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
                           >
-                            <FaChevronRight className="w-4 h-4" />
+                            <ChevronRightIcon size={16} />
                           </button>
                           <div className="flex gap-3">
                             <select
@@ -2077,7 +2078,7 @@ function EditEventModal({
                             disabled={nextMonthButtonDisabled}
                             className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
                           >
-                            <FaChevronLeft className="w-4 h-4" />
+                            <ChevronLeftIcon size={16} />
                           </button>
                         </div>
                       )}
@@ -2150,7 +2151,7 @@ function EditEventModal({
                     : 'border-gray-200'
                 }`}
               >
-                <FaVideo className="w-4 h-4" />
+                <VideoIcon size={16} />
                 <span className="text-sm text-black">מקוון</span>
               </button>
               <button
@@ -2227,7 +2228,7 @@ function EditEventModal({
                 <img src={coverImagePreview} alt="Preview" className="max-h-40 mx-auto rounded-lg" />
               ) : (
                 <div className="text-gray-400">
-                  <FaPlus className="w-8 h-8 mx-auto mb-2" />
+                  <PlusIcon size={32} className="mx-auto mb-2" />
                   <p className="text-sm">לחצו להעלאת תמונה</p>
                 </div>
               )}

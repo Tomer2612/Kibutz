@@ -1,11 +1,26 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Fragment } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaPlus, FaTrash, FaGripVertical, FaImage, FaSave, FaPlay, FaChevronDown, FaChevronUp, FaCog, FaSignOutAlt, FaUser, FaVideo, FaFileAlt, FaLink, FaQuestionCircle, FaCheckCircle, FaTimes, FaLayerGroup, FaArrowUp, FaArrowDown } from 'react-icons/fa';
-import NotificationBell from '../../../../../components/NotificationBell';
-import { MessagesBell } from '../../../../../components/ChatWidget';
+import { FaSave } from 'react-icons/fa';
+import CommunityNavbar from '../../../../../components/CommunityNavbar';
+import LinkIcon from '../../../../../components/icons/LinkIcon';
+import VideoOffIcon from '../../../../../components/icons/VideoOffIcon';
+import VideoIcon from '../../../../../components/icons/VideoIcon';
+import FileTextIcon from '../../../../../components/icons/FileTextIcon';
+import FileQuestionIcon from '../../../../../components/icons/FileQuestionIcon';
+import LayersIcon from '../../../../../components/icons/LayersIcon';
+import PlusIcon from '../../../../../components/icons/PlusIcon';
+import ImageIcon from '../../../../../components/icons/ImageIcon';
+import TrashIcon from '../../../../../components/icons/TrashIcon';
+import ChevronUpIcon from '../../../../../components/icons/ChevronUpIcon';
+import ChevronDownIcon from '../../../../../components/icons/ChevronDownIcon';
+import ArrowUpIcon from '../../../../../components/icons/ArrowUpIcon';
+import ArrowDownIcon from '../../../../../components/icons/ArrowDownIcon';
+import CloseIcon from '../../../../../components/icons/CloseIcon';
+import CheckIcon from '../../../../../components/icons/CheckIcon';
+import ClockIcon from '../../../../../components/icons/ClockIcon';
 
 interface QuizOptionForm {
   id?: string;
@@ -80,7 +95,8 @@ export default function EditCoursePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; profileImage?: string | null } | null>(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [community, setCommunity] = useState<{ name: string; logo?: string | null } | null>(null);
+  const [isOwnerOrManager, setIsOwnerOrManager] = useState(false);
 
   // Validation constants
   const MAX_TITLE_LENGTH = 20;
@@ -89,6 +105,37 @@ export default function EditCoursePage() {
   const MAX_LESSON_TITLE_LENGTH = 80;
   const MAX_LESSON_DURATION = 480;
   const MIN_LESSON_DURATION = 1;
+
+  // Format duration in Hebrew
+  const formatDurationHebrew = (minutes: number): string => {
+    const formatMinutes = (mins: number): string => {
+      if (mins === 1) return 'דקה';
+      return `${mins} דקות`;
+    };
+
+    if (minutes < 60) {
+      return formatMinutes(minutes);
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    let hoursText = '';
+    if (hours === 1) {
+      hoursText = 'שעה';
+    } else if (hours === 2) {
+      hoursText = 'שעתיים';
+    } else {
+      hoursText = `${hours} שעות`;
+    }
+    
+    if (remainingMinutes === 0) {
+      return hoursText;
+    }
+    if (remainingMinutes === 1) {
+      return `${hoursText} ודקה`;
+    }
+    return `${hoursText} ו${remainingMinutes} דקות`;
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -123,13 +170,31 @@ export default function EditCoursePage() {
           }
         })
         .catch(console.error);
+
+      // Fetch community data
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) {
+            setCommunity({ name: data.name, logo: data.logo });
+            // Check if owner or manager
+            const currentUserId = payload.sub;
+            const isOwner = data.ownerId === currentUserId;
+            const membership = data.members?.find((m: any) => m.userId === currentUserId);
+            const isManager = membership?.role === 'MANAGER' || membership?.role === 'OWNER';
+            setIsOwnerOrManager(isOwner || isManager);
+          }
+        })
+        .catch(console.error);
     } catch (e) {
       console.error('Failed to decode token');
       router.push('/login');
     }
 
     fetchCourse();
-  }, [courseId, router]);
+  }, [courseId, router, communityId]);
 
   const fetchCourse = async () => {
     const token = localStorage.getItem('token');
@@ -225,16 +290,42 @@ export default function EditCoursePage() {
   const removeChapter = (index: number) => {
     if (!course) return;
     const chapter = course.chapters[index];
+    
+    // Helper to renumber chapters with default "פרק X" titles
+    const renumberChapters = (chapters: typeof course.chapters) => {
+      let visibleIndex = 0;
+      return chapters.map((c) => {
+        if (c.isDeleted) return c;
+        visibleIndex++;
+        // Only update title if it follows the "פרק X" pattern
+        const match = c.title.match(/^פרק\s*\d+$/);
+        if (match) {
+          return { ...c, title: `פרק ${visibleIndex}` };
+        }
+        return c;
+      });
+    };
+    
     if (chapter.isNew) {
       setCourse(prev => {
         if (!prev) return prev;
+        const filtered = prev.chapters.filter((_, i) => i !== index);
         return {
           ...prev,
-          chapters: prev.chapters.filter((_, i) => i !== index),
+          chapters: renumberChapters(filtered),
         };
       });
     } else {
-      updateChapter(index, { isDeleted: true });
+      setCourse(prev => {
+        if (!prev) return prev;
+        const updated = prev.chapters.map((c, i) => 
+          i === index ? { ...c, isDeleted: true } : c
+        );
+        return {
+          ...prev,
+          chapters: renumberChapters(updated),
+        };
+      });
     }
   };
 
@@ -307,6 +398,22 @@ export default function EditCoursePage() {
   const removeLesson = (chapterIndex: number, lessonIndex: number) => {
     if (!course) return;
     const lesson = course.chapters[chapterIndex].lessons[lessonIndex];
+    
+    // Helper to renumber lessons with default "שיעור X" titles
+    const renumberLessons = (lessons: typeof course.chapters[0]['lessons']) => {
+      let visibleIndex = 0;
+      return lessons.map((l) => {
+        if (l.isDeleted) return l;
+        visibleIndex++;
+        // Only update title if it follows the "שיעור X" pattern
+        const match = l.title.match(/^שיעור\s*\d+$/);
+        if (match) {
+          return { ...l, title: `שיעור ${visibleIndex}` };
+        }
+        return l;
+      });
+    };
+    
     if (lesson.isNew) {
       setCourse(prev => {
         if (!prev) return prev;
@@ -316,14 +423,31 @@ export default function EditCoursePage() {
             ci === chapterIndex
               ? {
                   ...chapter,
-                  lessons: chapter.lessons.filter((_, li) => li !== lessonIndex),
+                  lessons: renumberLessons(chapter.lessons.filter((_, li) => li !== lessonIndex)),
                 }
               : chapter
           ),
         };
       });
     } else {
-      updateLesson(chapterIndex, lessonIndex, { isDeleted: true });
+      setCourse(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          chapters: prev.chapters.map((chapter, ci) =>
+            ci === chapterIndex
+              ? {
+                  ...chapter,
+                  lessons: renumberLessons(
+                    chapter.lessons.map((l, li) =>
+                      li === lessonIndex ? { ...l, isDeleted: true } : l
+                    )
+                  ),
+                }
+              : chapter
+          ),
+        };
+      });
     }
   };
 
@@ -390,6 +514,18 @@ export default function EditCoursePage() {
           newErrors[`lesson_${chapterIndex}_${lessonIndex}_duration`] = `משך השיעור חייב להיות לפחות ${MIN_LESSON_DURATION} דקה`;
         } else if (lesson.duration > MAX_LESSON_DURATION) {
           newErrors[`lesson_${chapterIndex}_${lessonIndex}_duration`] = `משך השיעור לא יכול לעלות על ${MAX_LESSON_DURATION} דקות`;
+        }
+
+        // Content validation - lesson must have at least one content type (unless it's a quiz)
+        if (lesson.lessonType === 'content') {
+          const hasVideo = !!lesson.videoUrl;
+          const hasText = !!lesson.content?.trim();
+          const hasImages = (lesson.images && lesson.images.length > 0) || (lesson.imageFiles && lesson.imageFiles.length > 0);
+          const hasLinks = lesson.links && lesson.links.length > 0;
+          
+          if (!hasVideo && !hasText && !hasImages && !hasLinks) {
+            newErrors[`lesson_${chapterIndex}_${lessonIndex}_content`] = 'שיעור לא יכול להיות ריק מתוכן';
+          }
         }
 
         // Quiz validation
@@ -721,94 +857,23 @@ export default function EditCoursePage() {
 
   return (
     <main className="min-h-screen bg-gray-100 text-right">
-      {/* Header */}
-      <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-          Kibutz
-        </Link>
-        <div className="flex items-center gap-3">
-          {mounted && <MessagesBell />}
-          {mounted && <NotificationBell />}
-          {mounted ? (
-          <div className="relative">
-            <button
-              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-              className="relative focus:outline-none"
-            >
-              {userProfile?.profileImage ? (
-                <img 
-                  src={userProfile.profileImage.startsWith('http') ? userProfile.profileImage : `${process.env.NEXT_PUBLIC_API_URL}${userProfile.profileImage}`}
-                  alt={userProfile.name || 'User'}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-sm font-bold text-pink-600">
-                {userProfile?.name?.charAt(0) || userEmail?.charAt(0)?.toUpperCase()}
-              </div>
-            )}
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#A7EA7B] border-2 border-white rounded-full"></span>
-          </button>
-          
-          {profileMenuOpen && (
-            <>
-              <div 
-                className="fixed inset-0 z-40" 
-                onClick={() => setProfileMenuOpen(false)}
-              />
-              <div className="absolute left-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 p-1.5 z-50" dir="rtl">
-                <button
-                  onClick={() => {
-                    setProfileMenuOpen(false);
-                    if (userId) router.push(`/profile/${userId}`);
-                  }}
-                  className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2 rounded-lg"
-                >
-                  <FaUser className="w-4 h-4" />
-                  הפרופיל שלי
-                </button>
-                <button
-                  onClick={() => {
-                    setProfileMenuOpen(false);
-                    router.push('/settings');
-                  }}
-                  className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2 rounded-lg"
-                >
-                  <FaCog className="w-4 h-4" />
-                  הגדרות
-                </button>
-                <div className="border-t border-gray-100 my-1 mx-1"></div>
-                <button
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('userProfileCache');
-                    router.push('/');
-                    location.reload();
-                  }}
-                  className="w-full text-right px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2 rounded-lg"
-                >
-                  <FaSignOutAlt className="w-4 h-4" />
-                  התנתקות
-                </button>
-              </div>
-            </>
-          )}
-          </div>
-          ) : (
-            <div className="w-10 h-10" />
-          )}
-        </div>
-      </header>
+      {/* Community Navbar */}
+      <CommunityNavbar
+        communityId={communityId}
+        community={community}
+        activePage="courses"
+        isOwnerOrManager={isOwnerOrManager}
+        userEmail={userEmail}
+        userId={userId}
+        userProfile={userProfile}
+      />
 
       {/* Form Section */}
       <section className="min-h-[calc(100vh-80px)] px-4 py-10">
         <div className="w-full max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">עריכת הקורס</h1>
-            <p className="text-gray-600">עדכנו את פרטי הקורס</p>
-          </div>
 
           {error && (
-            <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-lg flex items-center gap-2">
+            <div className="mb-4 p-4 rounded-lg flex items-center gap-2" style={{ backgroundColor: '#FDECEA', color: '#B3261E' }}>
               <span>⚠️</span>
               {error}
             </div>
@@ -818,12 +883,12 @@ export default function EditCoursePage() {
           {/* Course Details */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="font-bold text-lg text-gray-800 mb-4">פרטי הקורס</h2>
+              <h2 className="font-semibold text-gray-800 mb-4" style={{ fontSize: '28px' }}>פרטי הקורס</h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    שם הקורס <span className="text-red-500">*</span>
+                  <label className="block font-semibold text-gray-700 mb-1" style={{ fontSize: '18px' }}>
+                    שם הקורס <span style={{ color: '#B3261E' }}>*</span>
                   </label>
                   <input
                     id="course-title"
@@ -836,13 +901,13 @@ export default function EditCoursePage() {
                       }
                     }}
                     maxLength={MAX_TITLE_LENGTH}
-                    className={`w-full p-3 border rounded-lg focus:border-blue-500 ${
-                      errors.title ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black ${
+                      errors.title ? 'border-[#B3261E]' : 'border-gray-300'
                     }`}
                     placeholder="לדוגמה: מבוא לבישול ביתי"
                   />
                   <div className="flex justify-between mt-1">
-                    {errors.title && <span className="text-xs text-red-500">{errors.title}</span>}
+                    {errors.title && <span style={{ color: '#B3261E', fontSize: '14px' }}>{errors.title}</span>}
                     <span className={`text-xs mr-auto ${course.title.length > MAX_TITLE_LENGTH * 0.9 ? 'text-orange-500' : 'text-gray-400'}`}>
                       {course.title.length}/{MAX_TITLE_LENGTH}
                     </span>
@@ -850,8 +915,8 @@ export default function EditCoursePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    תיאור הקורס <span className="text-gray-400 text-xs">(אופציונלי)</span>
+                  <label className="block font-semibold text-gray-700 mb-1" style={{ fontSize: '18px' }}>
+                    תיאור הקורס <span className="text-gray-400 text-xs font-normal">(אופציונלי)</span>
                   </label>
                   <textarea
                     id="course-description"
@@ -864,16 +929,67 @@ export default function EditCoursePage() {
                     }}
                     maxLength={MAX_DESCRIPTION_LENGTH}
                     rows={4}
-                    className={`w-full p-3 border rounded-lg focus:border-blue-500 text-right ${
-                      errors.description ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-right resize-none ${
+                      errors.description ? 'border-[#B3261E]' : 'border-gray-300'
                     }`}
                     placeholder="תאר את הקורס בכמה משפטים..."
                   />
                   <div className="flex justify-between mt-1">
-                    {errors.description && <span className="text-xs text-red-500">{errors.description}</span>}
+                    {errors.description && <span className="text-xs" style={{ color: '#B3261E' }}>{errors.description}</span>}
                     <span className={`text-xs mr-auto ${course.description.length > MAX_DESCRIPTION_LENGTH * 0.9 ? 'text-orange-500' : 'text-gray-400'}`}>
                       {course.description.length}/{MAX_DESCRIPTION_LENGTH}
                     </span>
+                  </div>
+                </div>
+
+                {/* Course Image */}
+                <div id="course-image-section">
+                  <label className="block font-semibold text-gray-700 mb-1" style={{ fontSize: '18px' }}>
+                    תמונת הקורס <span style={{ color: '#B3261E' }}>*</span>
+                  </label>
+                  
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    accept="image/*"
+                    className="hidden"
+                    id="course-image-upload"
+                  />
+
+                  <div className="flex items-center gap-4">
+                    {course.imagePreview ? (
+                      <img
+                        src={course.imagePreview}
+                        alt="Course preview"
+                        className="w-96 aspect-video object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className={`w-96 aspect-video border rounded-lg flex items-center justify-center bg-white ${errors.image ? 'border-red-400' : 'border-gray-200'}`}>
+                        <ImageIcon size={32} color={errors.image ? '#F87171' : '#D1D5DB'} />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      <label
+                        htmlFor="course-image-upload"
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 text-gray-600 border border-gray-300 cursor-pointer hover:bg-gray-50 transition text-base font-normal w-44"
+                        style={{ borderRadius: '8px' }}
+                      >
+                        <PlusIcon className="w-4 h-4" />
+                        <span>העלאת תמונה</span>
+                      </label>
+                      {course.imagePreview && (
+                        <button
+                          type="button"
+                          onClick={() => setCourse({ ...course, newImage: null, imagePreview: null })}
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 border border-[#B3261E] text-[#B3261E] hover:bg-red-50 transition text-base font-normal w-44"
+                          style={{ borderRadius: '8px' }}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                          <span>מחק תמונה נוכחית</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -885,91 +1001,95 @@ export default function EditCoursePage() {
                 <h2 className="font-bold text-lg text-gray-800">פרקים ושיעורים</h2>
                 <button
                   onClick={addChapter}
-                  className="flex items-center gap-2 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-black text-white rounded-lg hover:bg-gray-800 transition font-normal" style={{ fontSize: '16px' }}
                 >
-                  <FaPlus className="w-4 h-4" />
                   הוסף פרק
+                  <PlusIcon size={16} color="white" />
                 </button>
               </div>
 
               {errors.chapters && (
-                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+                <div className="mb-4 p-3 rounded-lg text-sm" style={{ backgroundColor: '#FDECEA', color: '#B3261E' }}>
                   {errors.chapters}
                 </div>
               )}
 
               {activeChapters.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
-                  <FaPlay className="w-8 h-8 mx-auto mb-3 text-gray-300" />
-                  <p className="text-gray-500 mb-4">עדיין אין פרקים בקורס</p>
-                  <button
-                    onClick={addChapter}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-                  >
-                    הוסף פרק ראשון
-                  </button>
+                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg bg-white">
+                  <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+                    <VideoOffIcon size={24} color="black" />
+                  </div>
+                  <p className="text-black font-normal" style={{ fontSize: '18px' }}>עדיין אין פרקים בקורס</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {course.chapters.map((chapter, chapterIndex) => {
                     if (chapter.isDeleted) return null;
                     const activeLessons = chapter.lessons.filter(l => !l.isDeleted);
+                    // Calculate visible chapter number (counting only non-deleted chapters before this one)
+                    const visibleChapterNumber = course.chapters.slice(0, chapterIndex).filter(c => !c.isDeleted).length + 1;
                     
                     return (
-                      <div key={chapter.id || chapterIndex} id={`chapter-${chapterIndex}`} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div key={chapter.id || chapterIndex} id={`chapter-${chapterIndex}`} className="rounded-lg overflow-hidden" style={{ border: '1px solid #7A7A83' }}>
                         {/* Chapter Header */}
-                        <div className="bg-gray-50 p-4 flex items-center gap-3">
+                        <div className="p-4 flex items-center gap-3" style={{ backgroundColor: 'black' }}>
                           <div className="flex-1">
-                            <input
-                              type="text"
-                              value={chapter.title}
-                              onChange={(e) => {
-                                if (e.target.value.length <= MAX_CHAPTER_TITLE_LENGTH) {
-                                  updateChapter(chapterIndex, { title: e.target.value });
-                                  if (errors[`chapter_${chapterIndex}_title`]) {
-                                    setErrors(prev => ({ ...prev, [`chapter_${chapterIndex}_title`]: '' }));
+                              <input
+                                type="text"
+                                value={chapter.title}
+                                onChange={(e) => {
+                                  if (e.target.value.length <= MAX_CHAPTER_TITLE_LENGTH) {
+                                    updateChapter(chapterIndex, { title: e.target.value });
+                                    if (errors[`chapter_${chapterIndex}_title`]) {
+                                      setErrors(prev => ({ ...prev, [`chapter_${chapterIndex}_title`]: '' }));
+                                    }
                                   }
-                                }
-                              }}
-                              className={`w-full bg-transparent font-medium text-gray-800 focus:outline-none border-b ${
-                                errors[`chapter_${chapterIndex}_title`] ? 'border-red-500' : 'border-transparent focus:border-blue-500'
-                              }`}
-                              placeholder="שם הפרק *"
-                              maxLength={MAX_CHAPTER_TITLE_LENGTH}
-                            />
+                                }}
+                                className={`w-full bg-transparent font-normal text-white focus:outline-none ${
+                                  errors[`chapter_${chapterIndex}_title`] ? 'ring-1 ring-[#B3261E]' : ''
+                                }`}
+                                style={{ fontSize: '16px' }}
+                                placeholder={`פרק ${visibleChapterNumber}`}
+                                maxLength={MAX_CHAPTER_TITLE_LENGTH}
+                              />
+                            <span className="text-xs block" style={{ color: '#A1A1AA' }}>(לחץ לשנות שם)</span>
                             {errors[`chapter_${chapterIndex}_title`] && (
-                              <span className="text-xs text-red-500">{errors[`chapter_${chapterIndex}_title`]}</span>
+                              <span className="text-xs" style={{ color: '#B3261E' }}>{errors[`chapter_${chapterIndex}_title`]}</span>
                             )}
                             {errors[`chapter_${chapterIndex}_lessons`] && (
-                              <span className="text-xs text-red-500 block mt-1">{errors[`chapter_${chapterIndex}_lessons`]}</span>
+                              <span className="text-xs block mt-1" style={{ color: '#B3261E' }}>{errors[`chapter_${chapterIndex}_lessons`]}</span>
                             )}
                           </div>
-                          <span className="text-sm text-gray-500">
-                            {activeLessons.length} שיעורים
+                          <span className="font-normal text-white" style={{ fontSize: '16px' }}>
+                            {activeLessons.length === 1 ? 'שיעור אחד' : `${activeLessons.length} שיעורים`}
                           </span>
                           <button
                             onClick={() => toggleChapter(chapterIndex)}
-                            className="p-2 hover:bg-gray-200 rounded transition"
+                            className="p-2 hover:bg-gray-700 rounded transition"
                           >
                             {chapter.expanded ? (
-                              <FaChevronUp className="w-4 h-4 text-gray-500" />
+                              <ChevronUpIcon size={16} color="white" />
                             ) : (
-                              <FaChevronDown className="w-4 h-4 text-gray-500" />
+                              <ChevronDownIcon size={16} color="white" />
                             )}
                           </button>
                           <button
                             onClick={() => removeChapter(chapterIndex)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded transition"
+                            className="p-2 hover:bg-gray-700 rounded transition"
                           >
-                            <FaTrash className="w-4 h-4" />
+                            <TrashIcon size={16} color="white" />
                           </button>
                         </div>
-
                         {/* Chapter Lessons */}
                         {chapter.expanded && (
-                          <div className="p-4 space-y-3">
+                          <div className="p-4" style={{ backgroundColor: '#F4F4F5', borderTop: '1px solid #7A7A83' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             {chapter.lessons.map((lesson, lessonIndex) => {
                               if (lesson.isDeleted) return null;
+                              
+                              // Calculate visible lesson number (counting only non-deleted lessons before this one)
+                              const visibleLessonNumber = chapter.lessons.slice(0, lessonIndex).filter(l => !l.isDeleted).length + 1;
+                              const isFirstVisibleLesson = visibleLessonNumber === 1;
                               
                               // Determine lesson label based on content
                               const hasVideo = !!lesson.videoUrl;
@@ -981,46 +1101,46 @@ export default function EditCoursePage() {
                               
                               // Determine lesson type icon and label
                               const getLessonIcon = () => {
-                                if (isQuiz) return <FaQuestionCircle className="w-4 h-4 text-gray-500" />;
-                                if (contentTypes > 1) return <FaLayerGroup className="w-4 h-4 text-gray-500" />;
-                                if (hasVideo) return <FaVideo className="w-4 h-4 text-gray-500" />;
-                                if (hasLinks) return <FaLink className="w-4 h-4 text-gray-500" />;
-                                if (hasImages) return <FaImage className="w-4 h-4 text-gray-500" />;
-                                return <FaFileAlt className="w-4 h-4 text-gray-500" />;
+                                if (isQuiz) return <FileQuestionIcon size={16} color="#6B7280" />;
+                                if (contentTypes > 1) return <LayersIcon size={16} color="#6B7280" />;
+                                if (hasVideo) return <VideoIcon size={16} color="#6B7280" />;
+                                if (hasLinks) return <LinkIcon size={16} color="#6B7280" />;
+                                if (hasImages) return <ImageIcon size={16} color="#6B7280" />;
+                                return <FileTextIcon size={16} color="#6B7280" />;
                               };
                               
                               const getLessonTypeLabel = () => {
                                 if (isQuiz) return 'בוחן';
-                                if (contentTypes > 1) return 'שיעור משולב';
-                                if (hasVideo) return 'סרטון';
-                                if (hasLinks) return 'קישורים';
-                                if (hasImages) return 'תמונות';
                                 return 'שיעור';
                               };
                               
                               return (
-                                <div key={lesson.id || lessonIndex} id={`lesson-${chapterIndex}-${lessonIndex}`} className="bg-gray-50 rounded-lg p-4">
+                                <Fragment key={lesson.id || lessonIndex}>
+                                  {!isFirstVisibleLesson && (
+                                    <div style={{ width: 'calc(100% + 32px)', marginLeft: '-16px', marginRight: '-16px', height: '1px', backgroundColor: 'black' }} />
+                                  )}
+                                  <div id={`lesson-${chapterIndex}-${lessonIndex}`} className="rounded-lg p-4">
                                   <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-2">
                                       {getLessonIcon()}
-                                      <span className="text-sm text-gray-600 font-medium">{getLessonTypeLabel()} {lessonIndex + 1}</span>
+                                      <span className="font-normal text-black" style={{ fontSize: '16px' }}>{getLessonTypeLabel()} {visibleLessonNumber}</span>
                                     </div>
                                     <div className="mr-auto flex items-center gap-1">
                                       <button
                                         onClick={() => toggleLesson(chapterIndex, lessonIndex)}
-                                        className="p-1.5 hover:bg-gray-200 rounded transition"
+                                        className="p-1.5 hover:bg-gray-100 rounded transition"
                                       >
                                         {lesson.expanded !== false ? (
-                                          <FaChevronUp className="w-3.5 h-3.5 text-gray-500" />
+                                          <ChevronUpIcon size={14} color="black" />
                                         ) : (
-                                          <FaChevronDown className="w-3.5 h-3.5 text-gray-500" />
+                                          <ChevronDownIcon size={14} color="black" />
                                         )}
                                       </button>
                                       <button
                                         onClick={() => removeLesson(chapterIndex, lessonIndex)}
-                                        className="p-1.5 text-red-500 hover:bg-red-100 rounded transition"
+                                        className="p-1.5 hover:bg-gray-100 rounded transition"
                                       >
-                                        <FaTrash className="w-3.5 h-3.5" />
+                                        <TrashIcon size={14} color="black" />
                                       </button>
                                     </div>
                                   </div>
@@ -1028,42 +1148,56 @@ export default function EditCoursePage() {
                                   {lesson.expanded !== false && (
                                   <>
                                   {/* Lesson Type Selector */}
-                                  <div className="mb-3 mt-3">
-                                    <label className="block text-xs text-gray-500 mb-1">סוג שיעור</label>
-                                    <div className="flex gap-2">
+                                  <div className="mb-3 mt-3" style={{ marginBottom: '20px' }}>
+                                    <label className="block text-black font-normal mb-1" style={{ fontSize: '14px' }}>סוג שיעור</label>
+                                    <div className="flex" style={{ gap: '16px' }}>
                                       <button
                                         type="button"
                                         onClick={() => updateLesson(chapterIndex, lessonIndex, { lessonType: 'content', quiz: null })}
-                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${
-                                          lesson.lessonType === 'content'
-                                            ? 'bg-blue-500 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
+                                        className="flex-1 py-2 px-3 rounded-lg font-normal transition"
+                                        style={{
+                                          fontSize: '16px',
+                                          backgroundColor: lesson.lessonType === 'content' ? 'black' : '#D0D0D4',
+                                          color: lesson.lessonType === 'content' ? 'white' : '#A1A1AA'
+                                        }}
                                       >
                                         תוכן
-                                        <FaFileAlt className="inline w-3 h-3 mr-2" />
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => updateLesson(chapterIndex, lessonIndex, { 
-                                          lessonType: 'quiz', 
-                                          quiz: lesson.quiz || { questions: [{ question: '', questionType: 'radio' as const, order: 0, options: [{ text: '', isCorrect: false, order: 0 }, { text: '', isCorrect: false, order: 1 }] }] }
-                                        })}
-                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${
-                                          lesson.lessonType === 'quiz'
-                                            ? 'bg-gray-800 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
+                                        onClick={() => {
+                                          // When switching to quiz, add default question with first option correct if empty
+                                          const updates: Partial<LessonForm> = { lessonType: 'quiz' };
+                                          if (!lesson.quiz || lesson.quiz.questions.length === 0) {
+                                            updates.quiz = {
+                                              questions: [{
+                                                question: '',
+                                                questionType: 'radio' as const,
+                                                order: 0,
+                                                options: [
+                                                  { text: '', isCorrect: true, order: 0 },
+                                                  { text: '', isCorrect: false, order: 1 },
+                                                ],
+                                              }]
+                                            };
+                                          }
+                                          updateLesson(chapterIndex, lessonIndex, updates);
+                                        }}
+                                        className="flex-1 py-2 px-3 rounded-lg font-normal transition"
+                                        style={{
+                                          fontSize: '16px',
+                                          backgroundColor: lesson.lessonType === 'quiz' ? 'black' : '#D0D0D4',
+                                          color: lesson.lessonType === 'quiz' ? 'white' : '#A1A1AA'
+                                        }}
                                       >
                                         בוחן
-                                        <FaQuestionCircle className="inline w-3 h-3 mr-2" />
                                       </button>
                                     </div>
                                   </div>
 
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div className="grid grid-cols-1 md:grid-cols-2" style={{ marginBottom: '20px', gap: '16px' }}>
                                     <div>
-                                      <label className="block text-xs text-gray-500 mb-1">כותרת <span className="text-red-500">*</span></label>
+                                      <label className="block text-black font-normal mb-1" style={{ fontSize: '14px' }}>כותרת <span style={{ color: '#B3261E' }}>*</span></label>
                                       <input
                                         type="text"
                                         value={lesson.title}
@@ -1073,17 +1207,17 @@ export default function EditCoursePage() {
                                             setErrors(prev => ({ ...prev, [`lesson_${chapterIndex}_${lessonIndex}_title`]: '' }));
                                           }
                                         }}
-                                        className={`w-full p-2 border rounded focus:border-blue-500 ${
-                                          errors[`lesson_${chapterIndex}_${lessonIndex}_title`] ? 'border-red-500' : 'border-gray-200'
+                                        className={`w-full p-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-black ${
+                                          errors[`lesson_${chapterIndex}_${lessonIndex}_title`] ? 'border-[#B3261E]' : 'border-gray-300'
                                         }`}
                                         placeholder="כותרת השיעור"
                                       />
                                       {errors[`lesson_${chapterIndex}_${lessonIndex}_title`] && (
-                                        <span className="text-xs text-red-500">{errors[`lesson_${chapterIndex}_${lessonIndex}_title`]}</span>
+                                        <span className="text-xs" style={{ color: '#B3261E' }}>{errors[`lesson_${chapterIndex}_${lessonIndex}_title`]}</span>
                                       )}
                                     </div>
                                     <div>
-                                      <label className="block text-xs text-gray-500 mb-1">משך (דקות) <span className="text-red-500">*</span></label>
+                                      <label className="block text-black font-normal mb-1" style={{ fontSize: '14px' }}>משך (דקות) <span style={{ color: '#B3261E' }}>*</span></label>
                                       <input
                                         type="number"
                                         value={lesson.duration}
@@ -1096,86 +1230,57 @@ export default function EditCoursePage() {
                                             }
                                           }
                                         }}
-                                        className={`w-full p-2 border rounded focus:border-blue-500 ${
-                                          errors[`lesson_${chapterIndex}_${lessonIndex}_duration`] ? 'border-red-500' : 'border-gray-200'
+                                        className={`w-full p-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-black ${
+                                          errors[`lesson_${chapterIndex}_${lessonIndex}_duration`] ? 'border-[#B3261E]' : 'border-gray-300'
                                         }`}
                                         min={MIN_LESSON_DURATION}
                                         max={MAX_LESSON_DURATION}
                                       />
                                       {errors[`lesson_${chapterIndex}_${lessonIndex}_duration`] && (
-                                        <span className="text-xs text-red-500">{errors[`lesson_${chapterIndex}_${lessonIndex}_duration`]}</span>
+                                        <span className="text-xs" style={{ color: '#B3261E' }}>{errors[`lesson_${chapterIndex}_${lessonIndex}_duration`]}</span>
                                       )}
                                     </div>
+                                  </div>
                                     
                                     {/* Content type fields */}
                                     {lesson.lessonType === 'content' && (
-                                      <>
-                                        {/* Content Order Section - Option B: Vertical List with Drag */}
-                                        <div className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-lg p-3">
-                                          <label className="block text-xs text-gray-500 mb-2">
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        {/* Content empty error */}
+                                        {errors[`lesson_${chapterIndex}_${lessonIndex}_content`] && (
+                                          <div className="p-3 rounded-lg" style={{ backgroundColor: '#FEF2F2', border: '1px solid #B3261E' }}>
+                                            <span className="text-sm" style={{ color: '#B3261E' }}>{errors[`lesson_${chapterIndex}_${lessonIndex}_content`]}</span>
+                                          </div>
+                                        )}
+                                        {/* Content Order Section */}
+                                        <div className="rounded-lg p-3">
+                                          <label className="block text-black font-normal mb-2" style={{ fontSize: '14px' }}>
                                             סדר תצוגת התוכן
                                           </label>
                                           <div className="space-y-1">
                                             {(lesson.contentOrder || ['video', 'text', 'images', 'links']).map((item, orderIndex) => {
                                               const labels: Record<string, string> = { video: 'סרטון', text: 'טקסט', images: 'תמונות', links: 'קישורים' };
                                               const icons: Record<string, React.ReactNode> = { 
-                                                video: <FaVideo className="w-3 h-3" />, 
-                                                text: <FaFileAlt className="w-3 h-3" />, 
-                                                images: <FaImage className="w-3 h-3" />, 
-                                                links: <FaLink className="w-3 h-3" /> 
+                                                video: <VideoIcon size={16} />, 
+                                                text: <FileTextIcon size={16} />, 
+                                                images: <ImageIcon size={16} />, 
+                                                links: <LinkIcon size={16} /> 
                                               };
                                               return (
                                                 <div 
                                                   key={item} 
-                                                  draggable
-                                                  onDragStart={(e) => {
-                                                    e.dataTransfer.setData('text/plain', orderIndex.toString());
-                                                    e.currentTarget.classList.add('opacity-50');
-                                                  }}
-                                                  onDragEnd={(e) => {
-                                                    e.currentTarget.classList.remove('opacity-50');
-                                                  }}
-                                                  onDragOver={(e) => {
-                                                    e.preventDefault();
-                                                    e.currentTarget.classList.add('bg-blue-50', 'border-blue-300');
-                                                  }}
-                                                  onDragLeave={(e) => {
-                                                    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300');
-                                                  }}
-                                                  onDrop={(e) => {
-                                                    e.preventDefault();
-                                                    e.currentTarget.classList.remove('bg-blue-50', 'border-blue-300');
-                                                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                                                    const toIndex = orderIndex;
-                                                    if (fromIndex !== toIndex) {
-                                                      const currentOrder = lesson.contentOrder || ['video', 'text', 'images', 'links'];
-                                                      const newOrder = [...currentOrder];
-                                                      const [removed] = newOrder.splice(fromIndex, 1);
-                                                      newOrder.splice(toIndex, 0, removed);
-                                                      updateLesson(chapterIndex, lessonIndex, { contentOrder: newOrder });
-                                                    }
-                                                  }}
-                                                  className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition cursor-grab active:cursor-grabbing"
+                                                  className="flex items-center bg-white rounded-full overflow-hidden"
+                                                  style={{ border: '1px solid var(--color-gray-4)' }}
                                                 >
-                                                  <span className="text-gray-400">
-                                                    <FaGripVertical className="w-3 h-3" />
-                                                  </span>
-                                                  <span className="text-sm text-gray-700">{orderIndex + 1}. {labels[item]}</span>
-                                                  <span className="text-gray-400 mr-1">{icons[item]}</span>
-                                                  <div className="flex gap-1 mr-auto">
-                                                    <button
-                                                      type="button"
-                                                      disabled={orderIndex === 0}
-                                                      onClick={() => {
-                                                        const currentOrder = lesson.contentOrder || ['video', 'text', 'images', 'links'];
-                                                        const newOrder = [...currentOrder];
-                                                        [newOrder[orderIndex - 1], newOrder[orderIndex]] = [newOrder[orderIndex], newOrder[orderIndex - 1]];
-                                                        updateLesson(chapterIndex, lessonIndex, { contentOrder: newOrder });
-                                                      }}
-                                                      className={`p-1 rounded ${orderIndex === 0 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-200'}`}
-                                                    >
-                                                      <FaArrowUp className="w-3 h-3" />
-                                                    </button>
+                                                  {/* Number with light blue background on left side */}
+                                                  <div className="flex items-center self-stretch px-3 py-1" style={{ backgroundColor: '#C7F1FA', minWidth: '32px' }}>
+                                                    <span className="text-black font-normal" style={{ fontSize: '14px' }}>{orderIndex + 1}</span>
+                                                  </div>
+                                                  {/* Icon between number and label */}
+                                                  <span className="text-black mr-2 ml-2">{icons[item]}</span>
+                                                  {/* Label */}
+                                                  <span className="text-black font-normal" style={{ fontSize: '14px' }}>{labels[item]}</span>
+                                                  {/* Arrows on right side */}
+                                                  <div className="mr-auto flex gap-1 px-2">
                                                     <button
                                                       type="button"
                                                       disabled={orderIndex === (lesson.contentOrder || ['video', 'text', 'images', 'links']).length - 1}
@@ -1185,9 +1290,22 @@ export default function EditCoursePage() {
                                                         [newOrder[orderIndex], newOrder[orderIndex + 1]] = [newOrder[orderIndex + 1], newOrder[orderIndex]];
                                                         updateLesson(chapterIndex, lessonIndex, { contentOrder: newOrder });
                                                       }}
-                                                      className={`p-1 rounded ${orderIndex === (lesson.contentOrder || ['video', 'text', 'images', 'links']).length - 1 ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-200'}`}
+                                                      className="p-1"
                                                     >
-                                                      <FaArrowDown className="w-3 h-3" />
+                                                      <ArrowDownIcon size={12} color={orderIndex === (lesson.contentOrder || ['video', 'text', 'images', 'links']).length - 1 ? '#D0D0D4' : 'black'} />
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      disabled={orderIndex === 0}
+                                                      onClick={() => {
+                                                        const currentOrder = lesson.contentOrder || ['video', 'text', 'images', 'links'];
+                                                        const newOrder = [...currentOrder];
+                                                        [newOrder[orderIndex - 1], newOrder[orderIndex]] = [newOrder[orderIndex], newOrder[orderIndex - 1]];
+                                                        updateLesson(chapterIndex, lessonIndex, { contentOrder: newOrder });
+                                                      }}
+                                                      className="p-1"
+                                                    >
+                                                      <ArrowUpIcon size={12} color={orderIndex === 0 ? '#D0D0D4' : 'black'} />
                                                     </button>
                                                   </div>
                                                 </div>
@@ -1196,38 +1314,36 @@ export default function EditCoursePage() {
                                           </div>
                                         </div>
 
-                                        <div className="md:col-span-2">
-                                          <label className="block text-xs text-gray-500 mb-1">
-                                            קישור לסרטון (YouTube) <span className="text-gray-400">(אופציונלי)</span>
-                                            <FaVideo className="inline w-3 h-3 mr-2" />
+                                        <div>
+                                          <label className="block text-black font-normal mb-1" style={{ fontSize: '14px' }}>
+                                            קישור לסרטון YouTube <span className="text-gray-400">(אופציונלי)</span>
                                           </label>
                                           <input
                                             type="text"
                                             value={lesson.videoUrl}
                                             onChange={(e) => updateLesson(chapterIndex, lessonIndex, { videoUrl: e.target.value })}
-                                            className="w-full p-2 border border-gray-200 rounded focus:border-blue-500"
+                                            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
                                             placeholder="https://www.youtube.com/watch?v=..."
                                           />
                                         </div>
-                                        <div className="md:col-span-2">
-                                          <label className="block text-xs text-gray-500 mb-1">
+                                        <div>
+                                          <label className="block text-black font-normal mb-1" style={{ fontSize: '14px' }}>
                                             תוכן השיעור <span className="text-gray-400">(אופציונלי)</span>
-                                            <FaFileAlt className="inline w-3 h-3 mr-2" />
                                           </label>
                                           <textarea
                                             value={lesson.content}
                                             onChange={(e) => updateLesson(chapterIndex, lessonIndex, { content: e.target.value })}
                                             rows={3}
-                                            className="w-full p-2 border border-gray-200 rounded focus:border-blue-500 text-right"
+                                            className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-right"
+                                            style={{ resize: 'none' }}
                                             placeholder="תוכן טקסט לשיעור..."
                                           />
                                         </div>
                                         
                                         {/* Images Section */}
-                                        <div className="md:col-span-2">
-                                          <label className="block text-xs text-gray-500 mb-1">
+                                        <div>
+                                          <label className="block text-black font-normal mb-1" style={{ fontSize: '14px' }}>
                                             תמונות <span className="text-gray-400">(אופציונלי)</span>
-                                            <FaImage className="inline w-3 h-3 mr-2" />
                                           </label>
                                           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                             {(lesson.images || []).map((imageUrl, imgIndex) => (
@@ -1235,18 +1351,28 @@ export default function EditCoursePage() {
                                                 <img
                                                   src={`${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`}
                                                   alt={`תמונה ${imgIndex + 1}`}
-                                                  className="w-full h-24 object-cover rounded border border-gray-200"
+                                                  className="w-full h-24 object-cover rounded-lg"
                                                 />
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const newImages = (lesson.images || []).filter((_, i) => i !== imgIndex);
-                                                    updateLesson(chapterIndex, lessonIndex, { images: newImages });
-                                                  }}
-                                                  className="absolute top-1 left-1 p-1 bg-red-500 text-white rounded opacity-0 group-hover:opacity-100 transition"
-                                                >
-                                                  <FaTimes className="w-3 h-3" />
-                                                </button>
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      const newImages = (lesson.images || []).filter((_, i) => i !== imgIndex);
+                                                      updateLesson(chapterIndex, lessonIndex, { images: newImages });
+                                                    }}
+                                                    className="font-medium flex items-center justify-center"
+                                                    style={{ 
+                                                      backgroundColor: '#B3261E', 
+                                                      color: 'white',
+                                                      fontSize: '12px',
+                                                      width: '67px',
+                                                      height: '20px',
+                                                      borderRadius: '9999px'
+                                                    }}
+                                                  >
+                                                    הסר תמונה
+                                                  </button>
+                                                </div>
                                               </div>
                                             ))}
                                             {(lesson.imageFiles || []).map((file, imgIndex) => (
@@ -1254,23 +1380,33 @@ export default function EditCoursePage() {
                                                 <img
                                                   src={URL.createObjectURL(file)}
                                                   alt={file.name}
-                                                  className="w-full h-24 object-cover rounded border border-green-300"
+                                                  className="w-full h-24 object-cover rounded-lg"
                                                 />
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const newFiles = (lesson.imageFiles || []).filter((_, i) => i !== imgIndex);
-                                                    updateLesson(chapterIndex, lessonIndex, { imageFiles: newFiles });
-                                                  }}
-                                                  className="absolute top-1 left-1 p-1 bg-red-500 text-white rounded opacity-0 group-hover:opacity-100 transition"
-                                                >
-                                                  <FaTimes className="w-3 h-3" />
-                                                </button>
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      const newFiles = (lesson.imageFiles || []).filter((_, i) => i !== imgIndex);
+                                                      updateLesson(chapterIndex, lessonIndex, { imageFiles: newFiles });
+                                                    }}
+                                                    className="font-medium flex items-center justify-center"
+                                                    style={{ 
+                                                      backgroundColor: '#B3261E', 
+                                                      color: 'white',
+                                                      fontSize: '12px',
+                                                      width: '67px',
+                                                      height: '20px',
+                                                      borderRadius: '9999px'
+                                                    }}
+                                                  >
+                                                    הסר תמונה
+                                                  </button>
+                                                </div>
                                               </div>
                                             ))}
-                                            <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition">
-                                              <FaPlus className="w-4 h-4 text-gray-400 mb-1" />
-                                              <span className="text-xs text-gray-500">הוסף תמונה</span>
+                                            <label className="flex flex-col items-center justify-center h-24 rounded-lg cursor-pointer hover:bg-gray-50 transition" style={{ border: '1px dashed #D0D0D4' }}>
+                                              <ImageIcon size={20} color="#9CA3AF" className="mb-1" />
+                                              <span className="text-xs text-gray-500">לחץ להעלאת תמונות</span>
                                               <input
                                                 type="file"
                                                 accept="image/*"
@@ -1290,59 +1426,170 @@ export default function EditCoursePage() {
                                         </div>
                                         
                                         {/* Links Section */}
-                                        <div className="md:col-span-2">
-                                          <label className="block text-xs text-gray-500 mb-1">
+                                        <div>
+                                          <label className="block text-black font-normal mb-1" style={{ fontSize: '14px' }}>
                                             קישורים <span className="text-gray-400">(אופציונלי)</span>
-                                            <FaLink className="inline w-3 h-3 mr-2" />
                                           </label>
-                                          <div className="space-y-2">
-                                            {lesson.links.map((link, linkIndex) => (
-                                              <div key={linkIndex} className="flex gap-2">
-                                                <input
-                                                  type="url"
-                                                  value={link}
-                                                  onChange={(e) => {
-                                                    const newLinks = [...lesson.links];
-                                                    newLinks[linkIndex] = e.target.value;
-                                                    updateLesson(chapterIndex, lessonIndex, { links: newLinks });
-                                                  }}
-                                                  className="flex-1 p-2 border border-gray-200 rounded focus:border-blue-500 text-sm"
-                                                  dir="ltr"
-                                                  placeholder="https://example.com"
-                                                />
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const newLinks = lesson.links.filter((_, i) => i !== linkIndex);
-                                                    updateLesson(chapterIndex, lessonIndex, { links: newLinks });
-                                                  }}
-                                                  className="p-2 text-red-500 hover:bg-red-50 rounded"
-                                                >
-                                                  <FaTimes className="w-3 h-3" />
-                                                </button>
-                                              </div>
-                                            ))}
+                                          {(lesson.links || []).length > 0 && (
+                                            <div className="space-y-2 mb-2">
+                                              {(lesson.links || []).map((link, linkIndex) => (
+                                                <div key={linkIndex} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 border border-gray-200">
+                                                  <LinkIcon size={12} color="#6B7280" />
+                                                  <span className="text-sm text-gray-700 flex-1 truncate" dir="ltr">{link}</span>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      const newLinks = (lesson.links || []).filter((_, i) => i !== linkIndex);
+                                                      updateLesson(chapterIndex, lessonIndex, { links: newLinks });
+                                                    }}
+                                                    className="text-gray-400 hover:text-gray-600"
+                                                  >
+                                                    <CloseIcon size={14} color="currentColor" />
+                                                  </button>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                          <div className="flex items-center gap-2" style={{ position: 'relative' }}>
+                                            <input
+                                              type="text"
+                                              id={`link-input-${chapterIndex}-${lessonIndex}`}
+                                              className="flex-1 p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                                              placeholder="https://example.com"
+                                              onChange={(e) => {
+                                                const btn = document.getElementById(`link-add-btn-${chapterIndex}-${lessonIndex}`);
+                                                if (btn) {
+                                                  const hasValue = e.target.value.trim().length > 0;
+                                                  btn.style.backgroundColor = hasValue ? '#91DCED' : '#c4ebf5';
+                                                  btn.style.color = hasValue ? 'black' : '#A1A1AA';
+                                                  btn.style.cursor = hasValue ? 'pointer' : 'not-allowed';
+                                                }
+                                                // Hide error message on input change
+                                                const errorSpan = document.getElementById(`link-error-${chapterIndex}-${lessonIndex}`);
+                                                if (errorSpan) {
+                                                  errorSpan.style.display = 'none';
+                                                }
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                  e.preventDefault();
+                                                  const input = e.target as HTMLInputElement;
+                                                  const value = input.value.trim();
+                                                  if (value) {
+                                                    const errorSpan = document.getElementById(`link-error-${chapterIndex}-${lessonIndex}`);
+                                                    // Check for duplicate link
+                                                    if ((lesson.links || []).includes(value)) {
+                                                      if (errorSpan) {
+                                                        errorSpan.textContent = 'קישור זה כבר קיים';
+                                                        errorSpan.style.display = 'block';
+                                                      }
+                                                      return;
+                                                    }
+                                                    const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+                                                    if (urlPattern.test(value)) {
+                                                      const newLinks = [...(lesson.links || []), value];
+                                                      updateLesson(chapterIndex, lessonIndex, { links: newLinks });
+                                                      input.value = '';
+                                                      const btn = document.getElementById(`link-add-btn-${chapterIndex}-${lessonIndex}`);
+                                                      if (btn) {
+                                                        btn.style.backgroundColor = '#c4ebf5';
+                                                        btn.style.color = '#A1A1AA';
+                                                        btn.style.cursor = 'not-allowed';
+                                                      }
+                                                      if (errorSpan) {
+                                                        errorSpan.style.display = 'none';
+                                                      }
+                                                    } else {
+                                                      // Show error message
+                                                      if (errorSpan) {
+                                                        errorSpan.textContent = 'קישור לא תקין';
+                                                        errorSpan.style.display = 'block';
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }}
+                                            />
+                                            <span
+                                              id={`link-error-${chapterIndex}-${lessonIndex}`}
+                                              style={{ display: 'none', position: 'absolute', bottom: '-18px', right: '0', color: '#B3261E', fontSize: '12px' }}
+                                            >
+                                              קישור לא תקין
+                                            </span>
                                             <button
                                               type="button"
-                                              onClick={() => updateLesson(chapterIndex, lessonIndex, { links: [...lesson.links, ''] })}
-                                              className="text-sm text-blue-500 hover:text-blue-600"
+                                              id={`link-add-btn-${chapterIndex}-${lessonIndex}`}
+                                              onClick={() => {
+                                                const input = document.getElementById(`link-input-${chapterIndex}-${lessonIndex}`) as HTMLInputElement;
+                                                if (input && input.value.trim()) {
+                                                  const value = input.value.trim();
+                                                  const errorSpan = document.getElementById(`link-error-${chapterIndex}-${lessonIndex}`);
+                                                  // Check for duplicate link
+                                                  if ((lesson.links || []).includes(value)) {
+                                                    if (errorSpan) {
+                                                      errorSpan.textContent = 'קישור זה כבר קיים';
+                                                      errorSpan.style.display = 'block';
+                                                    }
+                                                    return;
+                                                  }
+                                                  const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+                                                  if (urlPattern.test(value)) {
+                                                    const newLinks = [...(lesson.links || []), value];
+                                                    updateLesson(chapterIndex, lessonIndex, { links: newLinks });
+                                                    input.value = '';
+                                                    const btn = document.getElementById(`link-add-btn-${chapterIndex}-${lessonIndex}`);
+                                                    if (btn) {
+                                                      btn.style.backgroundColor = '#c4ebf5';
+                                                      btn.style.color = '#A1A1AA';
+                                                      btn.style.cursor = 'not-allowed';
+                                                    }
+                                                    if (errorSpan) {
+                                                      errorSpan.style.display = 'none';
+                                                    }
+                                                  } else {
+                                                    // Show error message
+                                                    if (errorSpan) {
+                                                      errorSpan.textContent = 'קישור לא תקין';
+                                                      errorSpan.style.display = 'block';
+                                                    }
+                                                  }
+                                                }
+                                              }}
+                                              className="px-3 py-2 rounded-full text-sm transition"
+                                              style={{ backgroundColor: '#c4ebf5', color: '#A1A1AA', fontSize: '14px', cursor: 'not-allowed' }}
                                             >
-                                              הוסף קישור
-                                              <FaPlus className="inline w-3 h-3 mr-2" />
+                                              הוסף
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const input = document.getElementById(`link-input-${chapterIndex}-${lessonIndex}`) as HTMLInputElement;
+                                                if (input) {
+                                                  input.value = '';
+                                                  const btn = document.getElementById(`link-add-btn-${chapterIndex}-${lessonIndex}`);
+                                                  if (btn) {
+                                                    btn.style.backgroundColor = '#c4ebf5';
+                                                    btn.style.color = '#A1A1AA';
+                                                    btn.style.cursor = 'not-allowed';
+                                                  }
+                                                }
+                                              }}
+                                              className="p-2 text-gray-400 hover:text-gray-600"
+                                            >
+                                              <CloseIcon size={16} color="currentColor" />
                                             </button>
                                           </div>
                                         </div>
-                                      </>
+                                      </div>
                                     )}
                                     
                                     {/* Quiz type fields */}
                                     {lesson.lessonType === 'quiz' && lesson.quiz && (
-                                      <div className="md:col-span-2">
-                                        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                      <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        <div className="rounded-lg p-3">
                                           <div className="flex items-center justify-between mb-3">
-                                            <label className="block text-sm font-medium text-gray-700">
+                                            <label className="block text-black font-normal" style={{ fontSize: '16px' }}>
                                               שאלות הבוחן
-                                              <FaQuestionCircle className="inline w-4 h-4 mr-2" />
                                             </label>
                                             <button
                                               type="button"
@@ -1351,27 +1598,29 @@ export default function EditCoursePage() {
                                                 question: '', 
                                                 questionType: 'radio' as const, 
                                                 order: lesson.quiz!.questions.length,
-                                                options: [{ text: '', isCorrect: false, order: 0 }, { text: '', isCorrect: false, order: 1 }] 
+                                                options: [{ text: '', isCorrect: true, order: 0 }, { text: '', isCorrect: false, order: 1 }] 
                                               }];
                                               updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                             }}
-                                              className="text-sm bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-900"
+                                              className="px-3 py-2 rounded-lg flex items-center gap-2 transition hover:bg-gray-800"
+                                              style={{ fontSize: '14px', backgroundColor: 'black', color: 'white' }}
                                             >
                                               הוסף שאלה
-                                              <FaPlus className="inline w-3 h-3 mr-2" />
+                                              <PlusIcon size={12} color="white" />
                                             </button>
                                           </div>
 
-                                          {lesson.quiz.questions.length === 0 ? (
-                                            <p className="text-sm text-gray-600 text-center py-4">
-                                              לחץ על "הוסף שאלה" כדי להתחיל לבנות את הבוחן
-                                            </p>
-                                          ) : (
+                                          {lesson.quiz.questions.length === 0 && (
+                                            <div className="text-center py-6 text-gray-500" style={{ fontSize: '14px' }}>
+                                              אין שאלות בבוחן. לחץ על "הוסף שאלה" כדי להתחיל.
+                                            </div>
+                                          )}
+
                                             <div className="space-y-4">
                                               {lesson.quiz.questions.map((question, qIndex) => (
-                                          <div key={qIndex} className="bg-white rounded-lg p-3 border border-gray-200">
-                                            <div className="flex items-start gap-2 mb-2">
-                                              <span className="text-sm font-medium text-gray-700 mt-2">
+                                          <div key={qIndex} className="bg-white rounded-lg p-3" style={{ border: '1px solid #E1E1E2' }}>
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <span className="text-black font-normal" style={{ fontSize: '14px' }}>
                                                 {qIndex + 1}.
                                               </span>
                                               <div className="flex-1">
@@ -1383,15 +1632,16 @@ export default function EditCoursePage() {
                                                     newQuestions[qIndex] = { ...newQuestions[qIndex], question: e.target.value };
                                                     updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                   }}
-                                                  className={`w-full p-2 border rounded focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-black text-sm ${
+                                                  className={`w-full p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black ${
                                                     errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_question`]
-                                                      ? 'border-red-500'
-                                                      : 'border-gray-200'
+                                                      ? 'border-[#B3261E]'
+                                                      : ''
                                                   }`}
+                                                  style={{ fontSize: '14px', border: '0.5px solid #D0D0D4' }}
                                                   placeholder="הקלד את השאלה..."
                                                 />
                                                 {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_question`] && (
-                                                  <span className="text-xs text-red-500">חובה למלא שאלה</span>
+                                                  <span className="text-xs" style={{ color: '#B3261E' }}>חובה למלא שאלה</span>
                                                 )}
                                               </div>
                                               <button
@@ -1400,9 +1650,9 @@ export default function EditCoursePage() {
                                                   const newQuestions = lesson.quiz!.questions.filter((_, i) => i !== qIndex);
                                                   updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                 }}
-                                                className="p-1 text-red-500 hover:bg-red-50 rounded"
+                                                className="p-1 hover:bg-gray-100 rounded"
                                               >
-                                                <FaTrash className="w-3 h-3" />
+                                                <TrashIcon size={14} color="#7A7A83" />
                                               </button>
                                             </div>
                                             
@@ -1419,24 +1669,31 @@ export default function EditCoursePage() {
                                                   while (newOptions.length < 2) {
                                                     newOptions.push({ text: '', isCorrect: false, order: newOptions.length });
                                                   }
-                                                  // Make sure only one is correct (keep the first correct one)
-                                                  let foundCorrect = false;
-                                                  newOptions = newOptions.map((o, idx) => {
-                                                    if (o.isCorrect && !foundCorrect) {
-                                                      foundCorrect = true;
-                                                      return { ...o, order: idx };
-                                                    }
-                                                    return { ...o, isCorrect: false, order: idx };
-                                                  });
-                                                  // Don't auto-select first option - let user choose
+                                                  // Check if any option is already correct
+                                                  const hasCorrect = newOptions.some(o => o.isCorrect);
+                                                  if (!hasCorrect) {
+                                                    // Auto-select first option if none is correct
+                                                    newOptions[0] = { ...newOptions[0], isCorrect: true };
+                                                  } else {
+                                                    // Make sure only one is correct (keep the first correct one)
+                                                    let foundCorrect = false;
+                                                    newOptions = newOptions.map((o, idx) => {
+                                                      if (o.isCorrect && !foundCorrect) {
+                                                        foundCorrect = true;
+                                                        return { ...o, order: idx };
+                                                      }
+                                                      return { ...o, isCorrect: false, order: idx };
+                                                    });
+                                                  }
                                                   newQuestions[qIndex] = { ...newQuestions[qIndex], questionType: 'radio', options: newOptions };
                                                   updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                 }}
-                                                className={`text-xs px-2 py-1 rounded ${
-                                                  question.questionType === 'radio'
-                                                    ? 'bg-gray-800 text-white'
-                                                    : 'bg-gray-100 text-gray-600'
-                                                }`}
+                                                className="px-3 py-1 rounded-lg font-normal transition"
+                                                style={{
+                                                  fontSize: '14px',
+                                                  backgroundColor: question.questionType === 'radio' ? 'black' : '#D0D0D4',
+                                                  color: question.questionType === 'radio' ? 'white' : '#A1A1AA'
+                                                }}
                                               >
                                                 בחירה יחידה
                                               </button>
@@ -1451,36 +1708,38 @@ export default function EditCoursePage() {
                                                   while (newOptions.length < 4) {
                                                     newOptions.push({ text: '', isCorrect: false, order: newOptions.length });
                                                   }
+                                                  // Set first 2 options as correct by default for checkbox
+                                                  newOptions[0].isCorrect = true;
+                                                  newOptions[1].isCorrect = true;
                                                   newQuestions[qIndex] = { ...newQuestions[qIndex], questionType: 'checkbox', options: newOptions };
                                                   updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                 }}
-                                                className={`text-xs px-2 py-1 rounded ${
-                                                  question.questionType === 'checkbox'
-                                                    ? 'bg-gray-800 text-white'
-                                                    : 'bg-gray-100 text-gray-600'
-                                                }`}
+                                                className="px-3 py-1 rounded-lg font-normal transition"
+                                                style={{
+                                                  fontSize: '14px',
+                                                  backgroundColor: question.questionType === 'checkbox' ? 'black' : '#D0D0D4',
+                                                  color: question.questionType === 'checkbox' ? 'white' : '#A1A1AA'
+                                                }}
                                               >
                                                 בחירה מרובה
                                               </button>
                                             </div>
                                             
-                                            {/* Validation hints */}
-                                            <div className="text-xs text-gray-500 mb-2 mr-5">
-                                              {question.questionType === 'radio' ? (
-                                                <span>💡 נדרשות לפחות 2 אפשרויות ותשובה נכונה אחת</span>
-                                              ) : (
-                                                <span>💡 נדרשות לפחות 4 אפשרויות ולפחות 2 תשובות נכונות</span>
-                                              )}
-                                            </div>
+                                            {/* Question type hints */}
+                                            <p className="text-xs mb-2 mr-5" style={{ color: '#A1A1AA' }}>
+                                              {question.questionType === 'radio' 
+                                                ? 'בחירה יחידה - המשתמש יכול לבחור תשובה אחת בלבד.' 
+                                                : 'בחירה מרובה - המשתמש יכול לבחור מספר תשובות.'}
+                                            </p>
 
                                             {/* Show validation errors for this question */}
                                             {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_options`] && (
-                                              <div className="text-xs text-red-500 mb-2 mr-5">
+                                              <div className="text-xs mb-2 mr-5" style={{ color: '#B3261E' }}>
                                                 {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_options`]}
                                               </div>
                                             )}
                                             {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_correct`] && (
-                                              <div className="text-xs text-red-500 mb-2 mr-5">
+                                              <div className="text-xs mb-2 mr-5" style={{ color: '#B3261E' }}>
                                                 {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_correct`]}
                                               </div>
                                             )}
@@ -1500,17 +1759,23 @@ export default function EditCoursePage() {
                                                             isCorrect: i === optIndex
                                                           }));
                                                         } else {
+                                                          // For checkbox: don't allow unchecking if only 2 correct answers remain
+                                                          const correctCount = question.options.filter(o => o.isCorrect).length;
+                                                          if (option.isCorrect && correctCount <= 2) {
+                                                            // Don't allow unchecking - minimum 2 correct answers required
+                                                            return;
+                                                          }
                                                           newQuestions[qIndex].options[optIndex].isCorrect = !option.isCorrect;
                                                         }
                                                         updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                       }}
-                                                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                                        option.isCorrect 
-                                                          ? 'border-gray-900 bg-gray-900 text-white' 
-                                                          : 'border-gray-300'
-                                                      }`}
+                                                      className="w-4 h-4 rounded-full flex items-center justify-center"
+                                                      style={{
+                                                        backgroundColor: option.isCorrect ? '#A7EA7B' : 'transparent',
+                                                        border: option.isCorrect ? 'none' : '1px solid black'
+                                                      }}
                                                     >
-                                                      {option.isCorrect && <FaCheckCircle className="w-3 h-3" />}
+                                                      {option.isCorrect && <CheckIcon size={10} color="black" />}
                                                     </button>
                                                     <input
                                                       type="text"
@@ -1520,11 +1785,12 @@ export default function EditCoursePage() {
                                                         newQuestions[qIndex].options[optIndex].text = e.target.value;
                                                         updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                       }}
-                                                      className={`flex-1 p-1.5 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-black ${
+                                                      className={`flex-1 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black ${
                                                         errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_opt_${optIndex}`]
-                                                          ? 'border-red-500'
-                                                          : 'border-gray-200'
+                                                          ? 'border-[#B3261E]'
+                                                          : ''
                                                       }`}
+                                                      style={{ fontSize: '14px', border: '0.5px solid #D0D0D4' }}
                                                       placeholder={`אפשרות ${optIndex + 1}`}
                                                     />
                                                     {((question.questionType === 'radio' && question.options.length > 2) || 
@@ -1536,14 +1802,14 @@ export default function EditCoursePage() {
                                                           newQuestions[qIndex].options = newQuestions[qIndex].options.filter((_, i) => i !== optIndex);
                                                           updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                         }}
-                                                        className="p-1 text-red-500 hover:bg-red-50 rounded"
+                                                        className="p-1 hover:bg-gray-100 rounded"
                                                       >
-                                                      <FaTimes className="w-3 h-3" />
+                                                      <CloseIcon size={12} color="#7A7A83" />
                                                     </button>
                                                   )}
                                                   </div>
                                                   {errors[`lesson_${chapterIndex}_${lessonIndex}_quiz_${qIndex}_opt_${optIndex}`] && (
-                                                    <span className="text-xs text-red-500 mr-7">חובה למלא טקסט</span>
+                                                    <span className="text-xs mr-7" style={{ color: '#B3261E' }}>חובה למלא טקסט</span>
                                                   )}
                                                 </div>
                                               ))}
@@ -1554,38 +1820,49 @@ export default function EditCoursePage() {
                                                   newQuestions[qIndex].options.push({ text: '', isCorrect: false, order: newQuestions[qIndex].options.length });
                                                   updateLesson(chapterIndex, lessonIndex, { quiz: { questions: newQuestions } });
                                                 }}
-                                                className="text-xs text-gray-700 hover:text-gray-900"
+                                                className="text-black hover:text-gray-700 flex items-center gap-2"
+                                                style={{ fontSize: '14px' }}
                                               >
                                                 הוסף אפשרות
-                                                <FaPlus className="inline w-2 h-2 mr-2" />
+                                                <PlusIcon size={12} color="black" />
                                               </button>
                                             </div>
                                           </div>
                                         ))}
                                       </div>
-                                    )}
                                   </div>
                                 </div>
                               )}
-                            </div>
                             </>
                             )}
                           </div>
+                        </Fragment>
                         );
                       })}
 
                             <button
                               onClick={() => addLesson(chapterIndex)}
-                              className="w-full py-3 border-2 border-dashed border-gray-200 rounded-lg text-gray-500 hover:border-blue-300 hover:text-blue-500 transition flex items-center justify-center gap-2"
+                              className="w-full py-3 border-2 border-dashed border-gray-200 rounded-lg text-gray-500 hover:border-gray-400 hover:bg-gray-50 transition flex items-center justify-center gap-2"
                             >
-                              <FaPlus className="w-4 h-4" />
                               הוסף שיעור
+                              <PlusIcon size={16} color="#6B7280" />
                             </button>
+                            </div>
                           </div>
                         )}
                       </div>
                     );
                   })}
+
+                  {/* Add Chapter button at the end */}
+                  <button
+                    onClick={addChapter}
+                    className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition flex items-center justify-center gap-2 font-normal"
+                    style={{ fontSize: '16px' }}
+                  >
+                    הוסף פרק
+                    <PlusIcon size={16} color="#4B5563" />
+                  </button>
                 </div>
               )}
             </div>
@@ -1593,61 +1870,25 @@ export default function EditCoursePage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Course Image */}
-            <div id="course-image-section" className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="font-bold text-lg text-gray-800 mb-4">תמונת הקורס <span className="text-red-500">*</span></h2>
-              
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageChange}
-                accept="image/*"
-                className="hidden"
-              />
-
-              {course.imagePreview ? (
-                <div className="relative">
-                  <img
-                    src={course.imagePreview}
-                    alt="Course preview"
-                    className="w-full aspect-video object-cover rounded-lg"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-2 left-2 px-3 py-1 bg-black/50 text-white text-sm rounded hover:bg-black/70 transition"
-                  >
-                    החלף תמונה
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full aspect-video border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-blue-300 hover:text-blue-500 transition"
-                >
-                  <FaImage className="w-8 h-8 mb-2" />
-                  <span>לחץ להעלאת תמונה</span>
-                </button>
-              )}
-            </div>
-
             {/* Course Stats */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="font-bold text-lg text-gray-800 mb-4">סיכום</h2>
-              <div className="space-y-2 text-sm">
+            <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+              <h2 className="font-semibold text-gray-800 mb-4" style={{ fontSize: '18px' }}>סיכום</h2>
+              <div className="space-y-2" style={{ fontSize: '16px' }}>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">מספר פרקים:</span>
-                  <span className="font-medium">{activeChapters.length}</span>
+                  <span className="text-gray-500 font-normal">מספר פרקים:</span>
+                  <span className="font-semibold">{activeChapters.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">מספר שיעורים:</span>
-                  <span className="font-medium">
+                  <span className="text-gray-500 font-normal">מספר שיעורים:</span>
+                  <span className="font-semibold">
                     {activeChapters.reduce((sum, c) => sum + c.lessons.filter(l => !l.isDeleted).length, 0)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">משך כולל:</span>
-                  <span className="font-medium">
-                    {activeChapters.reduce((sum, c) => sum + c.lessons.filter(l => !l.isDeleted).reduce((s, l) => s + l.duration, 0), 0)} דקות
+                  <span className="text-gray-500 font-normal">משך כולל:</span>
+                  <span className="font-semibold flex items-center gap-1">
+                    {formatDurationHebrew(activeChapters.reduce((sum, c) => sum + c.lessons.filter(l => !l.isDeleted).reduce((s, l) => s + l.duration, 0), 0))}
+                    <ClockIcon size={16} color="currentColor" />
                   </span>
                 </div>
               </div>

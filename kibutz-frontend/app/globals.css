@@ -71,6 +71,15 @@ select:disabled,
 .bg-error { background-color: var(--color-error) !important; }
 .text-error { color: var(--color-error) !important; }
 
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Placeholder color - Gray 5 */
 input::placeholder {
   color: var(--color-gray-5);

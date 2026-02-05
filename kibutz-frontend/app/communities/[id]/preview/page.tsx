@@ -4,12 +4,15 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import Link from 'next/link';
-import { FaUsers, FaYoutube, FaWhatsapp, FaFacebook, FaInstagram, FaChevronLeft, FaChevronRight, FaCreditCard } from 'react-icons/fa';
+import { FaYoutube, FaWhatsapp, FaFacebook, FaInstagram } from 'react-icons/fa';
 import SiteHeader from '../../../components/SiteHeader';
 import PlayIcon from '../../../components/icons/PlayIcon';
 import CalendarIcon from '../../../components/icons/CalendarIcon';
 import LockIcon from '../../../components/icons/LockIcon';
 import CloseIcon from '../../../components/icons/CloseIcon';
+import ChevronLeftIcon from '../../../components/icons/ChevronLeftIcon';
+import ChevronRightIcon from '../../../components/icons/ChevronRightIcon';
+import CreditCardIcon from '../../../components/icons/CreditCardIcon';
 
 interface Community {
   id: string;
@@ -191,13 +194,13 @@ function CommunityGallery({ primaryImage, galleryImages, galleryVideos, communit
               onClick={goToNext}
               className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
             >
-              <FaChevronLeft className="w-4 h-4 text-gray-700" />
+              <ChevronLeftIcon size={16} className="text-gray-700" />
             </button>
             <button 
               onClick={goToPrev}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
             >
-              <FaChevronRight className="w-4 h-4 text-gray-700" />
+              <ChevronRightIcon size={16} className="text-gray-700" />
             </button>
           </>
         )}
@@ -781,7 +784,7 @@ function CommunityPreviewContent() {
                       getCardNumberError() ? 'border-red-400' : 'border-gray-300'
                     }`}
                   />
-                  <FaCreditCard className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <CreditCardIcon className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 </div>
                 {getCardNumberError() && (
                   <p className="text-red-500 text-sm mt-1">{getCardNumberError()}</p>

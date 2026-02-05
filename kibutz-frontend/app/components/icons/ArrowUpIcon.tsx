@@ -2,26 +2,24 @@
 
 import React from 'react';
 
-interface CheckIconProps {
-  className?: string;
-  style?: React.CSSProperties;
+interface ArrowUpIconProps {
   size?: number;
   color?: string;
+  className?: string;
 }
 
-export default function CheckIcon({ className, style, size = 16, color = "currentColor" }: CheckIconProps) {
+export default function ArrowUpIcon({ size, color = "currentColor", className = "w-4 h-4" }: ArrowUpIconProps) {
   return (
     <svg 
       viewBox="0 0 16 16" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      style={style}
       width={size}
       height={size}
     >
       <path 
-        d="M13.3346 4L6.0013 11.3333L2.66797 8" 
+        d="M8 13.3333V2.66667M8 2.66667L3.33333 7.33333M8 2.66667L12.6667 7.33333" 
         stroke={color} 
         strokeWidth="1.5" 
         strokeLinecap="round" 

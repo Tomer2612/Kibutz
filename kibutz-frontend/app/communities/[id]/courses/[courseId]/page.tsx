@@ -3,7 +3,20 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaCheck, FaChevronDown, FaChevronUp, FaClock, FaEdit, FaTrash, FaFileAlt, FaVideo, FaUsers, FaTimes, FaQuestionCircle, FaCheckCircle, FaTimesCircle, FaLink, FaImage, FaLayerGroup } from 'react-icons/fa';
+import ClockIcon from '../../../../components/icons/ClockIcon';
+import UsersIcon from '../../../../components/icons/UsersIcon';
+import TrashIcon from '../../../../components/icons/TrashIcon';
+import ChevronUpIcon from '../../../../components/icons/ChevronUpIcon';
+import ChevronDownIcon from '../../../../components/icons/ChevronDownIcon';
+import EditIcon from '../../../../components/icons/EditIcon';
+import CheckIcon from '../../../../components/icons/CheckIcon';
+import CloseIcon from '../../../../components/icons/CloseIcon';
+import LinkIcon from '../../../../components/icons/LinkIcon';
+import VideoIcon from '../../../../components/icons/VideoIcon';
+import FileTextIcon from '../../../../components/icons/FileTextIcon';
+import FileQuestionIcon from '../../../../components/icons/FileQuestionIcon';
+import LayersIcon from '../../../../components/icons/LayersIcon';
+import ImageIcon from '../../../../components/icons/ImageIcon';
 import PlayIcon from '../../../../components/icons/PlayIcon';
 
 // Declare YouTube Player types
@@ -110,6 +123,10 @@ function CourseViewerContent() {
   // Track clicked links and viewed images for auto-complete
   const [clickedLinks, setClickedLinks] = useState<Set<number>>(new Set());
   const [viewedImages, setViewedImages] = useState<Set<number>>(new Set());
+  // Lightbox state
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [showLightbox, setShowLightbox] = useState(false);
   // Quiz state
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string[]>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<Record<string, boolean>>({});
@@ -300,6 +317,45 @@ function CourseViewerContent() {
     }
   }, [currentLesson, course, hasScrolledToBottom]);
 
+  // Lightbox functions
+  const openLightbox = (images: string[], startIndex: number = 0) => {
+    setLightboxImages(images);
+    setLightboxIndex(startIndex);
+    setShowLightbox(true);
+  };
+
+  const closeLightbox = () => {
+    setShowLightbox(false);
+    setLightboxImages([]);
+    setLightboxIndex(0);
+  };
+
+  const nextImage = () => {
+    setLightboxIndex((prev) => (prev + 1) % lightboxImages.length);
+  };
+
+  const prevImage = () => {
+    setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+  };
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!showLightbox) return;
+      
+      if (e.key === 'Escape') {
+        closeLightbox();
+      } else if (e.key === 'ArrowRight') {
+        prevImage(); // RTL - right goes to previous
+      } else if (e.key === 'ArrowLeft') {
+        nextImage(); // RTL - left goes to next
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showLightbox, lightboxImages.length]);
+
   // Check periodically if auto-complete conditions are met
   useEffect(() => {
     if (!currentLesson || !course?.enrollment) return;
@@ -332,9 +388,19 @@ function CourseViewerContent() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (res.ok) setCourse(await res.json());
-      else router.push(`/communities/${communityId}/courses`);
-    } catch (err) { console.error('Failed to fetch course:', err); }
+      if (res.ok) {
+        setCourse(await res.json());
+      } else if (res.status === 404) {
+        // Course not found - redirect to courses list
+        router.push(`/communities/${communityId}/courses`);
+      } else {
+        // Other error (500, etc.) - log but don't redirect, show error state
+        console.error('Failed to fetch course:', res.status, res.statusText);
+      }
+    } catch (err) { 
+      // Network error - don't redirect, retry will happen on next navigation
+      console.error('Failed to fetch course:', err); 
+    }
     finally { setLoading(false); }
   };
 
@@ -497,7 +563,7 @@ function CourseViewerContent() {
   
   const getLessonIcon = (lesson: Lesson, isCompleted: boolean) => {
     const iconClass = `w-3.5 h-3.5 ${isCompleted ? 'text-gray-700' : 'text-gray-500'}`;
-    if (lesson.lessonType === 'quiz') return <FaQuestionCircle className={iconClass} />;
+    if (lesson.lessonType === 'quiz') return <FileQuestionIcon size={14} className={iconClass} />;
     // Check if combined (multiple content types)
     const contentTypes = [
       !!lesson.videoUrl,
@@ -505,12 +571,12 @@ function CourseViewerContent() {
       hasLinks(lesson),
       hasImages(lesson)
     ].filter(Boolean).length;
-    if (contentTypes > 1) return <FaLayerGroup className={iconClass} />;
+    if (contentTypes > 1) return <LayersIcon size={14} className={iconClass} />;
     // Single content type
-    if (lesson.videoUrl) return <FaVideo className={iconClass} />;
-    if (hasLinks(lesson)) return <FaLink className={iconClass} />;
-    if (hasImages(lesson)) return <FaImage className={iconClass} />;
-    return <FaFileAlt className={iconClass} />;
+    if (lesson.videoUrl) return <VideoIcon size={14} className={iconClass} />;
+    if (hasLinks(lesson)) return <LinkIcon size={14} className={iconClass} />;
+    if (hasImages(lesson)) return <ImageIcon size={14} className={iconClass} />;
+    return <FileTextIcon size={14} className={iconClass} />;
   };
 
   if (!course) return <div className="min-h-screen bg-white flex items-center justify-center"><p className="text-gray-500">הקורס לא נמצא</p></div>;
@@ -527,8 +593,8 @@ function CourseViewerContent() {
             <h1 className="text-3xl font-bold text-gray-900 mb-4">{course.title}</h1>
             <p className="text-gray-600 mb-8 max-w-2xl mx-auto">{course.description}</p>
             <div className="flex items-center justify-center gap-6 mb-8 text-gray-500">
-              <span className="flex items-center gap-2"><FaVideo className="w-5 h-5" />{course.totalLessons} שיעורים</span>
-              <span className="flex items-center gap-2"><FaClock className="w-5 h-5" />{course.totalDuration} דקות</span>
+              <span className="flex items-center gap-2"><VideoIcon size={20} />{course.totalLessons} שיעורים</span>
+              <span className="flex items-center gap-2"><ClockIcon size={20} />{course.totalDuration} דקות</span>
             </div>
             <div className="flex items-center justify-center gap-4">
               <button onClick={handleEnroll} disabled={enrolling} className="px-8 py-3 bg-black text-white font-medium rounded-full hover:bg-gray-800 transition disabled:opacity-50 text-lg">{enrolling ? 'נרשם...' : 'הרשמה לקורס (חינם)'}</button>
@@ -542,62 +608,95 @@ function CourseViewerContent() {
 
   // Enrolled or Owner - show course viewer
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-white" dir="rtl">
+    <div className="flex flex-col bg-white overflow-hidden" style={{ height: 'calc(100vh - 72px)' }} dir="rtl">
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside className="w-80 border-l border-gray-200 bg-white flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="font-bold text-gray-900 text-lg leading-tight">{course.title}</h2>
-            <p className="text-sm text-gray-500 mt-1 whitespace-pre-wrap break-words">{course.description}</p>
-            {course.enrollment && (
+          {/* Sticky sidebar header */}
+          <div className="flex-shrink-0 p-4">
+            {/* Edit button for course author */}
+            {isCourseAuthor && (
+              <Link 
+                href={`/communities/${communityId}/courses/${courseId}/edit`} 
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-black text-white rounded-lg hover:bg-gray-800 transition mb-4"
+                style={{ fontSize: '16px' }}
+              >
+                <EditIcon className="w-4 h-4" />
+                עריכת קורס
+              </Link>
+            )}
+            {/* Course title */}
+            <h2 className="font-semibold text-[#18181B] leading-tight" style={{ fontSize: '21px' }}>{course.title}</h2>
+            {/* Course description */}
+            {course.description && (
+              <p className="text-[#52525B] mt-2 break-words" style={{ fontSize: '14px' }}>{course.description}</p>
+            )}
+            {/* Progress bar - only for non-authors */}
+            {course.enrollment && !isCourseAuthor && (
               <div className="mt-3">
                 <div className="flex items-center justify-between text-xs text-gray-500 mb-1"><span>התקדמות</span><span className="font-medium">{progress}%</span></div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-gray-900 rounded-full transition-all" style={{ width: `${progress}%` }} /></div>
-              </div>
-            )}
-            {isCourseAuthor && (
-              <div className="flex items-center gap-2 mt-3">
-                <Link href={`/communities/${communityId}/courses/${courseId}/edit`} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-xs"><FaEdit className="w-3 h-3" />עריכה</Link>
-                <button onClick={() => setShowDeleteModal(true)} disabled={deleting} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition text-xs disabled:opacity-50"><FaTrash className="w-3 h-3" />מחיקה</button>
+                <div className="h-2 bg-[#D4F5C4] rounded-full overflow-hidden"><div className="h-full bg-[#A7EA7B] rounded-full transition-all" style={{ width: `${progress}%` }} /></div>
               </div>
             )}
           </div>
+          {/* Divider */}
+          <div className="h-px bg-[#D4D4D8]" />
           <div className="flex-1 overflow-y-auto" dir="ltr">
             <div dir="rtl">
             {course.chapters.map((chapter, chapterIndex) => {
               const { completed, total } = getChapterCompletion(chapter);
               const isExpanded = expandedChapters.has(chapter.id);
               return (
-                <div key={chapter.id} className={chapterIndex > 0 ? 'border-t border-gray-200' : ''}>
-                  <button onClick={() => toggleChapter(chapter.id)} className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition text-right">
+                <div key={chapter.id}>
+                  {/* Divider between chapters */}
+                  {chapterIndex > 0 && <div className="h-px bg-[#D4D4D8]" />}
+                  <button onClick={() => toggleChapter(chapter.id)} className="w-full flex items-center justify-between hover:bg-gray-50 transition text-right" style={{ padding: '16px 32px' }}>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-800 text-sm">{chapter.title}</span>
-                        {completed === total && total > 0 && <span className="text-xs text-gray-600">✓ הושלם</span>}
-                      </div>
+                      <span className="font-semibold text-[#18181B]" style={{ fontSize: '18px' }}>{chapter.title}</span>
                     </div>
-                    {isExpanded ? <FaChevronUp className="w-3 h-3 text-gray-400" /> : <FaChevronDown className="w-3 h-3 text-gray-400" />}
+                    {isExpanded ? <ChevronUpIcon size={16} color="#A1A1AA" /> : <ChevronDownIcon size={16} color="#A1A1AA" />}
                   </button>
                   {isExpanded && (
-                    <div className="bg-gray-50">
+                    <div style={{ paddingBottom: '16px' }}>
                       {chapter.lessons.map((lesson, lessonIndex) => {
                         const isCompleted = course.lessonProgress[lesson.id];
                         const isCurrent = currentLesson?.id === lesson.id;
                         return (
-                          <div key={lesson.id} className={`flex items-center gap-2 px-4 py-3 ${lessonIndex > 0 ? 'border-t border-gray-200' : ''} ${isCurrent ? 'bg-gray-200' : 'hover:bg-gray-100'}`}>
-                            <button onClick={() => selectLesson(lesson)} className="flex-1 flex items-center gap-3 text-right transition">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isCompleted ? 'bg-gray-300' : 'bg-gray-200'}`}>
-                                {getLessonIcon(lesson, isCompleted)}
-                              </div>
-                              <div className="flex-1 min-w-0"><p className={`text-sm truncate ${isCurrent ? 'font-medium text-gray-900' : 'text-gray-700'}`}>{lesson.title}</p></div>
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleCompleteLesson(lesson.id); }}
-                              disabled={completingLesson}
-                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition flex-shrink-0 ${isCompleted ? 'bg-gray-900 border-gray-900' : 'border-gray-300 hover:border-gray-900'}`}
+                          <div 
+                            key={lesson.id} 
+                            className="flex items-center"
+                            style={{ padding: '0 32px', marginTop: lessonIndex === 0 ? '0' : '20px' }}
+                          >
+                            <div 
+                              className={`flex items-center flex-1 rounded-lg ${isCurrent ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
+                              style={{ padding: '8px', gap: '12px' }}
                             >
-                              {isCompleted && <FaCheck className="w-3 h-3 text-white" />}
-                            </button>
+                              <button onClick={() => selectLesson(lesson)} className="flex-1 flex items-center text-right transition" style={{ gap: '12px' }}>
+                                <div className="flex-shrink-0">
+                                  {getLessonIcon(lesson, isCompleted)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[#18181B] truncate" style={{ fontSize: '16px' }}>{lesson.title}</p>
+                                </div>
+                              </button>
+                              {!isCourseAuthor && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleCompleteLesson(lesson.id); }}
+                                  disabled={completingLesson}
+                                  className="flex items-center justify-center transition flex-shrink-0"
+                                  style={{ 
+                                    width: '18px', 
+                                    height: '18px', 
+                                    borderRadius: '50%',
+                                    border: isCompleted ? 'none' : '1px solid black',
+                                    backgroundColor: isCompleted ? '#A7EA7B' : 'transparent',
+                                    marginRight: '8px'
+                                  }}
+                                >
+                                  {isCompleted && <CheckIcon size={10} color="black" />}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -622,51 +721,53 @@ function CourseViewerContent() {
         </aside>
 
         {/* Main Content */}
-        <main ref={contentRef} onScroll={handleContentScroll} className="flex-1 overflow-y-auto bg-gray-100" dir="ltr">
-          <div dir="rtl" className="p-4">
+        <main ref={contentRef} onScroll={handleContentScroll} className="flex-1 bg-gray-100 overflow-y-auto" dir="ltr">
+          <div dir="rtl" className="p-4 flex justify-center min-h-full">
           {currentLesson ? (
-            <div className="max-w-3xl">
-              {/* Title Card */}
-              <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
+            <div className="w-full max-w-4xl">
+              {/* Title Card - Detached */}
+              <div className="bg-white border border-[#D4D4D8] p-6 mb-4" style={{ borderRadius: '16px' }}>
                 <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">{currentLesson.title}</h2>
-                  <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
+                  <h2 className="font-semibold text-[#18181B] mb-2" style={{ fontSize: '21px' }}>{currentLesson.title}</h2>
+                  <div className="flex items-center justify-center gap-4" style={{ fontSize: '16px', color: '#000000' }}>
+                    <span className="flex items-center gap-1 font-normal">
                       {(() => {
-                        if (currentLesson.lessonType === 'quiz') return <><FaQuestionCircle className="w-4 h-4" /> בוחן</>;
+                        if (currentLesson.lessonType === 'quiz') return <><FileQuestionIcon size={16} color="#000000" /> בוחן</>;
                         const hasVideo = !!currentLesson.videoUrl;
                         const hasText = !!currentLesson.content;
                         const hasLinks = currentLesson.links && currentLesson.links.length > 0;
                         const hasImages = currentLesson.images && currentLesson.images.length > 0;
                         const contentTypes = [hasVideo, hasText, hasLinks, hasImages].filter(Boolean).length;
-                        if (contentTypes > 1) return <><FaLayerGroup className="w-4 h-4" /> שיעור משולב</>;
-                        if (hasVideo) return <><FaVideo className="w-4 h-4" /> סרטון</>;
-                        if (hasImages) return <><FaImage className="w-4 h-4" /> תמונות</>;
-                        if (hasLinks) return <><FaLink className="w-4 h-4" /> קישורים</>;
-                        return <><FaFileAlt className="w-4 h-4" /> שיעור טקסט</>;
+                        if (contentTypes > 1) return <><LayersIcon size={16} color="#000000" /> שיעור משולב</>;
+                        if (hasVideo) return <><VideoIcon size={16} color="#000000" /> סרטון</>;
+                        if (hasImages) return <><ImageIcon size={16} color="#000000" /> תמונות</>;
+                        if (hasLinks) return <><LinkIcon size={16} color="#000000" /> קישורים</>;
+                        return <><FileTextIcon size={16} color="#000000" /> שיעור טקסט</>;
                       })()}
                     </span>
-                    <span className="flex items-center gap-1"><FaClock className="w-4 h-4" />{currentLesson.duration} דקות</span>
+                    <span className="flex items-center gap-1 font-normal"><ClockIcon size={16} color="#000000" />{currentLesson.duration} דקות</span>
                   </div>
                 </div>
               </div>
 
-              {/* Video Card - only for content type lessons */}
+              {/* Content Card - Merged for content type lessons */}
               {currentLesson.lessonType === 'content' && (() => {
                 const contentOrder = currentLesson.contentOrder || ['video', 'text', 'links', 'images'];
                 
-                const renderVideo = () => {
-                  if (!currentLesson.videoUrl) return null;
+                // Collect all content items that exist
+                const contentItems: { type: string; render: () => React.ReactNode }[] = [];
+                
+                if (currentLesson.videoUrl) {
                   const thumbnail = getYouTubeThumbnail(currentLesson.videoUrl);
-                  
-                  return (
-                    <div key="video" className="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
-                      <div className="aspect-video relative bg-black">
+                  contentItems.push({
+                    type: 'video',
+                    render: () => (
+                      <div className="aspect-video relative bg-black overflow-hidden" style={{ borderRadius: '12px' }}>
                         {videoActivated ? (
                           <iframe 
                             id="youtube-player" 
                             ref={videoRef} 
-                            src={getYouTubeEmbedUrl(currentLesson.videoUrl)} 
+                            src={getYouTubeEmbedUrl(currentLesson.videoUrl!)} 
                             className="w-full h-full" 
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                             allowFullScreen 
@@ -691,83 +792,126 @@ function CourseViewerContent() {
                           </button>
                         )}
                       </div>
-                    </div>
-                  );
-                };
+                    )
+                  });
+                }
                 
-                const renderText = () => currentLesson.content ? (
-                  <div key="text" className="bg-white rounded-xl shadow-sm p-6 mb-4">
-                    <div className="prose prose-lg max-w-none text-right leading-relaxed" dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
-                  </div>
-                ) : null;
+                if (currentLesson.content) {
+                  contentItems.push({
+                    type: 'text',
+                    render: () => (
+                      <div className="prose max-w-none text-right leading-relaxed" style={{ fontSize: '18px', color: '#000000', fontWeight: 400 }} dangerouslySetInnerHTML={{ __html: currentLesson.content! }} />
+                    )
+                  });
+                }
                 
-                const renderLinks = () => currentLesson.links && currentLesson.links.length > 0 ? (
-                  <div key="links" className="bg-white rounded-xl shadow-sm p-6 mb-4">
-                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                      <FaLink className="w-4 h-4 text-blue-500" />
-                      קישורים נוספים
-                    </h3>
-                    <div className="space-y-2">
-                      {currentLesson.links.map((link, index) => (
-                        <a
-                          key={index}
-                          href={link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => setClickedLinks(prev => new Set([...prev, index]))}
-                          className={`block hover:underline ${clickedLinks.has(index) ? 'text-gray-500' : 'text-blue-500 hover:text-blue-600'}`}
-                        >
-                          {link}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                ) : null;
+                if (currentLesson.links && currentLesson.links.length > 0) {
+                  contentItems.push({
+                    type: 'links',
+                    render: () => (
+                      <div>
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                          <LinkIcon size={16} color="#3B82F6" />
+                          קישורים נוספים
+                        </h3>
+                        <div className="space-y-2">
+                          {currentLesson.links!.map((link, index) => (
+                            <a
+                              key={index}
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => setClickedLinks(prev => new Set([...prev, index]))}
+                              className={`block hover:underline ${clickedLinks.has(index) ? 'text-gray-500' : 'text-blue-500 hover:text-blue-600'}`}
+                              style={{ fontSize: '18px' }}
+                            >
+                              {link}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  });
+                }
                 
-                const renderImages = () => currentLesson.images && currentLesson.images.length > 0 ? (
-                  <div key="images" className="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
-                    <div className="p-4 border-b border-gray-100">
-                      <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <FaImage className="w-4 h-4 text-green-500" />
-                        תמונות
-                      </h3>
-                    </div>
-                    <div className="space-y-4 p-4">
-                      {currentLesson.images.map((image, index) => (
-                        <a
-                          key={index}
-                          href={`${image}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => setViewedImages(prev => new Set([...prev, index]))}
-                          className="block"
-                        >
-                          <div className="relative w-full" style={{ maxHeight: '500px' }}>
-                            <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL}${image}`}
-                              alt={`תמונה ${index + 1}`}
-                              className="w-full h-auto max-h-[500px] object-contain rounded-lg border border-gray-200 hover:shadow-lg transition"
-                            />
+                if (currentLesson.images && currentLesson.images.length > 0) {
+                  contentItems.push({
+                    type: 'images',
+                    render: () => {
+                      const imageCount = Math.min(currentLesson.images!.length, 6);
+                      return (
+                        <div className={`grid gap-2 ${
+                          imageCount === 1 ? 'grid-cols-1' : 
+                          imageCount === 2 ? 'grid-cols-2' : 
+                          imageCount === 3 ? 'grid-cols-3' :
+                          imageCount === 4 ? 'grid-cols-2' :
+                          'grid-cols-3'
+                        }`}>
+                          {currentLesson.images!.slice(0, 6).map((image, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                setViewedImages(prev => new Set([...prev, index]));
+                                openLightbox(currentLesson.images!.slice(0, 6), index);
+                              }}
+                              className={`block relative cursor-pointer ${
+                                imageCount === 3 && index === 0 ? 'col-span-3' :
+                                ''
+                              }`}
+                            >
+                              <img
+                                src={`${process.env.NEXT_PUBLIC_API_URL}${image}`}
+                                alt={`תמונה ${index + 1}`}
+                                className={`w-full object-cover hover:opacity-90 transition ${
+                                  imageCount === 1 ? 'max-h-[500px] rounded-xl' :
+                                  imageCount === 2 ? 'h-64 rounded-xl' :
+                                  imageCount === 3 && index === 0 ? 'h-64 rounded-xl' :
+                                  imageCount === 3 ? 'h-40 rounded-xl' :
+                                  imageCount === 4 ? 'h-48 rounded-xl' :
+                                  'h-40 rounded-xl'
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    }
+                  });
+                }
+                
+                // Sort by contentOrder
+                const sortedItems = contentItems.sort((a, b) => {
+                  const aIndex = contentOrder.indexOf(a.type);
+                  const bIndex = contentOrder.indexOf(b.type);
+                  return aIndex - bIndex;
+                });
+                
+                if (sortedItems.length === 0) return null;
+                
+                return (
+                  <div className="bg-white border border-[#D4D4D8] overflow-hidden" style={{ borderRadius: '16px', paddingTop: '24px' }}>
+                    {sortedItems.map((item, index) => (
+                      <div key={item.type}>
+                        <div className="px-6">
+                          {item.render()}
+                        </div>
+                        {index < sortedItems.length - 1 && (
+                          <div className="px-6">
+                            <div className="h-px bg-[#D4D4D8] my-4" />
                           </div>
-                        </a>
-                      ))}
-                    </div>
+                        )}
+                        {index === sortedItems.length - 1 && (
+                          <div className="pb-6" />
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ) : null;
-                
-                const renderers: Record<string, () => React.ReactNode> = {
-                  video: renderVideo,
-                  text: renderText,
-                  links: renderLinks,
-                  images: renderImages,
-                };
-                
-                return contentOrder.map(type => renderers[type]?.());
+                );
               })()}
 
               {/* Quiz Card - only for quiz type lessons */}
               {currentLesson.lessonType === 'quiz' && currentLesson.quiz && (
-                <div className="space-y-4">
+                <div className="bg-white border border-[#D4D4D8]" style={{ borderRadius: '16px' }}>
                   {currentLesson.quiz.questions.map((question, qIndex) => {
                     const questionId = question.id;
                     const selectedAnswers = quizAnswers[questionId] || [];
@@ -821,126 +965,121 @@ function CourseViewerContent() {
                       selectedAnswers.every(id => correctOptionIds.includes(id));
                     
                     return (
-                      <div key={questionId} className="bg-white rounded-xl shadow-sm p-6">
-                        <div className="flex items-start gap-3 mb-4">
-                          <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 text-gray-800 flex items-center justify-center font-bold text-sm">
-                            {qIndex + 1}
-                          </span>
-                          <div className="flex-1">
-                            <h3 className="font-bold text-gray-900 text-lg">{question.question}</h3>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {question.questionType === 'radio' ? 'בחר תשובה אחת' : 'בחר את כל התשובות הנכונות'}
-                            </p>
+                      <div key={questionId}>
+                        {/* Divider between questions */}
+                        {qIndex > 0 && <div className="border-t border-[#D4D4D8] mx-6" />}
+                        
+                        <div className="p-6">
+                          <div className="flex items-start gap-3 mb-4">
+                            <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 text-gray-800 flex items-center justify-center font-bold text-sm">
+                              {qIndex + 1}
+                            </span>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-black" style={{ fontSize: '18px' }}>{question.question}</h3>
+                              <p className="font-normal mt-1" style={{ fontSize: '16px', color: '#3F3F46' }}>
+                                {question.questionType === 'radio' ? 'בחר תשובה אחת' : 'בחר את כל התשובות הנכונות'}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          {question.options.map((option) => {
-                            const isSelected = selectedAnswers.includes(option.id);
-                            // Only show correct answers as green when user got the question correct
-                            const showCorrect = isSubmitted && isCorrect && option.isCorrect;
-                            // Show wrong for selected options that are incorrect
-                            const showWrong = isSubmitted && isSelected && !option.isCorrect;
-                            // Show selected-but-wrong styling for selected correct options when answer is wrong
-                            const showSelectedWrong = isSubmitted && !isCorrect && isSelected && option.isCorrect;
-                            
-                            return (
-                              <button
-                                key={option.id}
-                                onClick={() => handleOptionClick(option.id)}
-                                disabled={isSubmitted}
-                                className={`w-full p-4 rounded-lg border-2 text-right transition flex items-center gap-3 ${
-                                  isSubmitted
-                                    ? showCorrect
-                                      ? 'border-green-500 bg-green-50'
-                                      : showWrong
-                                        ? 'border-red-500 bg-red-50'
-                                        : showSelectedWrong
-                                          ? 'border-gray-400 bg-gray-100'
-                                          : isSelected
-                                            ? 'border-gray-400 bg-gray-100'
-                                            : 'border-gray-200 bg-gray-50'
-                                    : isSelected
-                                      ? 'border-gray-900 bg-gray-100'
-                                      : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
-                                }`}
-                              >
-                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                                  isSubmitted
-                                    ? showCorrect
-                                      ? 'border-green-500 bg-green-500'
-                                      : showWrong
-                                        ? 'border-red-500 bg-red-500'
-                                        : 'border-gray-300'
-                                    : isSelected
-                                      ? 'border-gray-900 bg-gray-900'
-                                      : 'border-gray-300'
-                                }`}>
-                                  {isSubmitted ? (
-                                    showCorrect ? <FaCheckCircle className="w-4 h-4 text-white" /> : showWrong ? <FaTimesCircle className="w-4 h-4 text-white" /> : null
-                                  ) : (
-                                    isSelected && <FaCheck className="w-3 h-3 text-white" />
-                                  )}
-                                </div>
-                                <span className={`flex-1 ${
-                                  isSubmitted
-                                    ? showCorrect
-                                      ? 'text-green-700 font-medium'
-                                      : showWrong
-                                        ? 'text-red-700'
+                          
+                          <div className="space-y-2">
+                            {question.options.map((option) => {
+                              const isSelected = selectedAnswers.includes(option.id);
+                              // Show green only when user got the answer correct
+                              const showCorrect = isSubmitted && isCorrect && option.isCorrect;
+                              // Show red for all selected options when answer is wrong
+                              const showWrong = isSubmitted && !isCorrect && isSelected;
+                              
+                              return (
+                                <button
+                                  key={option.id}
+                                  onClick={() => handleOptionClick(option.id)}
+                                  disabled={isSubmitted}
+                                  className={`w-full p-4 rounded-lg border-2 text-right transition flex items-center gap-3 ${
+                                    isSubmitted
+                                      ? showCorrect
+                                        ? 'border-[#A7EA7B] bg-white'
+                                        : showWrong
+                                          ? 'border-[#B3261E] bg-white'
+                                          : 'border-gray-200 bg-white'
+                                      : isSelected
+                                        ? 'border-gray-900 bg-white'
+                                        : 'border-gray-200 bg-white hover:bg-[#F4F4F5]'
+                                  }`}
+                                >
+                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                    isSubmitted
+                                      ? showCorrect
+                                        ? 'border-[#A7EA7B] bg-[#A7EA7B]'
+                                        : showWrong
+                                          ? 'border-[#B3261E] bg-[#B3261E]'
+                                          : 'border-gray-300 bg-white'
+                                      : isSelected
+                                        ? 'border-gray-900 bg-gray-900'
+                                        : 'border-gray-300 bg-white'
+                                  }`}>
+                                    {isSubmitted ? (
+                                      showCorrect ? <CheckIcon size={14} color="black" /> : showWrong ? <CloseIcon size={14} color="white" /> : null
+                                    ) : (
+                                      isSelected && <CheckIcon size={14} color="white" />
+                                    )}
+                                  </div>
+                                  <span className={`flex-1 ${
+                                    isSubmitted
+                                      ? showCorrect || showWrong
+                                        ? 'text-gray-900'
                                         : 'text-gray-600'
-                                    : 'text-gray-700'
-                                }`}>
-                                  {option.text}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        
-                        {!isSubmitted && selectedAnswers.length > 0 && (
-                          <button
-                            onClick={handleCheckAnswer}
-                            className="mt-4 px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition"
-                          >
-                            בדוק תשובה
-                          </button>
-                        )}
-                        
-                        {isSubmitted && (
-                          <div className={`mt-4 p-4 rounded-lg ${isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                {isCorrect ? (
-                                  <>
-                                    <FaCheckCircle className="w-5 h-5 text-green-500" />
-                                    <span className="font-bold text-green-700">נכון! כל הכבוד! 🎉</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <FaTimesCircle className="w-5 h-5 text-red-500" />
-                                    <span className="font-bold text-red-700">לא נכון, נסה שוב</span>
-                                  </>
-                                )}
-                              </div>
+                                      : 'text-gray-700'
+                                  }`}>
+                                    {option.text}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          
+                          {!isSubmitted && selectedAnswers.length > 0 && (
+                            <button
+                              onClick={handleCheckAnswer}
+                              className="mt-4 px-6 py-2 bg-black text-white rounded-lg font-normal hover:bg-gray-800 transition"
+                              style={{ fontSize: '16px' }}
+                            >
+                              בדוק תשובה
+                            </button>
+                          )}
+                          
+                          {isSubmitted && (
+                            <div 
+                              className={`mt-4 p-4 rounded-lg flex items-center justify-between`}
+                              style={{
+                                backgroundColor: isCorrect ? '#D0F9C9' : 'rgba(179, 38, 30, 0.1)',
+                                border: `1px solid ${isCorrect ? '#A7EA7B' : '#B3261E'}`,
+                              }}
+                            >
+                              <span 
+                                className="font-normal"
+                                style={{ fontSize: '16px', color: isCorrect ? 'black' : '#B3261E' }}
+                              >
+                                {isCorrect ? 'נכון! כל הכבוד! 🎉' : 'תשובה לא נכונה'}
+                              </span>
                               {!isCorrect && (
                                 <button
                                   onClick={() => {
                                     setQuizAnswers(prev => ({ ...prev, [questionId]: [] }));
                                     setQuizSubmitted(prev => ({ ...prev, [questionId]: false }));
                                   }}
-                                  className="px-4 py-1.5 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800 transition"
+                                  className="px-4 py-1.5 bg-black text-white rounded-lg font-normal hover:bg-gray-800 transition"
+                                  style={{ fontSize: '16px' }}
                                 >
                                   נסה שוב
                                 </button>
                               )}
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     );
                   })}
-                  
                 </div>
               )}
             </div>
@@ -961,11 +1100,11 @@ function CourseViewerContent() {
               className="absolute top-4 left-4 p-1 hover:bg-gray-100 rounded-full transition"
               disabled={deleting}
             >
-              <FaTimes className="w-5 h-5 text-gray-400" />
+              <CloseIcon size={20} className="text-gray-400" />
             </button>
             <div className="text-center">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaTrash className="w-7 h-7 text-red-500" />
+                <TrashIcon size={28} className="text-red-500" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">מחיקת קורס</h3>
               <p className="text-gray-600 mb-6">
@@ -1004,11 +1143,11 @@ function CourseViewerContent() {
               className="absolute top-4 left-4 p-1 hover:bg-gray-100 rounded-full transition"
               disabled={unenrolling}
             >
-              <FaTimes className="w-5 h-5 text-gray-400" />
+              <CloseIcon size={20} className="text-gray-400" />
             </button>
             <div className="text-center">
               <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaUsers className="w-7 h-7 text-orange-500" />
+                <UsersIcon className="w-7 h-7 text-orange-500" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">ביטול הרשמה לקורס</h3>
               <p className="text-gray-600 mb-6">
@@ -1034,6 +1173,82 @@ function CourseViewerContent() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {showLightbox && lightboxImages.length > 0 && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
+          onClick={closeLightbox}
+        >
+          {/* Close button */}
+          <button
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-50 p-2"
+          >
+            <CloseIcon size={32} />
+          </button>
+
+          {/* Image counter */}
+          {lightboxImages.length > 1 && (
+            <div className="absolute top-4 left-4 text-white text-lg font-medium bg-black bg-opacity-50 px-3 py-1 rounded-lg">
+              {lightboxIndex + 1} / {lightboxImages.length}
+            </div>
+          )}
+
+          {/* Previous button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); prevImage(); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-3 transition"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Next button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); nextImage(); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-3 transition"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Main image */}
+          <img
+            src={`${process.env.NEXT_PUBLIC_API_URL}${lightboxImages[lightboxIndex]}`}
+            alt={`תמונה ${lightboxIndex + 1}`}
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Thumbnail strip for multiple images */}
+          {lightboxImages.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black bg-opacity-50 p-2 rounded-lg">
+              {lightboxImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
+                  className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition ${
+                    idx === lightboxIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${img}`}
+                    alt={`תמונה ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

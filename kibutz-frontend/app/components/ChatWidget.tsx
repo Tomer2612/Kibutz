@@ -711,7 +711,7 @@ function ChatWindow({
       </div>
 
       {/* Messages */}
-      <div dir="ltr" className="flex-1 max-h-[250px] overflow-y-auto p-3 bg-[#FCFCFC]">
+      <div dir="ltr" className="flex-1 max-h-[250px] overflow-y-auto p-3 bg-[#F4F4F5]">
         <div dir="rtl" className="space-y-3">
         {chat.isLoading ? (
           <div className="flex justify-center py-4">
@@ -752,18 +752,88 @@ function ChatWindow({
             
             return (
               <div key={msg.id} className={`flex ${marginClass} ${marginTopClass} ${isOwn ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                  isOwn 
-                    ? 'bg-[#A7EA7B] text-black rounded-bl-sm' 
-                    : 'bg-white text-gray-900 rounded-br-sm shadow-sm border border-gray-100'
-                }`}>
-                  <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
-                  {/* Only show timestamp on last message of consecutive group */}
-                  {isLastInGroup && (
-                    <p className={`text-xs mt-1 ${isOwn ? 'text-black/60' : 'text-gray-400'}`}>
-                      {formatTime(msg.createdAt)}
-                    </p>
+                <div 
+                  className="relative max-w-[75%]"
+                  style={{
+                    backgroundColor: isOwn ? '#A7EA7B' : '#FFFFFF',
+                    padding: '6px 10px 8px 12px',
+                    borderRadius: isOwn 
+                      ? (isSameSenderAsPrev ? '12px' : '12px 0px 12px 12px')
+                      : (isSameSenderAsPrev ? '12px' : '0px 12px 12px 12px'),
+                    boxShadow: isOwn ? '0 1px 0.5px rgba(11,20,26,.13)' : 'none',
+                    minWidth: '60px',
+                  }}
+                >
+                  {/* SVG Tail for own messages - right side */}
+                  {isOwn && !isSameSenderAsPrev && (
+                    <svg
+                      width="12"
+                      height="19"
+                      viewBox="0 0 12 19"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: -11.5,
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      <path
+                        d="M10.865 0C11.713 0.000213899 12.176 0.989368 11.633 1.64062L1.854 13.3745C0.656 14.8122 0 16.6245 0 18.4961V0H10.865Z"
+                        fill="#A7EA7B"
+                      />
+                    </svg>
                   )}
+                  {/* SVG Tail for other messages - left side */}
+                  {!isOwn && !isSameSenderAsPrev && (
+                    <svg
+                      width="12"
+                      height="19"
+                      viewBox="0 0 12 19"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: -8,
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      <path
+                        d="M1.135 0C0.287 0.000213899 -0.176 0.989368 0.367 1.64062L10.146 13.3745C11.344 14.8122 12 16.6245 12 18.4961V0H1.135Z"
+                        fill="#FFFFFF"
+                      />
+                    </svg>
+                  )}
+                  {/* Content with text and timestamp below */}
+                  <div>
+                    <p
+                      style={{
+                        fontSize: '15px',
+                        lineHeight: '20px',
+                        color: '#000000',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        margin: 0,
+                      }}
+                    >
+                      {msg.content}
+                    </p>
+                    {isLastInGroup && (
+                      <p
+                        style={{
+                          fontSize: '11px',
+                          color: 'rgba(0, 0, 0, 0.45)',
+                          lineHeight: '15px',
+                          margin: '4px 0 0 0',
+                          textAlign: 'right',
+                        }}
+                      >
+                        {formatTime(msg.createdAt)}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             );
