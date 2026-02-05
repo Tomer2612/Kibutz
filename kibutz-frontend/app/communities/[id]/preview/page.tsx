@@ -194,13 +194,13 @@ function CommunityGallery({ primaryImage, galleryImages, galleryVideos, communit
               onClick={goToNext}
               className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
             >
-              <ChevronLeftIcon size={16} className="text-gray-700" />
+              <ChevronLeftIcon className="w-4 h-4 text-gray-700" />
             </button>
             <button 
               onClick={goToPrev}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
             >
-              <ChevronRightIcon size={16} className="text-gray-700" />
+              <ChevronRightIcon className="w-4 h-4 text-gray-700" />
             </button>
           </>
         )}

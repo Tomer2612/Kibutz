@@ -848,7 +848,7 @@ function EventsPageContent() {
                   onClick={() => handleMonthChange('prev')}
                   className="p-2 hover:bg-gray-100 rounded-lg transition"
                 >
-                  <ChevronRightIcon size={16} />
+                  <ChevronRightIcon className="w-4 h-4" />
                 </button>
 
                 {/* Center: Month, Year, Today button */}
@@ -941,7 +941,7 @@ function EventsPageContent() {
                   onClick={() => handleMonthChange('next')}
                   className="p-2 hover:bg-gray-100 rounded-lg transition"
                 >
-                  <ChevronLeftIcon size={16} />
+                  <ChevronLeftIcon className="w-4 h-4" />
                 </button>
               </div>
 
@@ -1580,7 +1580,7 @@ function AddEventModal({
                             disabled={prevMonthButtonDisabled}
                             className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
                           >
-                            <ChevronRightIcon size={16} />
+                            <ChevronRightIcon className="w-4 h-4" />
                           </button>
                           <div className="flex gap-3">
                             <select
@@ -1608,7 +1608,7 @@ function AddEventModal({
                             disabled={nextMonthButtonDisabled}
                             className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
                           >
-                            <ChevronLeftIcon size={16} />
+                            <ChevronLeftIcon className="w-4 h-4" />
                           </button>
                         </div>
                       )}
@@ -2050,7 +2050,7 @@ function EditEventModal({
                             disabled={prevMonthButtonDisabled}
                             className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
                           >
-                            <ChevronRightIcon size={16} />
+                            <ChevronRightIcon className="w-4 h-4" />
                           </button>
                           <div className="flex gap-3">
                             <select
@@ -2078,7 +2078,7 @@ function EditEventModal({
                             disabled={nextMonthButtonDisabled}
                             className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
                           >
-                            <ChevronLeftIcon size={16} />
+                            <ChevronLeftIcon className="w-4 h-4" />
                           </button>
                         </div>
                       )}
