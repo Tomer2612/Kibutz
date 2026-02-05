@@ -1518,7 +1518,7 @@ export default function ManageCommunityPage() {
             <p className="text-gray-600 mb-6">
               האם אתה בטוח שברצונך למחוק את הקהילה <strong>"{community?.name}"</strong>?
               <br />
-              <span className="text-red-600 font-medium">פעולה זו אינה ניתנת לביטול!</span>
+              <span className="text-[#B3261E] font-medium">פעולה זו אינה ניתנת לביטול!</span>
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -1531,7 +1531,7 @@ export default function ManageCommunityPage() {
               <button
                 onClick={handleDeleteCommunity}
                 disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 transition flex items-center gap-2"
+                className="px-4 py-2 bg-[#B3261E] text-white rounded-lg font-medium hover:bg-[#9C2019] disabled:opacity-50 transition flex items-center gap-2"
               >
                 {deleting ? 'מוחק...' : 'מחק לצמיתות'}
               </button>
