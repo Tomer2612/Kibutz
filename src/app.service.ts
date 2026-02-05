@@ -5,7 +5,7 @@ export class AppService {
   getHealth() {
     return {
       status: 'ok',
-      name: 'Kibutz API',
+      name: 'Withly API',
       version: '1.0.0',
       timestamp: new Date().toISOString(),
     };

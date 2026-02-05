@@ -25,19 +25,19 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'kibutz.co.il',
+        hostname: 'withly.co.il',
       },
       {
         protocol: 'https',
-        hostname: 'www.kibutz.co.il',
+        hostname: 'www.withly.co.il',
       },
       {
         protocol: 'http',
-        hostname: 'kibutz.co.il',
+        hostname: 'withly.co.il',
       },
       {
         protocol: 'http',
-        hostname: 'www.kibutz.co.il',
+        hostname: 'www.withly.co.il',
       },
     ],
   },

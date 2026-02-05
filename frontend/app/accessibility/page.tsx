@@ -24,7 +24,7 @@ export default function AccessibilityPage() {
           <div>
             <h2 className="text-2xl font-bold text-black mb-4">מחויבות לנגישות</h2>
             <p className="leading-relaxed" style={{ color: '#52525B' }}>
-              Kibutz מחויבת להנגיש את הפלטפורמה שלה לכלל המשתמשים, כולל אנשים עם מוגבלויות. 
+              Withly מחויבת להנגיש את הפלטפורמה שלה לכלל המשתמשים, כולל אנשים עם מוגבלויות. 
               אנו פועלים לשפר באופן מתמיד את חווית השימוש עבור כולם, תוך יישום תקני הנגישות המקובלים.
             </p>
           </div>
@@ -63,7 +63,7 @@ export default function AccessibilityPage() {
             <p className="leading-relaxed" style={{ color: '#52525B' }}>
               אם נתקלתם בבעיית נגישות באתר או שיש לכם הצעות לשיפור, נשמח לשמוע מכם. 
               ניתן לפנות אלינו באמצעות <a href="/contact" className="text-black underline hover:opacity-70">דף צור קשר</a> או 
-              בדוא&quot;ל: support@kibutz.co.il
+              בדוא&quot;ל: support@withly.co.il
             </p>
           </div>
 

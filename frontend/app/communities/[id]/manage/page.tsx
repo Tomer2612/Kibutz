@@ -649,7 +649,7 @@ export default function ManageCommunityPage() {
                     {/* Slug input */}
                     <div className="flex items-center gap-2" dir="ltr">
                       <div className="flex items-center flex-1 border border-gray-300 rounded-lg overflow-hidden">
-                        <span className="px-4 py-3.5 bg-gray-50 text-gray-500 text-base border-r border-gray-300 whitespace-nowrap">kibutz.co.il/communities/</span>
+                        <span className="px-4 py-3.5 bg-gray-50 text-gray-500 text-base border-r border-gray-300 whitespace-nowrap">withly.co.il/communities/</span>
                         <input
                           type="text"
                           placeholder="הזן כתובת מותאמת אישית"

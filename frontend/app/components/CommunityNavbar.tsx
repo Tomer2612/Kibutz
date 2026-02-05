@@ -100,10 +100,10 @@ export default function CommunityNavbar({
 
   return (
     <header dir="rtl" className="sticky top-0 z-40 flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200 h-[72px]">
-      {/* Right side: Kibutz Logo + Community name - FIXED WIDTH */}
+      {/* Right side: Withly Logo + Community name - FIXED WIDTH */}
       <div className="flex items-center gap-6 w-[280px] flex-shrink-0">
         <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-          Kibutz
+          Withly
         </Link>
         
         {/* Community Switcher */}

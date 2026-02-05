@@ -18,7 +18,7 @@ interface AuthenticatedSocket extends Socket {
 
 @WebSocketGateway({
   cors: {
-    origin: ['http://localhost:3000', 'https://kibutz.co.il', 'https://www.kibutz.co.il'],
+    origin: ['http://localhost:3000', 'https://withly.co.il', 'https://www.withly.co.il'],
     credentials: true,
   },
   namespace: '/',

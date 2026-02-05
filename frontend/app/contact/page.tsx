@@ -120,7 +120,7 @@ export default function ContactPage() {
           דברו איתנו
         </h1>
         <p className="text-lg max-w-2xl mx-auto" style={{ marginBottom: '2rem', color: '#52525B' }}>
-          יש שאלה או פנייה? אפשר גם לכתוב ישירות ל-<a href="mailto:support@kibutz.co.il" className="text-black font-normal underline hover:opacity-70 transition">support@kibutz.co.il</a>
+          יש שאלה או פנייה? אפשר גם לכתוב ישירות ל-<a href="mailto:support@withly.co.il" className="text-black font-normal underline hover:opacity-70 transition">support@withly.co.il</a>
         </p>
       </section>
 

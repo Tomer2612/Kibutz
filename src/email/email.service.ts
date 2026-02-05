@@ -10,7 +10,7 @@ export class EmailService {
 
   constructor(private configService: ConfigService) {
     this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
-    this.fromEmail = this.configService.get<string>('EMAIL_FROM') || 'noreply@kibutz.co.il';
+    this.fromEmail = this.configService.get<string>('EMAIL_FROM') || 'noreply@withly.co.il';
     this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
   }
 
@@ -36,29 +36,29 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🏘️ Kibutz</h1>
+            <h1>🏘️ Withly</h1>
           </div>
           <div class="content">
             <p>שלום ${name},</p>
-            <p>תודה שבחרת להצטרף ל-Kibutz! כדי להשלים את תהליך ההרשמה ולהפעיל את החשבון, יש לאמת את כתובת המייל בלחיצה על הכפתור:</p>
+            <p>תודה שבחרת להצטרף ל-Withly! כדי להשלים את תהליך ההרשמה ולהפעיל את החשבון, יש לאמת את כתובת המייל בלחיצה על הכפתור:</p>
             <div style="text-align: center;">
               <a href="${verificationLink}" class="button">אימות כתובת המייל</a>
             </div>
             <p>אם לא נרשמת לשירות, ניתן להתעלם מהודעה זו והפרטים שלך יימחקו מהמערכת.</p>
             <p><strong>הקישור יהיה תקף למשך 24 שעות בלבד.</strong></p>
-            <p class="signature">בברכה,<br/>צוות Kibutz</p>
+            <p class="signature">בברכה,<br/>צוות Withly</p>
           </div>
           <div class="footer">
-            <p>© 2025 Kibutz. כל הזכויות שמורות.</p>
+            <p>© 2025 Withly. כל הזכויות שמורות.</p>
           </div>
         </div>
       </body>
       </html>
     `;
 
-    const textBody = `שלום ${name},\n\nתודה שבחרת להצטרף ל-Kibutz! כדי להשלים את תהליך ההרשמה ולהפעיל את החשבון, יש לאמת את כתובת המייל בלחיצה על הקישור:\n${verificationLink}\n\nאם לא נרשמת לשירות, ניתן להתעלם מהודעה זו והפרטים שלך יימחקו מהמערכת.\nהקישור יהיה תקף למשך 24 שעות בלבד.\n\nבברכה,\nצוות Kibutz`;
+    const textBody = `שלום ${name},\n\nתודה שבחרת להצטרף ל-Withly! כדי להשלים את תהליך ההרשמה ולהפעיל את החשבון, יש לאמת את כתובת המייל בלחיצה על הקישור:\n${verificationLink}\n\nאם לא נרשמת לשירות, ניתן להתעלם מהודעה זו והפרטים שלך יימחקו מהמערכת.\nהקישור יהיה תקף למשך 24 שעות בלבד.\n\nבברכה,\nצוות Withly`;
 
-    await this.sendEmail(email, 'ברוכים הבאים ל-Kibutz! אימות כתובת המייל שלך', htmlBody, textBody);
+    await this.sendEmail(email, 'ברוכים הבאים ל-Withly! אימות כתובת המייל שלך', htmlBody, textBody);
   }
 
   async sendPasswordResetEmail(email: string, name: string, token: string): Promise<void> {
@@ -83,7 +83,7 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🏘️ Kibutz</h1>
+            <h1>🏘️ Withly</h1>
           </div>
           <div class="content">
             <p>שלום ${name},</p>
@@ -93,23 +93,23 @@ export class EmailService {
             </div>
             <p>אם לא ביקשת לבצע פעולה זו, ניתן להתעלם מהודעה זו והסיסמה שלך תישאר ללא שינוי.</p>
             <p><strong>שים לב:</strong> הקישור יהיה תקף למשך שעה בלבד.</p>
-            <p class="signature">בברכה,<br/>צוות Kibutz</p>
+            <p class="signature">בברכה,<br/>צוות Withly</p>
           </div>
           <div class="footer">
-            <p>© 2025 Kibutz. כל הזכויות שמורות.</p>
+            <p>© 2025 Withly. כל הזכויות שמורות.</p>
           </div>
         </div>
       </body>
       </html>
     `;
 
-    const textBody = `שלום ${name},\n\nקיבלנו בקשה לאיפוס הסיסמה לחשבונך. כדי להגדיר סיסמה חדשה, לחץ על הקישור:\n${resetLink}\n\nאם לא ביקשת לבצע פעולה זו, ניתן להתעלם מהודעה זו והסיסמה שלך תישאר ללא שינוי.\nשים לב: הקישור יהיה תקף למשך שעה בלבד.\n\nבברכה,\nצוות Kibutz`;
+    const textBody = `שלום ${name},\n\nקיבלנו בקשה לאיפוס הסיסמה לחשבונך. כדי להגדיר סיסמה חדשה, לחץ על הקישור:\n${resetLink}\n\nאם לא ביקשת לבצע פעולה זו, ניתן להתעלם מהודעה זו והסיסמה שלך תישאר ללא שינוי.\nשים לב: הקישור יהיה תקף למשך שעה בלבד.\n\nבברכה,\nצוות Withly`;
 
-    await this.sendEmail(email, 'איפוס סיסמה לחשבון Kibutz שלך', htmlBody, textBody);
+    await this.sendEmail(email, 'איפוס סיסמה לחשבון Withly שלך', htmlBody, textBody);
   }
 
   async sendContactEmail(name: string, email: string, subject: string, message: string): Promise<void> {
-    const supportEmail = 'support@kibutz.co.il';
+    const supportEmail = 'support@withly.co.il';
     
     const htmlBody = `
       <!DOCTYPE html>
@@ -153,7 +153,7 @@ export class EmailService {
             </div>
           </div>
           <div class="footer">
-            <p>הודעה זו נשלחה מטופס יצירת קשר באתר Kibutz</p>
+            <p>הודעה זו נשלחה מטופס יצירת קשר באתר Withly</p>
           </div>
         </div>
       </body>

@@ -21,10 +21,10 @@ export default function TermsPage() {
       {/* About Section */}
       <section className="max-w-4xl mx-auto px-4 pb-12">
         <div className="bg-white rounded-2xl shadow-sm p-8" style={{ border: '1px solid #E1E1E2' }}>
-          <h2 className="text-2xl font-bold text-black mb-4">אודות Kibutz</h2>
+          <h2 className="text-2xl font-bold text-black mb-4">אודות Withly</h2>
           <div className="space-y-4 leading-relaxed" style={{ color: '#52525B' }}>
             <p>
-              <strong>Kibutz</strong> היא פלטפורמה ישראלית לבניית וניהול קהילות מקוונות. אנחנו מאמינים שכל אחד יכול ליצור קהילה משגשגת סביב התחום שהוא אוהב - בין אם זה גיימינג, בישול, ספורט, לימודים או כל נושא אחר.
+              <strong>Withly</strong> היא פלטפורמה ישראלית לבניית וניהול קהילות מקוונות. אנחנו מאמינים שכל אחד יכול ליצור קהילה משגשגת סביב התחום שהוא אוהב - בין אם זה גיימינג, בישול, ספורט, לימודים או כל נושא אחר.
             </p>
             <p>
               הפלטפורמה שלנו מציעה כלים פשוטים ועוצמתיים לניהול קהילות: פרסום תכנים, ניהול חברים, מערכת נקודות ותגמולים, קורסים, ועוד. המטרה שלנו היא לאפשר לכם להתמקד בבניית הקהילה שלכם בזמן שאנחנו דואגים לכל השאר.
@@ -44,7 +44,7 @@ export default function TermsPage() {
             <div>
               <h3 className="font-semibold text-black mb-2">זכויות יוצרים</h3>
               <p>
-                כל הזכויות על הפלטפורמה, העיצוב, הקוד והתכנים שייכות ל-Kibutz © 2025. 
+                כל הזכויות על הפלטפורמה, העיצוב, הקוד והתכנים שייכות ל-Withly © 2025. 
                 אין להעתיק, לשכפל או להפיץ חלקים מהאתר ללא אישור בכתב מראש.
               </p>
             </div>
@@ -52,13 +52,13 @@ export default function TermsPage() {
               <h3 className="font-semibold text-black mb-2">תוכן משתמשים</h3>
               <p>
                 המשתמשים שומרים על זכויות היוצרים לתכנים שהם מפרסמים בקהילות. 
-                בפרסום תוכן באתר, המשתמש מעניק ל-Kibutz רישיון להציג את התוכן בפלטפורמה.
+                בפרסום תוכן באתר, המשתמש מעניק ל-Withly רישיון להציג את התוכן בפלטפורמה.
               </p>
             </div>
             <div>
               <h3 className="font-semibold text-black mb-2">אחריות</h3>
               <p>
-                Kibutz אינה אחראית לתכנים שמפורסמים על ידי משתמשים. 
+                Withly אינה אחראית לתכנים שמפורסמים על ידי משתמשים. 
                 אנו שומרים על הזכות להסיר תכנים שמפרים את תנאי השימוש או את החוק.
               </p>
             </div>

@@ -67,7 +67,7 @@ export default function SiteHeader({ hideNavLinks = false, hideAuthButtons = fal
   return (
     <header dir="rtl" className="flex items-center justify-between px-8 py-4 bg-white border-b h-[72px]" style={{ borderColor: '#E1E1E2' }}>
       <Link href="/" className="text-xl font-bold text-black hover:opacity-75 transition">
-        Kibutz
+        Withly
       </Link>
       
       <div className="flex gap-6 items-center">

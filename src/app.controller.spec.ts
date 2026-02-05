@@ -18,7 +18,7 @@ describe('AppController', () => {
     it('should return health status', () => {
       const result = appController.getHealth();
       expect(result.status).toBe('ok');
-      expect(result.name).toBe('Kibutz API');
+      expect(result.name).toBe('Withly API');
     });
   });
 });

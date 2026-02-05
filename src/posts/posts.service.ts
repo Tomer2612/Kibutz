@@ -504,7 +504,7 @@ export class PostsService {
       
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; Kibutz/1.0; +http://kibutz.com)',
+          'User-Agent': 'Mozilla/5.0 (compatible; Withly/1.0; +http://withly.co.il)',
         },
         redirect: 'follow',
         signal: controller.signal,

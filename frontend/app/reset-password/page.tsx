@@ -111,7 +111,7 @@ function ResetPasswordContent() {
   if (!token) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-br from-blue-300 to-green-100">
-        <div className="text-2xl font-extrabold font-[cursive] mb-4">Kibutz</div>
+        <div className="text-2xl font-extrabold font-[cursive] mb-4">Withly</div>
 
         <div className="bg-white rounded-xl p-8 shadow-md w-full max-w-sm flex flex-col items-center gap-4 text-center">
           <FaTimesCircle className="w-16 h-16" style={{ color: '#B3261E' }} />
@@ -135,7 +135,7 @@ function ResetPasswordContent() {
   if (status === 'success') {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-br from-blue-300 to-green-100">
-        <div className="text-2xl font-extrabold font-[cursive] mb-4">Kibutz</div>
+        <div className="text-2xl font-extrabold font-[cursive] mb-4">Withly</div>
 
         <div className="bg-white rounded-xl p-8 shadow-md w-full max-w-sm flex flex-col items-center gap-4 text-center">
           <FaCheckCircle className="w-16 h-16" style={{ color: '#163300' }} />
@@ -159,7 +159,7 @@ function ResetPasswordContent() {
   if (status === 'error') {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-br from-blue-300 to-green-100">
-        <div className="text-2xl font-extrabold font-[cursive] mb-4">Kibutz</div>
+        <div className="text-2xl font-extrabold font-[cursive] mb-4">Withly</div>
 
         <div className="bg-white rounded-xl p-8 shadow-md w-full max-w-sm flex flex-col items-center gap-4 text-center">
           <FaTimesCircle className="w-16 h-16" style={{ color: '#B3261E' }} />
@@ -180,7 +180,7 @@ function ResetPasswordContent() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gradient-to-br from-blue-300 to-green-100">
-      <div className="text-2xl font-extrabold font-[cursive] mb-4">Kibutz</div>
+      <div className="text-2xl font-extrabold font-[cursive] mb-4">Withly</div>
 
       <form
         onSubmit={handleSubmit}

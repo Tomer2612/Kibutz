@@ -1,5 +1,5 @@
-# Kibutz Frontend
-Next.js 15 frontend for the Kibutz community platform.
+# Withly Frontend
+Next.js 15 frontend for the Withly community platform.
 
 ## Setup
 ```bash
