@@ -2,34 +2,24 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-interface FormSelectOption {
-  value: string;
+interface CalendarSelectOption {
+  value: number;
   label: string;
 }
 
-interface FormSelectProps {
-  value: string;
-  onChange: (value: string) => void;
-  options: FormSelectOption[];
-  placeholder?: string;
-  label?: string;
-  required?: boolean;
+interface CalendarSelectProps {
+  value: number;
+  onChange: (value: number) => void;
+  options: CalendarSelectOption[];
   className?: string;
-  disabled?: boolean;
-  openUpward?: boolean;
 }
 
-export default function FormSelect({ 
+export default function CalendarSelect({ 
   value, 
   onChange, 
   options, 
-  placeholder = 'בחר...',
-  label,
-  required = false,
-  className = '',
-  disabled = false,
-  openUpward = false
-}: FormSelectProps) {
+  className = ''
+}: CalendarSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -52,38 +42,27 @@ export default function FormSelect({
   }, []);
 
   const selectedOption = options.find((o) => o.value === value);
-  const displayLabel = value === '' ? placeholder : selectedOption?.label || placeholder;
 
   return (
     <div className={`relative ${className}`} dir="rtl" ref={dropdownRef}>
-      {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-          {label}
-          {required && <span className="text-red-500 mr-1">*</span>}
-        </label>
-      )}
       <button
         type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
+        onClick={() => setIsOpen(!isOpen)}
         style={{
-          borderRadius: '10px',
+          borderRadius: '8px',
           borderWidth: '1px',
           borderStyle: 'solid',
           borderColor: isOpen ? '#3F3F46' : '#D0D0D4',
-          paddingTop: '6px',
-          paddingBottom: '6px',
         }}
         className={`
-          w-full flex items-center justify-between gap-4 px-4
-          bg-white font-normal text-black transition-colors duration-200
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-gray-400 cursor-pointer'}
-          ${value === '' ? 'text-gray-400' : 'text-black'}
+          flex items-center justify-between gap-2 px-3 py-1.5
+          bg-white text-sm font-semibold text-black transition-colors duration-200
+          hover:border-gray-400 cursor-pointer
         `}
       >
-        <span style={{ fontSize: '16px' }}>{displayLabel}</span>
+        <span>{selectedOption?.label}</span>
         <svg 
-          width="10" height="5" viewBox="0 0 10 5" fill="none" 
+          width="10" height="6" viewBox="0 0 10 6" fill="none" 
           xmlns="http://www.w3.org/2000/svg"
           className={`transform transition-transform duration-200 flex-shrink-0 overflow-visible ${isOpen ? 'rotate-180' : ''}`}
         >
@@ -100,11 +79,12 @@ export default function FormSelect({
       {isOpen && (
         <div 
           dir="ltr"
-          className={`absolute w-full bg-white border border-[#D0D0D4] rounded-[10px] z-50 overflow-hidden p-1.5 ${openUpward ? 'bottom-full mb-2' : 'top-full mt-2'}`}
+          className="absolute w-full bg-white border border-[#D0D0D4] rounded-lg z-[9999] overflow-hidden p-1 top-full mt-1"
           style={{ 
-            maxHeight: '280px', 
+            maxHeight: '200px', 
             overflowY: 'auto',
-            boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.12)'
+            boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.12)',
+            minWidth: '100%'
           }}
         >
           <div dir="rtl" className="flex flex-col gap-0.5">
@@ -116,11 +96,10 @@ export default function FormSelect({
                   onChange(option.value);
                   setIsOpen(false);
                 }}
-                style={{ fontSize: '16px' }}
                 className={`
-                  w-full px-3 py-2 text-right rounded-lg transition-colors
+                  w-full px-2 py-1.5 text-right text-sm rounded transition-colors
                   ${value === option.value 
-                    ? 'bg-[#E4E4E7] font-normal text-black' 
+                    ? 'bg-[#E4E4E7] font-semibold text-black' 
                     : 'text-gray-700 hover:bg-[#F4F4F5] active:bg-[#3F3F46] active:text-white font-normal'
                   }
                 `}

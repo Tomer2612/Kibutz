@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCommunityContext } from '../CommunityContext';
 import FormSelect from '../../../components/FormSelect';
+import CalendarSelect from '../../../components/CalendarSelect';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { he } from 'date-fns/locale';
 import { getMonth, getYear } from 'date-fns';
@@ -184,11 +185,12 @@ function DateInput({
         onChange={handleChange}
         placeholder="dd/mm/yyyy"
         maxLength={10}
-        className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black bg-white text-right"
+        style={{ borderRadius: '10px', borderColor: '#D0D0D4', paddingTop: '6px', paddingBottom: '6px', color: '#7A7A83' }}
+        className="w-full pr-10 pl-3 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-right"
         dir="ltr"
       />
       <CalendarIcon
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600"
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 cursor-pointer text-[#7A7A83]"
         onClick={onIconClick}
       />
     </div>
@@ -285,13 +287,14 @@ function TimePicker({
         onChange={handleChange}
         placeholder="hh:mm"
         maxLength={5}
-        className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black bg-white text-right"
+        style={{ borderRadius: '10px', borderColor: '#D0D0D4', paddingTop: '6px', paddingBottom: '6px', color: '#7A7A83' }}
+        className="w-full pr-10 pl-3 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white text-right"
         dir="ltr"
       />
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600"
+        className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-[#7A7A83]"
       >
         <ClockIcon size={16} />
       </button>
@@ -377,12 +380,12 @@ interface Community {
 }
 
 const EVENT_CATEGORIES = [
-  { value: 'workshop', label: 'סדנה', color: 'bg-purple-100 text-purple-700' },
-  { value: 'meetup', label: 'מפגש', color: 'bg-blue-100 text-blue-700' },
-  { value: 'webinar', label: 'וובינר', color: 'bg-green-100 text-green-700' },
-  { value: 'qa', label: 'שאלות ותשובות', color: 'bg-orange-100 text-orange-700' },
-  { value: 'social', label: 'חברתי', color: 'bg-pink-100 text-pink-700' },
-  { value: 'other', label: 'אחר', color: 'bg-gray-100 text-gray-700' },
+  { value: 'workshop', label: 'סדנה' },
+  { value: 'meetup', label: 'מפגש' },
+  { value: 'webinar', label: 'וובינר' },
+  { value: 'qa', label: 'שאלות ותשובות' },
+  { value: 'social', label: 'חברתי' },
+  { value: 'other', label: 'אחר' },
 ];
 
 const HEBREW_MONTHS = [
@@ -414,10 +417,11 @@ function EventsPageContent() {
   const [addEventDate, setAddEventDate] = useState<Date | null>(null);
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
+  const [showSidebarDatePicker, setShowSidebarDatePicker] = useState(false);
 
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 
   useEffect(() => {
@@ -711,11 +715,19 @@ function EventsPageContent() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const dayNames = ['יום א', 'יום ב', 'יום ג', 'יום ד', 'יום ה', 'יום ו', 'שבת'];
+    const dayNames = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'שבת'];
     const dayName = dayNames[date.getDay()];
     const day = date.getDate();
     const monthName = HEBREW_MONTHS[date.getMonth()];
     return `${dayName}, ${day} ב${monthName}`;
+  };
+
+  // Format date as "23 בדצמבר 2025" for sidebar display
+  const formatSidebarDate = (date: Date) => {
+    const day = date.getDate();
+    const monthName = HEBREW_MONTHS[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ב${monthName} ${year}`;
   };
 
   const formatDateFull = (dateString: string) => {
@@ -787,12 +799,12 @@ function EventsPageContent() {
               setShowAddModal(true);
             }
           }}
-          className={`h-24 p-1 transition ${isPastDay ? 'bg-gray-100 cursor-default' : 'cursor-pointer hover:bg-gray-50'} ${
-            isSelected ? 'bg-gray-200' : isToday ? 'bg-blue-50' : ''
-          } ${isSelected ? 'border-2 border-black' : 'border border-gray-100'}`}
+          className={`h-24 p-1 transition ${isPastDay ? 'bg-gray-200 cursor-default' : 'cursor-pointer hover:bg-gray-50'} ${
+            isSelected ? 'bg-gray-100 border border-gray-600' : isToday ? 'bg-gray-100' : 'border border-gray-100'
+          }`}
         >
           <div className={`text-sm font-medium mb-1 pr-2 pt-1 ${
-            isPastDay ? 'text-gray-400' : isToday && !isSelected ? 'text-blue-600' : 'text-gray-700'
+            isPastDay ? 'text-gray-400' : isToday && !isSelected ? 'text-black font-bold' : 'text-gray-700'
           }`}>
             {day}
           </div>
@@ -843,7 +855,7 @@ function EventsPageContent() {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-6">
             {/* Calendar */}
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              {/* Month Navigation */}
+              {/* Month Navigation - New Style */}
               <div className="flex items-center justify-between p-4 border-b border-gray-100">
                 {/* Right arrow (prev month - RTL) */}
                 <button
@@ -853,89 +865,85 @@ function EventsPageContent() {
                   <ChevronRightIcon className="w-4 h-4" />
                 </button>
 
-                {/* Center: Month, Year, Today button */}
-                <div className="flex items-center gap-3">
-                  {/* Month Dropdown */}
-                  <div className="relative">
-                    <button
-                      onClick={() => {
-                        setShowMonthDropdown(!showMonthDropdown);
-                        setShowYearDropdown(false);
-                      }}
-                      className="flex items-center gap-1 text-lg font-bold text-black hover:bg-gray-100 px-2 py-1 rounded-lg transition"
-                    >
-                      {HEBREW_MONTHS[currentDate.getMonth()]}
-                      <ChevronDownIcon size={12} />
-                    </button>
-                    {showMonthDropdown && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowMonthDropdown(false)} />
-                        <div className="absolute top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-50 max-h-64 overflow-y-auto">
-                          {HEBREW_MONTHS.map((month, index) => (
-                            <button
-                              key={month}
-                              onClick={() => handleMonthSelect(index)}
-                              className={`w-full text-right px-3 py-2 text-sm hover:bg-gray-100 rounded-md ${
-                                currentDate.getMonth() === index ? 'bg-gray-100 font-medium' : ''
-                              }`}
-                            >
-                              {month}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  
-                  {/* Year Dropdown */}
-                  <div className="relative">
-                    <button
-                      onClick={() => {
-                        setShowYearDropdown(!showYearDropdown);
-                        setShowMonthDropdown(false);
-                      }}
-                      className="flex items-center gap-1 text-lg font-bold text-black hover:bg-gray-100 px-2 py-1 rounded-lg transition"
-                    >
-                      {currentDate.getFullYear()}
-                      <ChevronDownIcon size={12} />
-                    </button>
-                    {showYearDropdown && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowYearDropdown(false)} />
-                        <div className="absolute top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-50 max-h-64 overflow-y-auto">
-                          {Array.from({ length: 11 }, (_, i) => 2020 + i).map((year) => (
-                            <button
-                              key={year}
-                              onClick={() => handleYearSelect(year)}
-                              className={`w-full text-right px-3 py-2 text-sm hover:bg-gray-100 rounded-md ${
-                                currentDate.getFullYear() === year ? 'bg-gray-100 font-medium' : ''
-                              }`}
-                            >
-                              {year}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  
-                  {/* Today Button - Blue Badge */}
+                {/* Center: Unified Date Picker Button */}
+                <div className="relative flex items-center">
                   <button
-                    onClick={() => {
-                      const today = new Date();
-                      setCurrentDate(today);
-                      setSelectedDate(today);
-                      fetchEventsForMonth(today.getFullYear(), today.getMonth() + 1);
-                    }}
-                    className={`group w-10 h-10 rounded-xl flex items-center justify-center transition shadow-md ${
-                      currentDate.toDateString() === new Date().toDateString()
-                        ? 'bg-blue-600 hover:bg-blue-700'
-                        : 'bg-blue-300 hover:bg-blue-400'
-                    }`}
-                    title="היום"
+                    onClick={() => setShowSidebarDatePicker(!showSidebarDatePicker)}
+                    className="flex items-center justify-center gap-2 px-3 py-1 rounded-lg hover:bg-[#E4E4E7] transition"
+                    style={{ backgroundColor: '#F4F4F5', border: '1px solid #D0D0D4' }}
                   >
-                    <span className="text-lg font-bold text-white">{new Date().getDate()}</span>
+                    <span className="text-base font-medium text-black">
+                      {selectedDate && selectedDate.getMonth() === currentDate.getMonth() && selectedDate.getFullYear() === currentDate.getFullYear()
+                        ? `${selectedDate.getDate()} ב${HEBREW_MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+                        : `${HEBREW_MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+                      }
+                    </span>
+                    <ChevronDownIcon size={16} className="text-black" />
                   </button>
+                  
+                  {showSidebarDatePicker && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowSidebarDatePicker(false)} />
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50">
+                        <DatePicker
+                          selected={selectedDate || null}
+                          openToDate={currentDate}
+                          onChange={(d: Date | null) => {
+                            if (d) {
+                              setSelectedDate(d);
+                              setCurrentDate(d);
+                              fetchEventsForMonth(d.getFullYear(), d.getMonth() + 1);
+                            }
+                            setShowSidebarDatePicker(false);
+                          }}
+                          inline
+                          locale="he"
+                          formatWeekDay={formatWeekDay}
+                          renderCustomHeader={({
+                            date: headerDate,
+                            changeYear,
+                            changeMonth,
+                            decreaseMonth,
+                            increaseMonth,
+                            prevMonthButtonDisabled,
+                            nextMonthButtonDisabled,
+                          }) => (
+                            <div className="flex items-center justify-between px-4 py-3">
+                              <button
+                                type="button"
+                                onClick={decreaseMonth}
+                                disabled={prevMonthButtonDisabled}
+                                className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
+                              >
+                                <ChevronRightIcon className="w-4 h-4" />
+                              </button>
+                              <div className="flex gap-3">
+                                <CalendarSelect
+                                  value={getMonth(headerDate)}
+                                  onChange={(val) => changeMonth(val)}
+                                  options={hebrewMonths.map((month, i) => ({ value: i, label: month }))}
+                                />
+                                <CalendarSelect
+                                  value={getYear(headerDate)}
+                                  onChange={(val) => changeYear(val)}
+                                  options={Array.from({ length: 11 }, (_, i) => ({ value: 2020 + i, label: String(2020 + i) }))}
+                                  className="min-w-[5rem]"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={increaseMonth}
+                                disabled={nextMonthButtonDisabled}
+                                className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
+                              >
+                                <ChevronLeftIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
                 
                 {/* Left arrow (next month - RTL) */}
@@ -1000,6 +1008,7 @@ function EventsPageContent() {
 
               {/* Selected Date Events */}
               <div className="bg-white rounded-2xl border border-gray-200 p-4 h-fit max-h-[calc(100vh-280px)] flex flex-col">
+                {/* Date Title - Simple format */}
                 <h3 className="font-bold text-black mb-4 flex-shrink-0">
                   {selectedDate 
                     ? formatDate(selectedDate.toISOString())
@@ -1009,7 +1018,7 @@ function EventsPageContent() {
                 
                 {selectedDate ? (
                   selectedDateEvents.length > 0 ? (
-                    <div className="space-y-3 overflow-y-auto flex-1" dir="ltr">
+                    <div className="space-y-3 overflow-y-auto flex-1 pb-4" dir="ltr">
                       <div dir="rtl" className="space-y-3">
                         {selectedDateEvents.map(event => (
                           <EventCard 
@@ -1201,6 +1210,16 @@ function EventCard({
     return date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatDuration = (minutes?: number) => {
+    if (!minutes) return '';
+    if (minutes === 30) return 'חצי שעה';
+    if (minutes === 60) return 'שעה';
+    if (minutes === 90) return 'שעה וחצי';
+    if (minutes === 120) return 'שעתיים';
+    if (minutes >= 60) return `${minutes / 60} שעות`;
+    return `${minutes} דקות`;
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('he-IL', { 
@@ -1212,10 +1231,11 @@ function EventCard({
 
   const getDateParts = (dateString: string) => {
     const date = new Date(dateString);
+    const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
     return {
       day: date.getDate(),
       month: date.toLocaleDateString('he-IL', { month: 'short' }),
-      weekday: date.toLocaleDateString('he-IL', { weekday: 'short' })
+      weekday: dayNames[date.getDay()]
     };
   };
 
@@ -1254,20 +1274,20 @@ function EventCard({
                     setShowMenu(false);
                     onEdit?.(event);
                   }}
-                  className="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 justify-end rounded-md"
+                  className="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 rounded-md"
                 >
-                  ערוך
-                  <EditIcon size={12} />
+                  <EditIcon size={14} className="flex-shrink-0" />
+                  <span>ערוך</span>
                 </button>
                 <button
                   onClick={() => {
                     setShowMenu(false);
                     onDelete?.(event.id);
                   }}
-                  className="w-full text-right px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 justify-end rounded-md"
+                  className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 rounded-md"
                 >
-                  מחק
-                  <TrashIcon size={12} />
+                  <TrashIcon size={14} className="flex-shrink-0" />
+                  <span>מחק</span>
                 </button>
               </div>
             </>
@@ -1275,74 +1295,55 @@ function EventCard({
         </div>
       )}
 
-      {/* Cover Image */}
-      {event.coverImage && !compact && (
-        <div className="h-40 bg-gray-100">
-          <img 
-            src={`${process.env.NEXT_PUBLIC_API_URL}${event.coverImage}`}
-            alt={event.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
-
       <div className={compact ? 'p-3' : 'p-4 flex gap-4'}>
         {/* Date Box - only show in non-compact mode */}
         {!compact && (
-          <div className="flex-shrink-0 w-14 text-center">
-            <div className="bg-black text-white rounded-t-lg py-1 px-2">
-              <span className="text-xs font-medium uppercase">{dateParts.month}</span>
+          <div className="flex-shrink-0 text-center" style={{ width: '47px' }}>
+            <div className="rounded-t-lg" style={{ backgroundColor: '#000000', height: '29px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '13px', fontWeight: 400, color: '#FFFFFF' }}>{dateParts.month}</span>
             </div>
-            <div className="border-x border-b border-gray-200 rounded-b-lg py-2">
-              <span className="text-2xl font-bold text-black">{dateParts.day}</span>
-              <div className="text-xs text-gray-500">{dateParts.weekday}</div>
+            <div className="rounded-b-lg" style={{ border: '1px solid #D0D0D4', borderTop: 'none', height: '52px', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '6px' }}>
+              <span style={{ fontSize: '21px', fontWeight: 600, lineHeight: '1', color: '#000000' }}>{dateParts.day}</span>
+              <span style={{ fontSize: '13px', fontWeight: 400, lineHeight: '1', color: '#000000', marginTop: '4px' }}>{dateParts.weekday}</span>
             </div>
           </div>
         )}
 
         <div className="flex-1">
           {/* Category & Time */}
-          <div className="flex items-center gap-2 mb-2">
-            {category && (
-              <span className={`text-xs px-2 py-0.5 rounded-full ${category.color}`}>
+          <div className="flex items-center gap-3 mb-2">
+            {category && !compact && (
+              <span className="px-2 py-0.5 rounded-full text-black" style={{ backgroundColor: '#D0D0D4', fontSize: '14px', fontWeight: 400 }}>
                 {category.label}
               </span>
             )}
-            <span className="text-sm font-medium text-gray-900 flex items-center gap-1">
-              <ClockIcon size={12} />
+            <span className="flex items-center gap-1 text-black" style={{ fontSize: '16px', fontWeight: 500 }}>
+              <ClockIcon size={16} />
               {formatTime(event.date)}
+              {event.duration && <span style={{ color: '#7A7A83', fontWeight: 400 }}>({formatDuration(event.duration)})</span>}
             </span>
-            {event.duration && (
-              <span className="text-xs text-gray-500">
-                ({event.duration >= 60 
-                  ? event.duration === 60 
-                    ? 'שעה' 
-                    : `${Math.floor(event.duration / 60)}:${String(event.duration % 60).padStart(2, '0')} שעות`
-                  : `${event.duration} דק׳`})
-              </span>
-            )}
           </div>
 
           {/* Title */}
-          <h4 className={`font-bold text-black ${compact ? 'text-sm' : 'text-lg'} mb-2`}>
+          <h4 className="text-black mb-2" style={{ fontSize: compact ? '14px' : '18px', fontWeight: 600 }}>
             {event.title}
           </h4>
 
           {/* Description */}
           {event.description && !compact && (
-            <p className="text-gray-600 text-sm mb-3 line-clamp-2">{event.description}</p>
+            <p className="text-black mb-3 line-clamp-2" style={{ fontSize: '16px', fontWeight: 400 }}>{event.description}</p>
           )}
 
           {/* Location */}
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+          <div className="flex items-center gap-2 mb-3" style={{ color: '#52525B', fontSize: '14px', fontWeight: 400 }}>
             {event.locationType === 'online' ? (
               <>
-                <VideoIcon size={16} />
+                <VideoIcon size={14} />
                 <span>{event.locationName || 'מפגש מקוון'}</span>
               </>
             ) : (
               <>
-                <FaMapMarkerAlt className="w-4 h-4" />
+                <FaMapMarkerAlt style={{ width: '14px', height: '14px' }} />
                 <span>{event.locationName || 'מפגש פיזי'}</span>
               </>
             )}
@@ -1350,12 +1351,9 @@ function EventCard({
 
           {/* Attendees Count */}
           {event.rsvpCounts && (
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-              <UsersIcon size={16} />
-              <span>{event.rsvpCounts.going} מגיעים</span>
-              {event.rsvpCounts.maybe > 0 && (
-                <span className="text-gray-400">· {event.rsvpCounts.maybe} אולי</span>
-              )}
+            <div className="flex items-center gap-1.5 mb-3" style={{ color: '#52525B', fontSize: '14px', fontWeight: 400 }}>
+              <UsersIcon size={14} />
+              <span>{event.rsvpCounts.going} אישרו הגעה</span>
             </div>
           )}
 
@@ -1364,38 +1362,38 @@ function EventCard({
             <button
               onClick={() => onRsvp(event.id, 'GOING')}
               disabled={isLoading}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
+              className={`flex-1 flex items-center justify-center py-2 rounded-full transition border ${
                 event.userRsvp === 'GOING'
-                  ? 'bg-green-100 text-green-700 border-2 border-green-400'
-                  : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-600'
+                  ? 'bg-black text-white border-black'
+                  : 'bg-white text-black border-gray-200 hover:bg-gray-50'
               }`}
+              style={{ fontSize: '16px', fontWeight: 400 }}
             >
-              <CheckIcon size={12} />
-              <span>מגיע/ה</span>
+              מגיע/ה
             </button>
             <button
               onClick={() => onRsvp(event.id, 'MAYBE')}
               disabled={isLoading}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
+              className={`flex-1 flex items-center justify-center py-2 rounded-full transition border ${
                 event.userRsvp === 'MAYBE'
-                  ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-400'
-                  : 'bg-gray-100 text-gray-600 hover:bg-yellow-50 hover:text-yellow-600'
+                  ? 'bg-black text-white border-black'
+                  : 'bg-white text-black border-gray-200 hover:bg-gray-50'
               }`}
+              style={{ fontSize: '16px', fontWeight: 400 }}
             >
-              <FaQuestion className="w-3 h-3" />
-              <span>אולי</span>
+              אולי
             </button>
             <button
               onClick={() => onRsvp(event.id, 'NOT_GOING')}
               disabled={isLoading}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
+              className={`flex-1 flex items-center justify-center py-2 rounded-full transition border ${
                 event.userRsvp === 'NOT_GOING'
-                  ? 'bg-red-100 text-red-700 border-2 border-red-400'
-                  : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600'
+                  ? 'bg-black text-white border-black'
+                  : 'bg-white text-black border-gray-200 hover:bg-gray-50'
               }`}
+              style={{ fontSize: '16px', fontWeight: 400 }}
             >
-              <CloseIcon size={12} />
-              <span>לא מגיע/ה</span>
+              לא מגיע/ה
             </button>
           </div>
         </div>
@@ -1519,7 +1517,7 @@ function AddEventModal({
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir="rtl">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col">
         <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-xl font-bold text-black">הוסף אירוע</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -1538,9 +1536,10 @@ function AddEventModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="מפגש קהילה"
               maxLength={30}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
+              style={{ borderRadius: '10px', borderColor: '#D0D0D4' }}
+              className="w-full px-4 py-1.5 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
             />
-            <div className="text-xs text-gray-400 text-left mt-1">{title.length} / 30</div>
+            <div className="text-xs text-gray-400 text-left">{title.length} / 30</div>
           </div>
 
           {/* Date, Time, Duration Row */}
@@ -1585,24 +1584,17 @@ function AddEventModal({
                             <ChevronRightIcon className="w-4 h-4" />
                           </button>
                           <div className="flex gap-3">
-                            <select
+                            <CalendarSelect
                               value={getMonth(headerDate)}
-                              onChange={({ target: { value } }) => changeMonth(Number(value))}
-                              className="px-3 py-1.5 border border-gray-200 rounded text-sm font-semibold bg-white cursor-pointer"
-                            >
-                              {hebrewMonths.map((month, i) => (
-                                <option key={month} value={i}>{month}</option>
-                              ))}
-                            </select>
-                            <select
+                              onChange={(val) => changeMonth(val)}
+                              options={hebrewMonths.map((month, i) => ({ value: i, label: month }))}
+                            />
+                            <CalendarSelect
                               value={getYear(headerDate)}
-                              onChange={({ target: { value } }) => changeYear(Number(value))}
-                              className="px-3 py-1.5 border border-gray-200 rounded text-sm font-semibold bg-white cursor-pointer min-w-[5rem]"
-                            >
-                              {years.map((year) => (
-                                <option key={year} value={year}>{year}</option>
-                              ))}
-                            </select>
+                              onChange={(val) => changeYear(val)}
+                              options={years.map((year) => ({ value: year, label: String(year) }))}
+                              className="min-w-[5rem]"
+                            />
                           </div>
                           <button
                             type="button"
@@ -1629,7 +1621,7 @@ function AddEventModal({
                 value={duration}
                 onChange={setDuration}
                 options={[
-                  { value: '30', label: '30 דקות' },
+                  { value: '30', label: 'חצי שעה' },
                   { value: '60', label: 'שעה' },
                   { value: '90', label: 'שעה וחצי' },
                   { value: '120', label: 'שעתיים' },
@@ -1721,7 +1713,8 @@ function AddEventModal({
                   value={locationUrl}
                   onChange={(e) => setLocationUrl(e.target.value)}
                   placeholder="קישור למפגש"
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
+                  style={{ borderRadius: '10px', borderColor: '#D0D0D4' }}
+                  className="flex-1 px-3 py-1.5 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
                 />
               </div>
             ) : (
@@ -1730,7 +1723,8 @@ function AddEventModal({
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
                 placeholder="כתובת או שם המקום"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
+                style={{ borderRadius: '10px', borderColor: '#D0D0D4' }}
+                className="w-full px-3 py-1.5 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
               />
             )}
           </div>
@@ -1744,34 +1738,10 @@ function AddEventModal({
               placeholder="בואו להנות מחברה טובה."
               rows={3}
               maxLength={300}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black resize-none text-black text-right"
+              style={{ borderRadius: '10px', borderColor: '#D0D0D4' }}
+              className="w-full px-4 py-2 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black resize-none text-black text-right"
             />
-            <div className="text-xs text-gray-400 text-left mt-1">{description.length} / 300</div>
-          </div>
-
-          {/* Cover Image */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">תמונת כיסוי</label>
-            <div 
-              className="border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-gray-400 transition text-center"
-              onClick={() => document.getElementById('coverImageInput')?.click()}
-            >
-              {coverImagePreview ? (
-                <img src={coverImagePreview} alt="Preview" className="max-h-40 mx-auto rounded-lg" />
-              ) : (
-                <div className="text-gray-400">
-                  <PlusIcon size={32} className="mx-auto mb-2" />
-                  <p className="text-sm">לחצו להעלאת תמונה</p>
-                </div>
-              )}
-              <input
-                id="coverImageInput"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </div>
+            <div className="text-xs text-gray-400 text-left">{description.length} / 300</div>
           </div>
 
           {/* Category */}
@@ -1783,11 +1753,11 @@ function AddEventModal({
                   key={cat.value}
                   type="button"
                   onClick={() => setCategory(cat.value)}
-                  className={`px-3 py-1.5 rounded-full text-sm ${
-                    category === cat.value 
-                      ? cat.color + ' ring-2 ring-gray-400'
-                      : cat.color + ' opacity-60 hover:opacity-100'
-                  }`}
+                  className="px-3 py-2 rounded-full text-sm transition-colors"
+                  style={{
+                    backgroundColor: category === cat.value ? '#A7EA7B' : '#E5E7EB',
+                    color: category === cat.value ? '#163300' : '#000000',
+                  }}
                 >
                   {cat.label}
                 </button>
@@ -1799,24 +1769,47 @@ function AddEventModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">מי יכול להשתתף</label>
-              <select
+              <FormSelect
                 value={attendeeType}
-                onChange={(e) => setAttendeeType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-black"
-              >
-                <option value="all">כל החברים</option>
-                <option value="managers">מנהלים בלבד</option>
-              </select>
+                onChange={setAttendeeType}
+                options={[
+                  { value: 'all', label: 'כל החברים' },
+                  { value: 'managers', label: 'מנהלים בלבד' },
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">מספר משתתפים מקסימלי</label>
               <input
                 type="number"
                 value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const numVal = parseInt(val);
+                  // Allow empty, or positive integers >= 1
+                  if (val === '') {
+                    setCapacity('');
+                  } else if (!isNaN(numVal) && numVal >= 1 && /^\d+$/.test(val)) {
+                    setCapacity(val);
+                  } else if (!isNaN(numVal) && numVal < 1) {
+                    // If value goes below 1 (e.g., arrow down from 1), clear to placeholder
+                    setCapacity('');
+                  }
+                }}
+                onKeyDown={(e) => {
+                  // Prevent minus, plus, e, period from being typed
+                  if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                  // Handle arrow down when at 1 - clear to placeholder
+                  if (e.key === 'ArrowDown' && capacity === '1') {
+                    e.preventDefault();
+                    setCapacity('');
+                  }
+                }}
                 placeholder="ללא הגבלה"
-                min="1"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-black"
+                style={{ borderRadius: '10px', borderColor: '#D0D0D4' }}
+                className="w-full px-3 py-1.5 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
               />
             </div>
           </div>
@@ -1832,15 +1825,18 @@ function AddEventModal({
             />
             <label htmlFor="reminders" className="text-sm text-gray-700">שלח תזכורת במייל</label>
             {sendReminders && (
-              <select
-                value={reminderDays}
-                onChange={(e) => setReminderDays(e.target.value)}
-                className="px-3 py-1 border border-gray-200 rounded-lg text-sm text-black"
-              >
-                <option value="1">יום לפני</option>
-                <option value="2">יומיים לפני</option>
-                <option value="7">שבוע לפני</option>
-              </select>
+              <div style={{ minWidth: '120px' }}>
+                <FormSelect
+                  value={reminderDays}
+                  onChange={setReminderDays}
+                  options={[
+                    { value: '1', label: 'יום לפני' },
+                    { value: '2', label: 'יומיים לפני' },
+                    { value: '7', label: 'שבוע לפני' },
+                  ]}
+                  openUpward
+                />
+              </div>
             )}
           </div>
 
@@ -1989,7 +1985,7 @@ function EditEventModal({
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir="rtl">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col">
         <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-xl font-bold text-black">עריכת אירוע</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -2008,9 +2004,10 @@ function EditEventModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="מפגש קהילה"
               maxLength={30}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
+              style={{ borderRadius: '10px', borderColor: '#D0D0D4' }}
+              className="w-full px-4 py-1.5 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
             />
-            <div className="text-xs text-gray-400 text-left mt-1">{title.length} / 30</div>
+            <div className="text-xs text-gray-400 text-left">{title.length} / 30</div>
           </div>
 
           {/* Date, Time, Duration Row */}
@@ -2055,24 +2052,17 @@ function EditEventModal({
                             <ChevronRightIcon className="w-4 h-4" />
                           </button>
                           <div className="flex gap-3">
-                            <select
+                            <CalendarSelect
                               value={getMonth(headerDate)}
-                              onChange={({ target: { value } }) => changeMonth(Number(value))}
-                              className="px-3 py-1.5 border border-gray-200 rounded text-sm font-semibold bg-white cursor-pointer"
-                            >
-                              {hebrewMonths.map((month, i) => (
-                                <option key={month} value={i}>{month}</option>
-                              ))}
-                            </select>
-                            <select
+                              onChange={(val) => changeMonth(val)}
+                              options={hebrewMonths.map((month, i) => ({ value: i, label: month }))}
+                            />
+                            <CalendarSelect
                               value={getYear(headerDate)}
-                              onChange={({ target: { value } }) => changeYear(Number(value))}
-                              className="px-3 py-1.5 border border-gray-200 rounded text-sm font-semibold bg-white cursor-pointer min-w-[5rem]"
-                            >
-                              {years.map((year) => (
-                                <option key={year} value={year}>{year}</option>
-                              ))}
-                            </select>
+                              onChange={(val) => changeYear(val)}
+                              options={years.map((year) => ({ value: year, label: String(year) }))}
+                              className="min-w-[5rem]"
+                            />
                           </div>
                           <button
                             type="button"
@@ -2099,7 +2089,7 @@ function EditEventModal({
                 value={duration}
                 onChange={setDuration}
                 options={[
-                  { value: '30', label: '30 דקות' },
+                  { value: '30', label: 'חצי שעה' },
                   { value: '60', label: 'שעה' },
                   { value: '90', label: 'שעה וחצי' },
                   { value: '120', label: 'שעתיים' },
@@ -2191,7 +2181,8 @@ function EditEventModal({
                   value={locationUrl}
                   onChange={(e) => setLocationUrl(e.target.value)}
                   placeholder="קישור למפגש"
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
+                  style={{ borderRadius: '10px', borderColor: '#D0D0D4' }}
+                  className="flex-1 px-3 py-1.5 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
                 />
               </div>
             ) : (
@@ -2200,7 +2191,8 @@ function EditEventModal({
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
                 placeholder="כתובת או שם המקום"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
+                style={{ borderRadius: '10px', borderColor: '#D0D0D4' }}
+                className="w-full px-3 py-1.5 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
               />
             )}
           </div>
@@ -2214,34 +2206,10 @@ function EditEventModal({
               placeholder="בואו להנות מחברה טובה."
               rows={3}
               maxLength={300}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black resize-none text-black text-right"
+              style={{ borderRadius: '10px', borderColor: '#D0D0D4' }}
+              className="w-full px-4 py-2 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black resize-none text-black text-right"
             />
-            <div className="text-xs text-gray-400 text-left mt-1">{description.length} / 300</div>
-          </div>
-
-          {/* Cover Image */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">תמונת כיסוי</label>
-            <div 
-              className="border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-gray-400 transition text-center"
-              onClick={() => document.getElementById('coverImageInputEdit')?.click()}
-            >
-              {coverImagePreview ? (
-                <img src={coverImagePreview} alt="Preview" className="max-h-40 mx-auto rounded-lg" />
-              ) : (
-                <div className="text-gray-400">
-                  <PlusIcon size={32} className="mx-auto mb-2" />
-                  <p className="text-sm">לחצו להעלאת תמונה</p>
-                </div>
-              )}
-              <input
-                id="coverImageInputEdit"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </div>
+            <div className="text-xs text-gray-400 text-left">{description.length} / 300</div>
           </div>
 
           {/* Category */}
@@ -2253,11 +2221,11 @@ function EditEventModal({
                   key={cat.value}
                   type="button"
                   onClick={() => setCategory(cat.value)}
-                  className={`px-3 py-1.5 rounded-full text-sm ${
-                    category === cat.value 
-                      ? cat.color + ' ring-2 ring-gray-400'
-                      : cat.color + ' opacity-60 hover:opacity-100'
-                  }`}
+                  className="px-3 py-2 rounded-full text-sm transition-colors"
+                  style={{
+                    backgroundColor: category === cat.value ? '#A7EA7B' : '#E5E7EB',
+                    color: category === cat.value ? '#163300' : '#000000',
+                  }}
                 >
                   {cat.label}
                 </button>
@@ -2269,24 +2237,47 @@ function EditEventModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">מי יכול להשתתף</label>
-              <select
+              <FormSelect
                 value={attendeeType}
-                onChange={(e) => setAttendeeType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-black"
-              >
-                <option value="all">כל החברים</option>
-                <option value="managers">מנהלים בלבד</option>
-              </select>
+                onChange={setAttendeeType}
+                options={[
+                  { value: 'all', label: 'כל החברים' },
+                  { value: 'managers', label: 'מנהלים בלבד' },
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">מספר משתתפים מקסימלי</label>
               <input
                 type="number"
                 value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const numVal = parseInt(val);
+                  // Allow empty, or positive integers >= 1
+                  if (val === '') {
+                    setCapacity('');
+                  } else if (!isNaN(numVal) && numVal >= 1 && /^\d+$/.test(val)) {
+                    setCapacity(val);
+                  } else if (!isNaN(numVal) && numVal < 1) {
+                    // If value goes below 1 (e.g., arrow down from 1), clear to placeholder
+                    setCapacity('');
+                  }
+                }}
+                onKeyDown={(e) => {
+                  // Prevent minus, plus, e, period from being typed
+                  if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                  // Handle arrow down when at 1 - clear to placeholder
+                  if (e.key === 'ArrowDown' && capacity === '1') {
+                    e.preventDefault();
+                    setCapacity('');
+                  }
+                }}
                 placeholder="ללא הגבלה"
-                min="1"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-black"
+                style={{ borderRadius: '10px', borderColor: '#D0D0D4' }}
+                className="w-full px-3 py-1.5 border focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black"
               />
             </div>
           </div>
@@ -2302,15 +2293,18 @@ function EditEventModal({
             />
             <label htmlFor="reminders-edit" className="text-sm text-gray-700">שלח תזכורת במייל</label>
             {sendReminders && (
-              <select
-                value={reminderDays}
-                onChange={(e) => setReminderDays(e.target.value)}
-                className="px-3 py-1 border border-gray-200 rounded-lg text-sm text-black"
-              >
-                <option value="1">יום לפני</option>
-                <option value="2">יומיים לפני</option>
-                <option value="7">שבוע לפני</option>
-              </select>
+              <div style={{ minWidth: '120px' }}>
+                <FormSelect
+                  value={reminderDays}
+                  onChange={setReminderDays}
+                  options={[
+                    { value: '1', label: 'יום לפני' },
+                    { value: '2', label: 'יומיים לפני' },
+                    { value: '7', label: 'שבוע לפני' },
+                  ]}
+                  openUpward
+                />
+              </div>
             )}
           </div>
 
