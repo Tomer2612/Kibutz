@@ -288,11 +288,13 @@ function TimePicker({
         className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-black bg-white text-right"
         dir="ltr"
       />
-      <ClockIcon
-        size={16}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600"
+      <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-      />
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600"
+      >
+        <ClockIcon size={16} />
+      </button>
 
       {isOpen && (
         <>
