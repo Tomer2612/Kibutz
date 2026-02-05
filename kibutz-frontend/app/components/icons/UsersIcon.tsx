@@ -1,12 +1,21 @@
 'use client';
 
-export default function UsersIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+interface UsersIconProps {
+  className?: string;
+  size?: number;
+  color?: string;
+}
+
+export default function UsersIcon({ className = "w-3.5 h-3.5", size, color = "currentColor" }: UsersIconProps) {
   return (
     <svg 
       viewBox="0 0 14 14" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg" 
       className={className}
+      width={size}
+      height={size}
+      style={{ color }}
     >
       <path 
         d="M10.4954 12.2487C10.4954 11.011 10.0038 9.82404 9.12861 8.94887C8.25344 8.0737 7.06645 7.58203 5.82878 7.58203C4.5911 7.58203 3.40411 8.0737 2.52894 8.94887C1.65377 9.82404 1.16211 11.011 1.16211 12.2487" 

@@ -1,10 +1,19 @@
-export default function EditIcon({ className = "w-4 h-4" }: { className?: string }) {
+interface EditIconProps {
+  className?: string;
+  size?: number;
+  color?: string;
+}
+
+export default function EditIcon({ className = "w-4 h-4", size, color = "currentColor" }: EditIconProps) {
   return (
     <svg 
       viewBox="0 0 16 16" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      width={size}
+      height={size}
+      style={{ color }}
     >
       <path 
         d="M8.66675 14H14.0001" 

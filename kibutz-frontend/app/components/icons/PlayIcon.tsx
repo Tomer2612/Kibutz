@@ -1,10 +1,18 @@
-export default function PlayIcon({ className = "w-12 h-12" }: { className?: string }) {
+interface PlayIconProps {
+  className?: string;
+  size?: number;
+  color?: string;
+}
+
+export default function PlayIcon({ className = "w-12 h-12", size, color }: PlayIconProps) {
   return (
     <svg 
       viewBox="0 0 48 48" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      width={size}
+      height={size}
     >
       {/* Background Circle */}
       <rect 
