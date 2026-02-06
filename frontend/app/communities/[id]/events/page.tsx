@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, forwardRef, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { compressImage } from '../../../lib/imageCompression';
 import { useCommunityContext } from '../CommunityContext';
 import FormSelect from '../../../components/FormSelect';
 import CalendarSelect from '../../../components/CalendarSelect';
@@ -1435,15 +1436,17 @@ function AddEventModal({
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setCoverImage(file);
+      // Compress image before setting
+      const compressedFile = await compressImage(file);
+      setCoverImage(compressedFile);
       const reader = new FileReader();
       reader.onloadend = () => {
         setCoverImagePreview(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(compressedFile);
     }
   };
 
@@ -1907,11 +1910,13 @@ function EditEventModal({
     event.coverImage ? `${event.coverImage}` : null
   );
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setCoverImage(file);
-      setCoverImagePreview(URL.createObjectURL(file));
+      // Compress image before setting
+      const compressedFile = await compressImage(file);
+      setCoverImage(compressedFile);
+      setCoverImagePreview(URL.createObjectURL(compressedFile));
     }
   };
 

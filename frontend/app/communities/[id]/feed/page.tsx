@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaExternalLinkAlt } from 'react-icons/fa';
+import { compressImages } from '../../lib/imageCompression';
 import ImageIcon from '../../../components/icons/ImageIcon';
 import LinkIcon from '../../../components/icons/LinkIcon';
 import { useCommunityContext } from '../CommunityContext';
@@ -643,7 +644,7 @@ function CommunityFeedContent() {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const inputAccept = e.target.accept;
     
@@ -667,15 +668,18 @@ function CommunityFeedContent() {
       }
     }
     
-    // Process images - slice to max 6 total
+    // Process images - compress and slice to max 6 total
     if (validImages.length > 0) {
+      // Compress images before adding (max 1920px, quality 0.85)
+      const compressedImages = await compressImages(validImages);
+      
       setNewPostImages(prev => {
-        const combined = [...prev, ...validImages];
+        const combined = [...prev, ...compressedImages];
         return combined.slice(0, 6);
       });
       
       // Only read previews for files that will be kept (first 6 minus existing)
-      const imagesToAdd = validImages.slice(0, Math.max(0, 6 - newPostImages.length));
+      const imagesToAdd = compressedImages.slice(0, Math.max(0, 6 - newPostImages.length));
       imagesToAdd.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {

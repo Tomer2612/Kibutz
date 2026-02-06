@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaYoutube, FaWhatsapp, FaFacebook, FaInstagram } from 'react-icons/fa';
+import { compressImage, compressImages } from '../../../lib/imageCompression';
 import { useCommunityContext } from '../CommunityContext';
 import FormSelect from '../../../components/FormSelect';
 import PlusIcon from '../../../components/icons/PlusIcon';
@@ -256,26 +257,32 @@ export default function ManageCommunityPage() {
     fetchCommunity();
   }, [communityId, userId, router]);
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Compress logo before setting
+    const compressedFile = await compressImage(file);
+    
     const reader = new FileReader();
     reader.onloadend = () => {
-      setLogo({ file, preview: reader.result as string, isExisting: false });
+      setLogo({ file: compressedFile, preview: reader.result as string, isExisting: false });
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(compressedFile);
     
     if (logoInputRef.current) {
       logoInputRef.current.value = '';
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     
-    Array.from(files).forEach((file) => {
+    // Compress all images
+    const compressedFiles = await compressImages(Array.from(files));
+    
+    compressedFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const newImage: ImageFile = {

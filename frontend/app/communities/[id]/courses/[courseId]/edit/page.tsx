@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, Fragment } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaSave } from 'react-icons/fa';
+import { compressImage } from '../../../../../lib/imageCompression';
 import CommunityNavbar from '../../../../../components/CommunityNavbar';
 import LinkIcon from '../../../../../components/icons/LinkIcon';
 import VideoOffIcon from '../../../../../components/icons/VideoOffIcon';
@@ -451,15 +452,17 @@ export default function EditCoursePage() {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Compress image before setting
+      const compressedFile = await compressImage(file);
       setCourse(prev => {
         if (!prev) return prev;
         return {
           ...prev,
-          newImage: file,
-          imagePreview: URL.createObjectURL(file),
+          newImage: compressedFile,
+          imagePreview: URL.createObjectURL(compressedFile),
         };
       });
     }
