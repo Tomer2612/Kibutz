@@ -100,10 +100,10 @@ export default function SiteHeader({ hideNavLinks = false, hideAuthButtons = fal
               </Link>
               <Link
                 href="/signup"
-                className="bg-black text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition"
-            >
-              הרשמה
-            </Link>
+                className="bg-black text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition border-2 border-black"
+              >
+                הרשמה
+              </Link>
           </div>
           )
         ) : (
