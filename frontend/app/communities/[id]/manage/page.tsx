@@ -279,8 +279,19 @@ export default function ManageCommunityPage() {
     const files = e.target.files;
     if (!files) return;
     
+    // Limit total images to 9
+    const currentCount = images.length;
+    const maxAllowed = 9 - currentCount;
+    if (maxAllowed <= 0) {
+      alert('ניתן להעלות עד 9 תמונות לגלריה');
+      return;
+    }
+    
+    // Take only as many as allowed
+    const filesToProcess = Array.from(files).slice(0, maxAllowed);
+    
     // Compress all images
-    const compressedFiles = await compressImages(Array.from(files));
+    const compressedFiles = await compressImages(filesToProcess);
     
     compressedFiles.forEach((file) => {
       const reader = new FileReader();
