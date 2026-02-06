@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaExternalLinkAlt } from 'react-icons/fa';
-import { compressImages } from '../../lib/imageCompression';
+import { compressImages } from '../../../lib/imageCompression';
 import ImageIcon from '../../../components/icons/ImageIcon';
 import LinkIcon from '../../../components/icons/LinkIcon';
 import { useCommunityContext } from '../CommunityContext';
