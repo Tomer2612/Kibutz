@@ -434,7 +434,7 @@ export default function ManageCommunityPage() {
       setMessage('הקהילה עודכנה בהצלחה!');
       setMessageType('success');
       setTimeout(() => {
-        router.push(`/communities/${communityId}`);
+        router.push(`/communities/${communityId}/about`);
       }, 3000);
     } catch (err: any) {
       console.error('Community update error:', err);
