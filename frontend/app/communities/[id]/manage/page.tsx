@@ -455,8 +455,6 @@ export default function ManageCommunityPage() {
   };
 
   const handleUpdateSlug = async () => {
-    console.log('handleUpdateSlug called', { slug, communitySlug: community?.slug });
-    
     if (!slug.trim()) {
       setSlugError('יש להזין כתובת URL');
       return;
@@ -473,7 +471,6 @@ export default function ManageCommunityPage() {
     }
 
     const token = localStorage.getItem('token');
-    console.log('Token exists:', !!token);
     if (!token) {
       setSlugError('יש להתחבר מחדש');
       return;
@@ -484,22 +481,17 @@ export default function ManageCommunityPage() {
       setSlugError('');
       setSlugSuccess('');
 
-      console.log('Checking slug availability...');
       // Check availability first
       const checkRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/communities/check-slug/${slug}?excludeId=${communityId}`
       );
-      console.log('Check slug response:', checkRes.status);
       const checkData = await checkRes.json();
-      console.log('Check slug data:', checkData);
 
       if (!checkData.available) {
-        console.log('Slug not available!');
         setSlugError('הכתובת הזו כבר תפוסה');
         return;
       }
 
-      console.log('Slug available, proceeding to update...');
       // Update slug
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/slug`, {
         method: 'PATCH',
@@ -510,15 +502,11 @@ export default function ManageCommunityPage() {
         body: JSON.stringify({ slug }),
       });
 
-      console.log('PATCH response:', res.status);
-
       if (!res.ok) {
         const errorData = await res.json();
-        console.log('PATCH error:', errorData);
         throw new Error(errorData.message || 'Failed to update slug');
       }
 
-      console.log('Slug updated successfully!');
       setSlugSuccess('הכתובת עודכנה בהצלחה! מעביר...');
       
       // Redirect to new slug URL after short delay
@@ -526,7 +514,6 @@ export default function ManageCommunityPage() {
         router.push(`/communities/${slug}/manage`);
       }, 1000);
     } catch (err: any) {
-      console.error('Slug update error:', err);
       setSlugError(err.message || 'שגיאה בעדכון הכתובת');
     } finally {
       setSlugLoading(false);
@@ -694,10 +681,7 @@ export default function ManageCommunityPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          console.log('Slug button clicked!', { slug, communitySlug: community?.slug, disabled: slugLoading || !slug.trim() || slug === community?.slug });
-                          handleUpdateSlug();
-                        }}
+                        onClick={handleUpdateSlug}
                         disabled={slugLoading || !slug.trim() || slug === community?.slug}
                         className="px-4 py-3.5 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm whitespace-nowrap"
                       >
