@@ -74,6 +74,12 @@ export class CommunitiesController {
     return this.communitiesService.findAll();
   }
 
+  @Get('check-slug/:slug')
+  async checkSlug(@Param('slug') slug: string, @Query('excludeId') excludeId?: string) {
+    const isAvailable = await this.communitiesService.isSlugAvailable(slug, excludeId);
+    return { available: isAvailable };
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.communitiesService.findById(id);
@@ -296,12 +302,6 @@ export class CommunitiesController {
   ) {
     const userId = req.user.userId;
     return this.communitiesService.updateRules(id, userId, body.rules);
-  }
-
-  @Get('check-slug/:slug')
-  async checkSlug(@Param('slug') slug: string, @Query('excludeId') excludeId?: string) {
-    const isAvailable = await this.communitiesService.isSlugAvailable(slug, excludeId);
-    return { available: isAvailable };
   }
 
   @UseGuards(AuthGuard('jwt'))
