@@ -494,10 +494,12 @@ export default function ManageCommunityPage() {
       console.log('Check slug data:', checkData);
 
       if (!checkData.available) {
+        console.log('Slug not available!');
         setSlugError('הכתובת הזו כבר תפוסה');
         return;
       }
 
+      console.log('Slug available, proceeding to update...');
       // Update slug
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/communities/${communityId}/slug`, {
         method: 'PATCH',
@@ -508,11 +510,15 @@ export default function ManageCommunityPage() {
         body: JSON.stringify({ slug }),
       });
 
+      console.log('PATCH response:', res.status);
+
       if (!res.ok) {
         const errorData = await res.json();
+        console.log('PATCH error:', errorData);
         throw new Error(errorData.message || 'Failed to update slug');
       }
 
+      console.log('Slug updated successfully!');
       setSlugSuccess('הכתובת עודכנה בהצלחה! מעביר...');
       
       // Redirect to new slug URL after short delay
