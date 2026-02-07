@@ -1108,36 +1108,37 @@ export default function CreateCoursePage() {
                                           </div>
                                         </div>
                                       ))}
-                                      <label className="flex flex-col items-center justify-center h-24 rounded-lg cursor-pointer hover:bg-gray-50 transition" style={{ border: '1px dashed #D0D0D4' }}>
-                                        <ImageIcon size={20} color="#9CA3AF" className="mb-1" />
-                                        <span className="text-xs text-gray-500">לחץ להעלאת תמונות (עד 6)</span>
-                                        <input
-                                          type="file"
-                                          accept="image/*"
-                                          multiple
-                                          className="hidden"
-                                          onChange={async (e) => {
-                                            const files = e.target.files;
-                                            if (!files || files.length === 0) return;
-                                            
-                                            const currentCount = (lesson.imageFiles || []).length + (lesson.images || []).length;
-                                            const maxAllowed = 6 - currentCount;
-                                            if (maxAllowed <= 0) {
-                                              alert('ניתן להעלות עד 6 תמונות לשיעור');
+                                      {(lesson.imageFiles || []).length < 6 && (
+                                        <label className="flex flex-col items-center justify-center h-24 rounded-lg cursor-pointer hover:bg-gray-50 transition" style={{ border: '1px dashed #D0D0D4' }}>
+                                          <ImageIcon size={20} color="#9CA3AF" className="mb-1" />
+                                          <span className="text-xs text-gray-500">לחץ להעלאת תמונות (עד 6)</span>
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            multiple
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                              const files = e.target.files;
+                                              if (!files || files.length === 0) return;
+                                              
+                                              const currentCount = (lesson.imageFiles || []).length;
+                                              const maxAllowed = 6 - currentCount;
+                                              if (maxAllowed <= 0) {
+                                                e.target.value = '';
+                                                return;
+                                              }
+                                              
+                                              const filesToProcess = Array.from(files).slice(0, maxAllowed);
+                                              const compressedFiles = await compressImages(filesToProcess);
+                                              
+                                              updateLesson(chapterIndex, lessonIndex, { 
+                                                imageFiles: [...(lesson.imageFiles || []), ...compressedFiles] 
+                                              });
                                               e.target.value = '';
-                                              return;
-                                            }
-                                            
-                                            const filesToProcess = Array.from(files).slice(0, maxAllowed);
-                                            const compressedFiles = await compressImages(filesToProcess);
-                                            
-                                            updateLesson(chapterIndex, lessonIndex, { 
-                                              imageFiles: [...(lesson.imageFiles || []), ...compressedFiles] 
-                                            });
-                                            e.target.value = '';
-                                          }}
-                                        />
-                                      </label>
+                                            }}
+                                          />
+                                        </label>
+                                      )}
                                     </div>
                                   </div>
                                   

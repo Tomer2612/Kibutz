@@ -434,7 +434,7 @@ export default function ManageCommunityPage() {
       setMessage('הקהילה עודכנה בהצלחה!');
       setMessageType('success');
       setTimeout(() => {
-        router.push(`/communities/${communityId}/feed`);
+        router.push(`/communities/${communityId}`);
       }, 3000);
     } catch (err: any) {
       console.error('Community update error:', err);
@@ -867,13 +867,18 @@ export default function ManageCommunityPage() {
                     onChange={handleImageUpload}
                     className="hidden"
                     id="image-upload"
+                    disabled={images.length >= 9}
                   />
                   <label
                     htmlFor="image-upload"
-                    className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition"
+                    className={`flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed rounded-lg transition ${
+                      images.length >= 9
+                        ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
+                        : 'border-gray-300 cursor-pointer hover:border-gray-400 hover:bg-gray-50'
+                    }`}
                   >
                     <ImageIcon size={20} color="#9CA3AF" />
-                    <span className="text-gray-600">לחץ להעלאת תמונות</span>
+                    <span className="text-gray-600">{images.length >= 9 ? 'הגעת למקסימום 9 תמונות' : 'לחץ להעלאת תמונות'}</span>
                   </label>
                 </div>
                 </div>
