@@ -455,6 +455,8 @@ export default function ManageCommunityPage() {
   };
 
   const handleUpdateSlug = async () => {
+    console.log('handleUpdateSlug called', { slug, communitySlug: community?.slug });
+    
     if (!slug.trim()) {
       setSlugError('יש להזין כתובת URL');
       return;
@@ -471,18 +473,25 @@ export default function ManageCommunityPage() {
     }
 
     const token = localStorage.getItem('token');
-    if (!token) return;
+    console.log('Token exists:', !!token);
+    if (!token) {
+      setSlugError('יש להתחבר מחדש');
+      return;
+    }
 
     try {
       setSlugLoading(true);
       setSlugError('');
       setSlugSuccess('');
 
+      console.log('Checking slug availability...');
       // Check availability first
       const checkRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/communities/check-slug/${slug}?excludeId=${communityId}`
       );
+      console.log('Check slug response:', checkRes.status);
       const checkData = await checkRes.json();
+      console.log('Check slug data:', checkData);
 
       if (!checkData.available) {
         setSlugError('הכתובת הזו כבר תפוסה');
@@ -679,7 +688,10 @@ export default function ManageCommunityPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={handleUpdateSlug}
+                        onClick={() => {
+                          console.log('Slug button clicked!', { slug, communitySlug: community?.slug, disabled: slugLoading || !slug.trim() || slug === community?.slug });
+                          handleUpdateSlug();
+                        }}
                         disabled={slugLoading || !slug.trim() || slug === community?.slug}
                         className="px-4 py-3.5 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm whitespace-nowrap"
                       >
